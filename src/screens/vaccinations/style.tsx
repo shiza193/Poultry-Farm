@@ -33,27 +33,25 @@ const styles = StyleSheet.create({
     },
     friendIcon: { width: 30, height: 30, resizeMode: "contain" },
     dotsOverlay: {
-        position: "absolute",
-        top: 60,
-        right: 16,
+        position: 'absolute',
+        top: 0,
         left: 0,
+        right: 0,
         bottom: 0,
-        backgroundColor: "transparent",
-        zIndex: 999,
+        zIndex: 1000,
     },
     dotsMenu: {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: 170,
+        position: 'absolute',
+        top: 50,
+        right: 20,
         backgroundColor: Theme.colors.white,
-        borderRadius: 8,
-        paddingVertical: 8,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
+        borderRadius: 10,
+        padding: 10,
+        elevation: 10,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 5,
-        elevation: 5,
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
     },
     dotsMenuItemCustom: {
         paddingVertical: 10,
@@ -97,15 +95,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         backgroundColor: Theme.colors.white,
         height: 45,
+        position: "relative", 
+        zIndex: 10,
     },
-
     searchIcon: {
         width: 18,
         height: 18,
         resizeMode: "contain",
         marginRight: 8,
     },
-
     searchInput: {
         flex: 1,
         fontSize: 14,
@@ -117,23 +115,19 @@ const styles = StyleSheet.create({
         width: 150,
         zIndex: 2000,
     },
-
     dropdown: {
         borderColor: Theme.colors.borderLight,
         borderRadius: 10,
         height: 45,
     },
-
     dropdownContainer: {
         borderColor: Theme.colors.borderLight,
         borderRadius: 10,
     },
-
     dropdownText: {
         fontSize: 14,
         color: Theme.colors.textPrimary,
     },
-
 });
 
 export default styles

@@ -7,17 +7,18 @@ import {
     TouchableOpacity,
     Image,
     Alert,
-    ActivityIndicator,
 } from "react-native";
 import SidebarWrapper from "../../components/customButtons/SidebarWrapper";
 import { CustomConstants } from "../../constants/CustomConstants";
 import DataCard from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
-import { getVaccinations, Vaccination, getSuppliers } from "../../services/VaccinationService";
+import { getVaccinations, Vaccination, getSuppliers, getVaccines, addVaccination } from "../../services/VaccinationService";
 import DropDownPicker from "react-native-dropdown-picker";
 import { TextInput } from "react-native";
 import styles from "./style";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import AddModal from "../../components/customPopups/AddModal";
+import { showErrorToast, toastAddSuccess } from "../../utils/AppToast";
 const VaccinationsScreen = () => {
     const activeScreen = CustomConstants.VACCINATIONS_SCREEN;
 
@@ -29,6 +30,9 @@ const VaccinationsScreen = () => {
     const [supplierOpen, setSupplierOpen] = useState(false);
     const [supplierValue, setSupplierValue] = useState<string | null>(null);
     const [supplierItems, setSupplierItems] = useState<any[]>([]);
+    const [addVaccinationModalVisible, setAddVaccinationModalVisible] = useState(false);
+    const [vaccineItems, setVaccineItems] = useState<{ label: string; value: string }[]>([]);
+
     const businessUnitId = "157cc479-dc81-4845-826c-5fb991bd3d47";
 
     // Header labels for DataCard
@@ -67,6 +71,15 @@ const VaccinationsScreen = () => {
 
         fetchSuppliers();
     }, []);
+    useEffect(() => {
+        const fetchVaccines = async () => {
+            const data = await getVaccines(); // API call
+            setVaccineItems(data);
+            console.log("Vaccines fetched:", data);
+        };
+
+        fetchVaccines();
+    }, []);
     const filteredVaccinations = vaccinations.filter((item) => {
         // supplier filter
         const supplierMatch = supplierValue
@@ -80,8 +93,39 @@ const VaccinationsScreen = () => {
 
         return supplierMatch && searchMatch;
     });
+    const handleAddVaccination = async (data: any) => {
+        const payload = {
+            vaccineId: data.vaccine,
+            date: data.date.toISOString().split("T")[0],
+            quantity: Number(data.quantity),
+            price: Number(data.price || 0),
+            note: data.note || "",
+            supplierId: data.supplier,
+            businessUnitId: businessUnitId,
+            isPaid: data.paymentStatus === "Paid",
+        };
+        try {
+            setLoading(true);
+            const res = await addVaccination(payload);
+            console.log("Vaccination added:", res);
+
+            if (res.status === "Success") {
+                setVaccinations(prev => [...prev, res.data]);
+                toastAddSuccess();
+            } else {
+                showErrorToast(res.message || "Failed to add vaccination");
+            }
+        } catch (error: any) {
+            showErrorToast(error.message || "Something went wrong");
+        } finally {
+            setLoading(false);
+        }
+    };
     return (
-        <SidebarWrapper activeScreen={activeScreen} setActiveScreen={() => { }}>
+        <SidebarWrapper
+            activeScreen={activeScreen}
+            setActiveScreen={() => { }}
+        >
             <View style={styles.container}>
                 <LoadingOverlay
                     visible={loading}
@@ -138,7 +182,7 @@ const VaccinationsScreen = () => {
                             <TouchableOpacity
                                 style={styles.dotsMenuItemCustom}
                                 onPress={() => {
-                                    Alert.alert("Add New Vaccination clicked");
+                                    setAddVaccinationModalVisible(true);
                                     setIsDotsMenuVisible(false);
                                 }}
                             >
@@ -211,6 +255,18 @@ const VaccinationsScreen = () => {
                         </View>
                     </ScrollView>
                 </ScrollView>
+                <AddModal
+                    visible={addVaccinationModalVisible}
+                    type="vaccination"
+                    title="Add Vaccination"
+                    onClose={() => setAddVaccinationModalVisible(false)}
+                    onSave={(data) => {
+                        handleAddVaccination(data);
+                        setAddVaccinationModalVisible(false);
+                    }}
+                    vaccineItems={vaccineItems}
+                    supplierItems={supplierItems}
+                />
             </View>
         </SidebarWrapper>
     );

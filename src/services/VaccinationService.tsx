@@ -84,3 +84,39 @@ export const getSuppliers = async (businessUnitId: string) => {
     return [];
   }
 };
+
+
+export const getVaccines = async () => {
+  try {
+    const response = await api.get('api/Master/get-vaccines');
+    if (response.data && response.data.status === 'Success') {
+      return response.data.data.map((v: any) => ({
+        label: v.name,
+        value: v.vaccineId.toString(),
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching vaccines:', error);
+    return [];
+  }
+};
+
+export const addVaccination = async (payload: {
+  vaccineId: number;
+  date: string;
+  quantity: number;
+  price: number;
+  note: string;
+  supplierId: string;
+  businessUnitId: string;
+  isPaid: boolean;
+}) => {
+  try {
+    const response = await api.post(`api/Vaccination/add-vaccination`, payload);
+    return response.data; 
+  } catch (error: any) {
+    console.log("Add Vaccination API error:", error.response || error.message);
+    throw error;
+  }
+};

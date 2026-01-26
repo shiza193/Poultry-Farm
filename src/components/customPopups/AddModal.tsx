@@ -11,12 +11,12 @@ import {
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
 import { getBusinessUnits } from '../../services/BusinessUnit';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 
-type ModalType = 'user' | 'customer' | 'employee';
+type ModalType = 'user' | 'customer' | 'employee' | 'vaccination';
 
 interface AddModalProps {
   visible: boolean;
@@ -25,6 +25,9 @@ interface AddModalProps {
   onClose: () => void;
   onSave: (data: any) => void;
   roleItems?: { label: string; value: string }[];
+  vaccineItems?: { label: string; value: string }[];
+  supplierItems?: { label: string; value: string }[];
+
 }
 
 const AddModal: React.FC<AddModalProps> = ({
@@ -34,6 +37,8 @@ const AddModal: React.FC<AddModalProps> = ({
   onClose,
   onSave,
   roleItems,
+  vaccineItems,
+  supplierItems,
 }) => {
   /* ===== COMMON ===== */
   const [name, setName] = useState('');
@@ -68,76 +73,97 @@ const AddModal: React.FC<AddModalProps> = ({
 
   const [typeOpen, setTypeOpen] = useState(false);
 
-const [employeeType, setEmployeeType] = useState<string | null>(null);
-const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([]);
+  const [employeeType, setEmployeeType] = useState<string | null>(null);
+  const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([]);
 
   const [showJoiningPicker, setShowJoiningPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
-
-
+  /* ===== VACCINATION ===== */
+  const [vaccine, setVaccine] = useState<string | null>(null);
+  const [supplier, setSupplier] = useState<string | null>(null);
+  const [vaccineOpen, setVaccineOpen] = useState(false);
+  const [supplierOpen, setSupplierOpen] = useState(false); const [quantity, setQuantity] = useState('');
+  const [vaccinationDate, setVaccinationDate] = useState<Date | null>(null);
+  const [showVaccinationPicker, setShowVaccinationPicker] = useState(false);
+  const [price, setPrice] = useState('');
+  const [note, setNote] = useState('');
+  /* ===== VACCINATION PAYMENT STATUS ===== */
+  const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
 
   useEffect(() => {
-  if (type === 'employee') {
-    const fetchEmployeeTypes = async () => {
-      try {
-        const data = await getEmployeeTypes();
-        setTypeItems(
-          data.map((item: any) => ({
-            label: item.name,
-            value: item.employeeTypeId,
-          }))
-        );
-      } catch (error) {
-        console.log('Employee type error', error);
-      }
-    };
+    if (type === 'employee') {
+      const fetchEmployeeTypes = async () => {
+        try {
+          const data = await getEmployeeTypes();
+          setTypeItems(
+            data.map((item: any) => ({
+              label: item.name,
+              value: item.employeeTypeId,
+            }))
+          );
+        } catch (error) {
+          console.log('Employee type error', error);
+        }
+      };
 
-    fetchEmployeeTypes();
-  }
-}, [type]);
+      fetchEmployeeTypes();
+    }
+  }, [type]);
 
   /* ===== VALIDATION ===== */
   useEffect(() => {
-  if (type === 'employee') {
-    const isValid =
-      name.trim().length > 0 &&
-      employeeType !== null &&
-      businessUnit !== null && // poultry farm
-      salary.trim().length > 0 &&
-      joiningDate !== null; // REQUIRED
+    if (type === 'employee') {
+      const isValid =
+        name.trim().length > 0 &&
+        employeeType !== null &&
+        businessUnit !== null &&
+        salary.trim().length > 0 &&
+        joiningDate !== null; // REQUIRED
 
-    setIsSaveEnabled(isValid);
-    return;
-  }
+      setIsSaveEnabled(isValid);
+      return;
+    }
 
-  // ===== USER =====
-  if (type === 'user') {
-    const isValid =
-      name.trim().length > 0 &&
-      role !== null &&
-      isValidEmail(email) &&
-      isValidPassword(password);
+    // ===== USER =====
+    if (type === 'user') {
+      const isValid =
+        name.trim().length > 0 &&
+        role !== null &&
+        isValidEmail(email) &&
+        isValidPassword(password);
 
-    setIsSaveEnabled(isValid);
-    return;
-  }
-
-  // ===== CUSTOMER =====
-  if (type === 'customer') {
-    setIsSaveEnabled(name.trim().length > 0 && businessUnit !== null);
-  }
-}, [
-  type,
-  name,
-  employeeType,
-  businessUnit,
-  salary,
-  joiningDate,
-  role,
-  email,
-  password,
-]);
-
+      setIsSaveEnabled(isValid);
+      return;
+    }
+    if (type === 'vaccination') {
+      const isValid =
+        vaccine !== null &&
+        quantity.trim().length > 0 &&
+        vaccinationDate !== null &&
+        supplier !== null;
+      setIsSaveEnabled(isValid);
+      return;
+    }
+    // ===== CUSTOMER =====
+    if (type === 'customer') {
+      setIsSaveEnabled(name.trim().length > 0 && businessUnit !== null);
+    }
+  }, [
+    type,
+    name,
+    employeeType,
+    businessUnit,
+    salary,
+    joiningDate,
+    role,
+    email,
+    password,
+      // ✅ Add vaccination fields here
+  vaccine,
+  supplier,
+  quantity,
+  vaccinationDate,
+  ]);
 
   const reset = () => {
     setName('');
@@ -151,6 +177,14 @@ const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([
     setRoleOpen(false);
     setBuOpen(false);
     setEmailError('');
+    // ✅ Vaccination fields
+    setVaccine(null);
+    setSupplier(null);
+    setQuantity('');
+    setVaccinationDate(null);
+    setPrice('');
+    setNote('');
+    setPaymentStatus('Paid');
   };
 
   useEffect(() => {
@@ -167,25 +201,33 @@ const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([
 
   /* ===== SAVE ===== */
   const handleSave = () => {
-  if (type === 'employee') {
-    onSave({
-      name,
-      employeeType,
-      poultryFarm: businessUnit, 
-      salary,
-      joiningDate,
-      endDate,
-    });
-  } else if (type === 'user') {
-    onSave({ name, role, email, password });
-  } else {
-    onSave({ name, businessUnit, phone, email, address });
-  }
-
-  reset();
-  onClose();
-};
-
+    if (type === 'employee') {
+      onSave({
+        name,
+        employeeType,
+        poultryFarm: businessUnit,
+        salary,
+        joiningDate,
+        endDate,
+      });
+    } else if (type === 'user') {
+      onSave({ name, role, email, password });
+    } else if (type === 'customer') {
+      onSave({ name, businessUnit, phone, email, address });
+    } else if (type === 'vaccination') {
+      onSave({
+        vaccine,
+        quantity,
+        date: vaccinationDate,
+        supplier,
+        price,
+        note,
+        paymentStatus
+      });
+    }
+    reset();
+    onClose();
+  };
 
   return (
     <Modal transparent visible={visible} animationType="fade">
@@ -196,15 +238,19 @@ const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([
           </Text>
 
           {/* NAME */}
-          <Text style={styles.label}>
-            Name<Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter name..."
-            value={name}
-            onChangeText={setName}
-          />
+          {type !== 'vaccination' && (
+            <>
+              <Text style={styles.label}>
+                Name<Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter name..."
+                value={name}
+                onChangeText={setName}
+              />
+            </>
+          )}
 
           {/* USER */}
           {type === 'user' && (
@@ -338,15 +384,15 @@ const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([
                 Type<Text style={styles.required}>*</Text>
               </Text>
               <DropDownPicker
-  open={typeOpen}
-  value={employeeType}
-  items={typeItems}
-  setOpen={setTypeOpen}
-  setValue={setEmployeeType}
-  placeholder="Select type..."
-  style={styles.dropdown}
-  dropDownContainerStyle={styles.dropdownContainer}
-/>
+                open={typeOpen}
+                value={employeeType}
+                items={typeItems}
+                setOpen={setTypeOpen}
+                setValue={setEmployeeType}
+                placeholder="Select type..."
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
 
 
               <Text style={styles.label}>
@@ -423,6 +469,121 @@ const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([
               )}
             </>
           )}
+          {type === 'vaccination' && (
+            <>
+              {/* VACCINE */}
+              <Text style={styles.label}>
+                Vaccine<Text style={styles.required}>*</Text>
+              </Text>
+              <DropDownPicker
+                open={vaccineOpen}
+                value={vaccine}
+                items={vaccineItems || []}
+                setOpen={setVaccineOpen}
+                setValue={setVaccine}
+                placeholder="Select vaccine..."
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
+              {/* QUANTITY */}
+              <Text style={styles.label}>
+                Quantity<Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter quantity..."
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+              />
+
+              {/* DATE */}
+              <Text style={styles.label}>
+                Date<Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.inputWithIcon}
+                onPress={() => setShowVaccinationPicker(true)}
+              >
+                <Text style={{ flex: 1 }}>
+                  {vaccinationDate ? vaccinationDate.toLocaleDateString() : 'mm/dd/yyyy'}
+                </Text>
+                <Image
+                  source={Theme.icons.date}
+                  style={styles.dateIcon}
+                />
+              </TouchableOpacity>
+              {showVaccinationPicker && (
+                <DateTimePicker
+                  value={vaccinationDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event: DateTimePickerEvent, date?: Date) => {
+                    if (event.type === 'set' && date) {
+                      setVaccinationDate(date);
+                    }
+                    setShowVaccinationPicker(false);
+                  }}
+                />
+              )}
+
+              {/* SUPPLIER */}
+              <Text style={styles.label}>
+                Supplier<Text style={styles.required}>*</Text>
+              </Text>
+              <DropDownPicker
+                open={supplierOpen}
+                value={supplier}
+                items={supplierItems || []}
+                setOpen={setSupplierOpen}
+                setValue={setSupplier}
+                placeholder="Select supplier..."
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
+
+              {/* PRICE */}
+              <Text style={styles.label}>Price</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0"
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="numeric"
+              />
+
+              {/* NOTE */}
+              <Text style={styles.label}>Note</Text>
+              <TextInput
+                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                placeholder="Enter note..."
+                multiline
+                value={note}
+                onChangeText={setNote}
+              />
+              {/* PAID / UNPAID RADIO TOGGLE */}
+              <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                {(['Paid', 'Unpaid'] as const).map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={styles.radioContainer}
+                    onPress={() => setPaymentStatus(status)}
+                  >
+                    <View style={[
+                      styles.radioCircle,
+                      paymentStatus === status && styles.radioSelected
+                    ]}>
+                      {paymentStatus === status && (
+                        <View style={styles.radioTick} />
+                      )}
+                    </View>
+                    <Text style={{ marginLeft: 8 }}>{status}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -547,5 +708,32 @@ const styles = StyleSheet.create({
   saveText: {
     color: Theme.colors.white,
     fontWeight: 'bold',
+  },
+  radioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Theme.colors.black,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.white,
+  },
+
+  radioSelected: {
+    backgroundColor: Theme.colors.primaryYellow,
+  },
+
+  radioTick: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Theme.colors.white,
   },
 });
