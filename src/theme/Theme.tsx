@@ -1,0 +1,149 @@
+const colors = {
+  /* ===== Primary Theme ===== */
+  primaryYellow: '#F9C74F',
+  secondaryYellow: '#ecb212',
+
+  /* ===== Base Colors ===== */
+  white: '#FFFFFF',
+  black: '#000000',
+
+  /* ===== Text Colors ===== */
+  textPrimary: '#1F2937',
+  textSecondary: '#6B7280',
+  textWhite: '#FFFFFF',
+
+  /* ===== Backgrounds ===== */
+  background: '#FFFFFF',
+  screenBackground: '#fcfcfc',
+  cardBackground: '#FFFFFF',
+
+  /* ===== Status Colors ===== */
+  success: '#16A34A',
+  warning: '#f3d298',
+  error: '#DC2626',
+  info: '#2563EB',
+
+  /* ===== Borders ===== */
+  borderLight: '#E5E7EB',
+  borderYellow: '#F9C74F',
+  grey: '#B0B0B0',
+  lightGrey: '#f5f5f5',
+  /* ===== Poultry ===== */
+  eggYellow: '#FFD60A',
+  chickenBrown: '#8D5524',
+  feedGreen: '#4CAF50',
+
+  /* ===== Buttons ===== */
+  buttonPrimary: '#F9C74F',
+  buttonSecondary: '#FFFFFF',
+  buttonDisabled: '#D1D5DB',
+
+  /* ===== Icons ===== */
+  iconPrimary: '#F9C74F',
+  iconSecondary: '#6B7280',
+  dropdowncolor: '#ccc',
+  paginationcolor: '#f5c75d',
+  login: '#d49a13',
+
+  motalitycolor: '#f5bebe',
+  feedcolor: '#d1f3d2',
+  toast:'#fceac3',
+    sold: '#b8bdec',
+
+};
+
+const icons = {
+  /* ===== splash+login ===== */
+  logo: require('../resources/images/logo.png'),
+  hidePassword: require('../resources/images/hidePassword.png'),
+  showPassword: require('../resources/images/showPassword.png'),
+
+  /* ===== Poultry dashboard ===== */
+  dashboard: require('../resources/images/dashboard.png'),
+  logo2: require('../resources/images/logo2.png'),
+  location1: require('../resources/images/location1.png'),
+  close1: require('../resources/images/close1.png'),
+dots:require('../resources/images/dots.png'),
+  add: require('../resources/images/add.png'),
+  close: require('../resources/images/close.png'),
+  customer: require('../resources/images/customer.png'),
+  employee: require('../resources/images/employee.png'),
+  logout1: require('../resources/images/logout1.png'),
+  back: require('../resources/images/back.png'),
+  motality: require('../resources/images/motality.png'),
+  production: require('../resources/images/production.png'),
+  nodata: require('../resources/images/nodata.png'),
+  date: require('../resources/images/date.png'),
+  information: require('../resources/images/information.png'),
+
+  hospital: require('../resources/images/hospital.png'),
+
+  injection: require('../resources/images/injection.png'),
+  pdf: require('../resources/images/pdf.png'),
+
+  management: require('../resources/images/management.png'),
+
+  home: require('../resources/images/home.png'),
+  logout: require('../resources/images/logout.png'),
+  supplier: require('../resources/images/supplier.png'),
+  user: require('../resources/images/user.png'),
+  farm: require('../resources/images/farm.jpg'),
+  edit: require('../resources/images/edit.png'),
+  bin: require('../resources/images/bin.png'),
+  open: require('../resources/images/open.png'),
+
+  feedGreen: require('../resources/images/feedGreen.png'),
+  finance: require('../resources/images/finance.png'),
+  egg: require('../resources/images/egg.png'),
+
+  hen: require('../resources/images/hen.png'),
+  filter: require('../resources/images/filter.png'),
+
+  search: require('../resources/images/search.png'),
+  dropdown: require('../resources/images/dropdown.png'),
+  vschedule: require('../resources/images/vschedule.png'),
+  vaccinesch1: require('../resources/images/vaccinesch1.png'),
+  vstock: require('../resources/images/vstock.png'),
+
+  birds: require('../resources/images/birds.png'),
+  eggs: require('../resources/images/eggs.png'),
+  feeds: require('../resources/images/feeds.png'),
+  moneys: require('../resources/images/moneys.png'),
+  vaccines: require('../resources/images/vaccines.png'),
+  plus: require('../resources/images/plus.png'),
+  tick: require('../resources/images/tick.png'),
+  dropdowns: require('../resources/images/dropdowns.png'),
+  feedc: require('../resources/images/feedc.png'),
+  animal: require('../resources/images/animal.png'),
+  setting: require('../resources/images/setting.png'),
+  receivables: require('../resources/images/receivables.png'),
+  payable: require('../resources/images/payable.png'),
+  star: require('../resources/images/star.png'),
+download: require('../resources/images/download.png'),
+  ledger: require('../resources/images/ledger.png'),
+
+  voucture: require('../resources/images/voucture.png'),
+
+  image1: require('../resources/images/image1.png'),
+  image2: require('../resources/images/image2.png'),
+  image3: require('../resources/images/image3.png'),
+  image4: require('../resources/images/image4.png'),
+  image5: require('../resources/images/image5.png'),
+  image6: require('../resources/images/image6.png'),
+  image7: require('../resources/images/image7.png'),
+  image8: require('../resources/images/image8.png'),
+  image9: require('../resources/images/image9.png'),
+
+
+
+    happy: require('../resources/images/happy.png'),
+    anger: require('../resources/images/anger.png'),
+
+};
+
+const Theme = {
+  colors,
+  icons,
+};
+
+export default Theme;
