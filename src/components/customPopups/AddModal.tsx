@@ -11,10 +11,12 @@ import {
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
 import { getBusinessUnits } from '../../services/BusinessUnit';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { isValidEmail, isValidPassword } from '../../utils/validation';
+import { getEmployeeTypes } from '../../services/EmployeeService';
 
-type ModalType = 'user' | 'customer';
+type ModalType = 'user' | 'customer' | 'employee';
 
 interface AddModalProps {
   visible: boolean;
@@ -58,20 +60,84 @@ const AddModal: React.FC<AddModalProps> = ({
     [],
   );
 
-  /* ===== VALIDATION (FIXED) ===== */
-  useEffect(() => {
-    if (type === 'user') {
-      const isValid =
-        name.trim().length > 0 &&
-        role !== null &&
-        isValidEmail(email) &&
-        isValidPassword(password);
+  // Inside AddModal component
+  const [poultryFarm, setPoultryFarm] = useState<string | null>(null);
+  const [salary, setSalary] = useState('');
+  const [joiningDate, setJoiningDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
-      setIsSaveEnabled(isValid);
-    } else {
-      setIsSaveEnabled(name.trim().length > 0 && businessUnit !== null);
-    }
-  }, [name, role, email, password, businessUnit, type]);
+  const [typeOpen, setTypeOpen] = useState(false);
+
+const [employeeType, setEmployeeType] = useState<string | null>(null);
+const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([]);
+
+  const [showJoiningPicker, setShowJoiningPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
+
+
+  useEffect(() => {
+  if (type === 'employee') {
+    const fetchEmployeeTypes = async () => {
+      try {
+        const data = await getEmployeeTypes();
+        setTypeItems(
+          data.map((item: any) => ({
+            label: item.name,
+            value: item.employeeTypeId,
+          }))
+        );
+      } catch (error) {
+        console.log('Employee type error', error);
+      }
+    };
+
+    fetchEmployeeTypes();
+  }
+}, [type]);
+
+  /* ===== VALIDATION ===== */
+  useEffect(() => {
+  if (type === 'employee') {
+    const isValid =
+      name.trim().length > 0 &&
+      employeeType !== null &&
+      businessUnit !== null && // poultry farm
+      salary.trim().length > 0 &&
+      joiningDate !== null; // REQUIRED
+
+    setIsSaveEnabled(isValid);
+    return;
+  }
+
+  // ===== USER =====
+  if (type === 'user') {
+    const isValid =
+      name.trim().length > 0 &&
+      role !== null &&
+      isValidEmail(email) &&
+      isValidPassword(password);
+
+    setIsSaveEnabled(isValid);
+    return;
+  }
+
+  // ===== CUSTOMER =====
+  if (type === 'customer') {
+    setIsSaveEnabled(name.trim().length > 0 && businessUnit !== null);
+  }
+}, [
+  type,
+  name,
+  employeeType,
+  businessUnit,
+  salary,
+  joiningDate,
+  role,
+  email,
+  password,
+]);
+
 
   const reset = () => {
     setName('');
@@ -101,14 +167,25 @@ const AddModal: React.FC<AddModalProps> = ({
 
   /* ===== SAVE ===== */
   const handleSave = () => {
-    if (type === 'user') {
-      onSave({ name, role, email, password });
-    } else {
-      onSave({ name, businessUnit, phone, email, address });
-    }
-    reset();
-    onClose();
-  };
+  if (type === 'employee') {
+    onSave({
+      name,
+      employeeType,
+      poultryFarm: businessUnit, 
+      salary,
+      joiningDate,
+      endDate,
+    });
+  } else if (type === 'user') {
+    onSave({ name, role, email, password });
+  } else {
+    onSave({ name, businessUnit, phone, email, address });
+  }
+
+  reset();
+  onClose();
+};
+
 
   return (
     <Modal transparent visible={visible} animationType="fade">
@@ -227,7 +304,7 @@ const AddModal: React.FC<AddModalProps> = ({
 
               {/* EMAIL */}
               <Text style={styles.label}>Email</Text>
-                 <TextInput
+              <TextInput
                 style={styles.input}
                 placeholder="Enter email..."
                 value={email}
@@ -256,6 +333,97 @@ const AddModal: React.FC<AddModalProps> = ({
             </>
           )}
 
+          {type === 'employee' && (
+            <>
+              <Text style={styles.label}>
+                Type<Text style={styles.required}>*</Text>
+              </Text>
+              <DropDownPicker
+  open={typeOpen}
+  value={employeeType}
+  items={typeItems}
+  setOpen={setTypeOpen}
+  setValue={setEmployeeType}
+  placeholder="Select type..."
+  style={styles.dropdown}
+  dropDownContainerStyle={styles.dropdownContainer}
+/>
+
+
+              <Text style={styles.label}>
+                Salary<Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter salary..."
+                value={salary}
+                onChangeText={setSalary}
+                keyboardType="numeric"
+              />
+              <Text style={styles.label}>
+                Poultry Farm<Text style={styles.required}>*</Text>
+              </Text>
+              <DropDownPicker
+                open={buOpen}
+                value={businessUnit}
+                items={buItems}
+                setOpen={setBuOpen}
+                setValue={setBusinessUnit}
+                setItems={setBuItems}
+                placeholder="Select Poultry Farm..."
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
+              {/* ===== EMPLOYEE DATES ===== */}
+              <Text style={styles.label}>
+                Joining Date<Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.inputWithIcon}
+                onPress={() => setShowJoiningPicker(true)}
+              >
+                <Text style={{ flex: 1 }}>
+                  {joiningDate
+                    ? joiningDate.toLocaleDateString()
+                    : 'mm/dd/yyyy'}
+                </Text>
+                <Image source={Theme.icons.date} style={styles.dateIcon} />
+              </TouchableOpacity>
+              {showJoiningPicker && (
+                <DateTimePicker
+                  value={joiningDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(_, date) => {
+                    setShowJoiningPicker(false);
+                    if (date) setJoiningDate(date);
+                  }}
+                />
+              )}
+
+              <Text style={styles.label}>End Date</Text>
+              <TouchableOpacity
+                style={styles.inputWithIcon}
+                onPress={() => setShowEndPicker(true)}
+              >
+                <Text style={{ flex: 1 }}>
+                  {endDate ? endDate.toLocaleDateString() : 'mm/dd/yyyy'}
+                </Text>
+                <Image source={Theme.icons.date} style={styles.dateIcon} />
+              </TouchableOpacity>
+              {showEndPicker && (
+                <DateTimePicker
+                  value={endDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(_, date) => {
+                    setShowEndPicker(false);
+                    if (date) setEndDate(date);
+                  }}
+                />
+              )}
+            </>
+          )}
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -353,6 +521,24 @@ const styles = StyleSheet.create({
     color: Theme.colors.primaryYellow,
     fontWeight: 'bold',
   },
+  inputWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Theme.colors.borderLight,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: Theme.colors.lightGrey,
+    marginBottom: 10,
+  },
+
+  dateIcon: {
+    width: 20,
+    height: 20,
+    tintColor: Theme.colors.buttonPrimary,
+    marginLeft: 10,
+  },
+
   saveButton: {
     backgroundColor: Theme.colors.primaryYellow,
   },
