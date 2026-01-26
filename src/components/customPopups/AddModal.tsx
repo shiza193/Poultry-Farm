@@ -196,7 +196,6 @@ const AddModal: React.FC<AddModalProps> = ({
           )}
 
           {/* CUSTOMER */}
-          {/* CUSTOMER */}
           {type === 'customer' && (
             <>
               {/* BUSINESS UNIT */}

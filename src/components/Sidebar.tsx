@@ -87,22 +87,22 @@ const eggsSubItems = [
 const vaccinationsSubItems = [
   {
     name: 'Vaccinations',
-    tab: 'Schedule',
+    tab: 'vaccinations',
     icon: Theme.icons.vaccinesch1,
-    screen: CustomConstants.FLOCK_SALE_SCREEN,
+    screen: CustomConstants.VACCINATIONS_SCREEN,
   },
 
   {
     name: 'Vaccine Schedule',
     tab: 'Schedule',
     icon: Theme.icons.vschedule,
-    screen: CustomConstants.FLOCK_SALE_SCREEN,
+    screen: CustomConstants.VACCINE_SCHEDULE_SCREEN,
   },
   {
     name: 'Vaccine Stock',
     tab: 'Stock',
     icon: Theme.icons.vstock,
-    screen: CustomConstants.FLOCK_SALE_SCREEN,
+    screen: CustomConstants.VACCINATION_STOCK_SCREEEN,
   },
 ];
 

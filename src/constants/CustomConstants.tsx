@@ -22,11 +22,13 @@ export const CustomConstants = {
   EGG_SALE_SCREEN: 'EggSaleScreen',
   MAIN_LAYOUT: 'MainLayout',
   EGG_TABS: 'EggTabs',
-  
-    EMPLOYEE_SCREEN: 'EmployeeScreen',
 
-    ABOUT_US_SCREEN: 'AboutUsScreen',
+  EMPLOYEE_SCREEN: 'EmployeeScreen',
 
+  ABOUT_US_SCREEN: 'AboutUsScreen',
+  VACCINATIONS_SCREEN: "VaccinationsScreen",
+  VACCINE_SCHEDULE_SCREEN: "VaccineScheduleScreen",
+  VACCINATION_STOCK_SCREEEN: "VaccinationStockScreen",
 } as const;
 
 // ScreenType only includes tabs that MainLayout handles
@@ -42,4 +44,10 @@ export type ScreenType =
   | typeof CustomConstants.DASHBOARD_DETAIL_SCREEN
   | typeof CustomConstants.EGG_STOCK_SCREEN
   | typeof CustomConstants.EGG_SALE_SCREEN
-  | typeof CustomConstants.EGG_PRODUCTION_SCREEN;
+  | typeof CustomConstants.EGG_PRODUCTION_SCREEN
+  | typeof CustomConstants.VACCINATIONS_SCREEN
+  | typeof CustomConstants.VACCINATION_STOCK_SCREEEN
+  | typeof CustomConstants.VACCINE_SCHEDULE_SCREEN;
+
+
+

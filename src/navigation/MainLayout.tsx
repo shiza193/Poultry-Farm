@@ -15,6 +15,9 @@ import EggProductionScreen from '../screens/eggs/EggProductionScreen';
 import EggStockScreen from '../screens/eggs/EggStockScreen';
 import EggSaleScreen from '../screens/eggs/EggSaleScreen';
 import SidebarWrapper from '../components/customButtons/SidebarWrapper';
+import VaccinationsScreen from '../screens/vaccinations/VaccinationsScreen';
+import VaccinationStockScreen from '../screens/vaccinations/VaccinationStockScreen';
+import VaccineScheduleScreen from '../screens/vaccinations/VaccineScheduleScreen';
 
 const MainLayout = () => {
   // Sidebar visibility
@@ -39,34 +42,41 @@ const MainLayout = () => {
 
   // Render content based on active screen
   const renderContent = () => {
-  switch (activeScreen) {
-    case CustomConstants.DASHBOARD_DETAIL_SCREEN:
-      return <DashboardDetailScreen />;
+    switch (activeScreen) {
+      case CustomConstants.DASHBOARD_DETAIL_SCREEN:
+        return <DashboardDetailScreen />;
 
-    // 🐔 FLOCKS
-    case CustomConstants.FLOCKS_SCREEN:
-      return <FlocksScreen />;
-    case CustomConstants.FLOCKS_MORTALITY_SCREEN:
-      return <FlocksMortalityScreen />;
-    case CustomConstants.FLOCK_STOCK_SCREEN:
-      return <FlockStockScreen />;
-    case CustomConstants.FLOCK_SALE_SCREEN:
-      return <FlockSaleScreen />;
-    case CustomConstants.HOSPITALITY_SCREEN:
-      return <HospitalityScreen />;
+      // 🐔 FLOCKS
+      case CustomConstants.FLOCKS_SCREEN:
+        return <FlocksScreen />;
+      case CustomConstants.FLOCKS_MORTALITY_SCREEN:
+        return <FlocksMortalityScreen />;
+      case CustomConstants.FLOCK_STOCK_SCREEN:
+        return <FlockStockScreen />;
+      case CustomConstants.FLOCK_SALE_SCREEN:
+        return <FlockSaleScreen />;
+      case CustomConstants.HOSPITALITY_SCREEN:
+        return <HospitalityScreen />;
 
-    // 🥚 EGGS
-    case CustomConstants.EGG_PRODUCTION_SCREEN:
-      return <EggProductionScreen />;
-    case CustomConstants.EGG_STOCK_SCREEN:
-      return <EggStockScreen />;
-    case CustomConstants.EGG_SALE_SCREEN:
-      return <EggSaleScreen />;
-
-    default:
-      return <DashboardDetailScreen />;
-  }
-};
+      // 🥚 EGGS
+      case CustomConstants.EGG_PRODUCTION_SCREEN:
+        return <EggProductionScreen />;
+      case CustomConstants.EGG_STOCK_SCREEN:
+        return <EggStockScreen />;
+      case CustomConstants.EGG_SALE_SCREEN:
+        return <EggSaleScreen />;
+        
+      // VACCINATIONS
+      case CustomConstants.VACCINATIONS_SCREEN:
+        return <VaccinationsScreen />;
+      case CustomConstants.VACCINATION_STOCK_SCREEEN:
+        return <VaccinationStockScreen />;
+      case CustomConstants.VACCINE_SCHEDULE_SCREEN:
+        return <VaccineScheduleScreen />;
+      default:
+        return <DashboardDetailScreen />;
+    }
+  };
 
 
   return (
@@ -92,12 +102,12 @@ const MainLayout = () => {
       </TouchableOpacity>
 
       {/* Main Content */}
-         <SidebarWrapper
-      activeScreen={activeScreen}
-      setActiveScreen={setActiveScreen}
-    >
-      {renderContent()}
-    </SidebarWrapper>
+      <SidebarWrapper
+        activeScreen={activeScreen}
+        setActiveScreen={setActiveScreen}
+      >
+        {renderContent()}
+      </SidebarWrapper>
     </SafeAreaView>
   );
 };

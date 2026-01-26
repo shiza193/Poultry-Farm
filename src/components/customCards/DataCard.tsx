@@ -54,6 +54,14 @@ interface Labels {
   eggSaleGram?: string;
   eggSalePrice?: string;
   eggSaleQuantity?: string;
+
+  // Vaccinations Table Props
+  showVaccinations?: boolean;
+  vaccineName?: string;
+  supplierName?: string;
+  vaccineDate?: string;
+  vaccineQuantity?: number | string; 
+  vaccinePrice?: number | string;
 }
 
 interface Props {
@@ -124,6 +132,14 @@ interface Props {
   eggSaleGram?: number;
   eggSalePrice?: number;
   eggSaleQuantity?: number;
+
+  // Vaccinations Table Props
+  showVaccinations?: boolean;
+  vaccineName?: string;
+  supplierName?: string;
+  vaccineDate?: string;
+  vaccineQuantity?: number | string;
+  vaccinePrice?: number | string;
 }
 
 const DataCard: React.FC<Props> = ({
@@ -192,6 +208,14 @@ const DataCard: React.FC<Props> = ({
   eggSaleGram,
   eggSalePrice,
   eggSaleQuantity,
+
+  // Vaccinations Table Props
+  showVaccinations = false,
+  vaccineName,
+  supplierName,
+  vaccineDate,
+  vaccineQuantity,
+  vaccinePrice,
 }) => {
   const isActive = status === 'Active';
 
@@ -470,6 +494,46 @@ const DataCard: React.FC<Props> = ({
     );
   }
 
+
+  /* ================= VACCINATIONS TABLE ================= */
+  if (showVaccinations) {
+    return (
+      <View style={[styles.row, isHeader && styles.headerRow]}>
+        <Text style={styles.cell}>
+          {isHeader ? labels?.vaccineName || 'VACCINE NAME' : vaccineName}
+        </Text>
+        <Text style={styles.cell}>
+          {isHeader ? labels?.supplierName || 'Supplier' : supplierName}
+          {/* <-- FIXED */}
+        </Text>
+        <Text style={styles.cell}>
+          {isHeader ? labels?.vaccineDate || 'Date' : vaccineDate}
+          {/* <-- FIXED */}
+        </Text>
+        <Text style={styles.cell}>
+          {isHeader ? labels?.vaccineQuantity || 'Quantity' : vaccineQuantity}
+          {/* <-- FIXED */}
+        </Text>
+        <Text style={styles.cell}>
+          {isHeader ? labels?.vaccinePrice || 'Price' : vaccinePrice}
+          {/* <-- FIXED */}
+        </Text>
+        <Text style={styles.cell}>
+          {isHeader ? 'Actions' : (
+            <View style={styles.cellActions}>
+              <TouchableOpacity onPress={onEdit}>
+                <Image source={Theme.icons.edit} style={styles.icon} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onDelete}>
+                <Image source={Theme.icons.bin} style={styles.icon} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.row, isHeader && styles.headerRow]}>
       <Text style={[styles.cellName, isHeader && styles.headerText]}>
@@ -625,7 +689,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
     tintColor: Theme.colors.primaryYellow,
   },
-
+  delicon: {
+    width: 18,
+    height: 18,
+    marginHorizontal: 6,
+    tintColor: Theme.colors.error,
+  },
   // Flock & Flock Sale Table Cell
   cell: { width: 140, textAlign: 'center', fontSize: 12, fontWeight: '600' },
 });

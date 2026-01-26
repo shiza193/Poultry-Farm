@@ -19,6 +19,9 @@ import EggProductionScreen from "../screens/eggs/EggProductionScreen";
 import EggSaleScreen from "../screens/eggs/EggSaleScreen";
 import EggStockScreen from "../screens/eggs/EggStockScreen";
 import AboutUsScreen from "../screens/AboutUsScreen";
+import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
+import VaccinationStockScreen from "../screens/vaccinations/VaccineScheduleScreen";
+import VaccineScheduleScreen from "../screens/vaccinations/VaccinationStockScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -95,6 +98,18 @@ const AuthStackNavigation = () => {
         <Stack.Screen
         name={CustomConstants.ABOUT_US_SCREEN}
         component={AboutUsScreen}
+      />
+        <Stack.Screen
+        name={CustomConstants.VACCINATIONS_SCREEN}
+        component={VaccinationsScreen}
+      />
+         <Stack.Screen
+        name={CustomConstants.VACCINATION_STOCK_SCREEEN}
+        component={VaccinationStockScreen}
+      />
+         <Stack.Screen
+        name={CustomConstants.VACCINE_SCHEDULE_SCREEN}
+        component={VaccineScheduleScreen}
       />
     </Stack.Navigator>
   );

@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     position: 'absolute',
-    top: 20,
+    top: 1,
     left: 10,
     zIndex: 30,
   },
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.buttonPrimary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 46,
     elevation: 3,
   },
 });
