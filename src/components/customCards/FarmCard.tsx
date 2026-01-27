@@ -8,8 +8,13 @@ interface FarmCardProps {
   location: string;
   users: number;
   employees: number;
+
+  onUserCountPress?: () => void;
+  onEmployeeCountPress?: () => void;
+
   onAddUser?: () => void;
   onAddEmployee?: () => void;
+
   onPressTitle?: () => void;
   onEdit?: () => void;
   onDelete: () => void;
@@ -21,6 +26,8 @@ const FarmCard: React.FC<FarmCardProps> = ({
   location,
   users,
   employees,
+  onUserCountPress,
+  onEmployeeCountPress,
   onAddUser,
   onAddEmployee,
   onPressTitle,
@@ -29,23 +36,21 @@ const FarmCard: React.FC<FarmCardProps> = ({
 }) => {
   return (
     <View style={styles.card}>
-      {/* ===== LEFT IMAGE (FULL HEIGHT) ===== */}
+      {/* LEFT IMAGE */}
       <Image source={image} style={styles.image} />
 
-      {/* ===== RIGHT DETAILS ===== */}
+      {/* RIGHT DETAILS */}
       <View style={styles.details}>
         {/* HEADER: TITLE + ACTION ICONS */}
         <View style={styles.headerRow}>
-          {/* ===== TITLE ===== */}
           <TouchableOpacity onPress={onPressTitle} style={{ flex: 1 }}>
-            <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
           </TouchableOpacity>
 
-          {/* ===== ACTION ICONS ===== */}
           <View style={styles.actionIcons}>
-            {/* ===== EDIT ICON ===== */}
+            {/* EDIT ICON */}
             <TouchableOpacity
               style={[styles.iconWrapper, { backgroundColor: '#E5F8FF' }]}
               onPress={onEdit}
@@ -53,14 +58,11 @@ const FarmCard: React.FC<FarmCardProps> = ({
             >
               <Image
                 source={Theme.icons.edit}
-                style={[
-                  styles.actionImage,
-                  { tintColor: Theme.colors.textPrimary },
-                ]}
+                style={[styles.actionImage, { tintColor: Theme.colors.textPrimary }]}
               />
             </TouchableOpacity>
 
-            {/* ===== DELETE ICON ===== */}
+            {/* DELETE ICON */}
             <TouchableOpacity
               style={[styles.iconWrapper, { backgroundColor: '#FDE2E2' }]}
               onPress={onDelete}
@@ -82,9 +84,10 @@ const FarmCard: React.FC<FarmCardProps> = ({
 
         {/* STATS */}
         <View style={styles.statsRow}>
+          {/* TOTAL USERS */}
           <TouchableOpacity
             style={styles.statItem}
-            onPress={onAddUser}
+            onPress={onUserCountPress}
             activeOpacity={0.7}
           >
             <Text style={styles.statLabel}>TOTAL USERS</Text>
@@ -96,9 +99,10 @@ const FarmCard: React.FC<FarmCardProps> = ({
             </View>
           </TouchableOpacity>
 
+          {/* EMPLOYEES */}
           <TouchableOpacity
             style={styles.statItem}
-            onPress={onAddEmployee}
+            onPress={onEmployeeCountPress}
             activeOpacity={0.7}
           >
             <Text style={styles.statLabel}>EMPLOYEES</Text>
@@ -285,6 +289,7 @@ const styles = StyleSheet.create({
     color: Theme.colors.secondaryYellow,
     marginRight: 6,
   },
+
   buttonText: {
     fontSize: 12,
     fontWeight: '600',

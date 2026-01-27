@@ -1,12 +1,22 @@
 // services/employeeService.js
 import api from '../api/Api';
 
+
+type GetEmployeesParams = {
+  searchKey?: string | null;
+  isActive?: boolean | null;
+  pageNumber?: number;
+  pageSize?: number;
+  businessUnitId?: string | null;
+};
+
 export const getEmployees = async ({
   searchKey = null,
   isActive = null,
   pageNumber = 1,
   pageSize = 10,
-} = {}) => {
+  businessUnitId = null, // 👈 ADD THIS
+}: GetEmployeesParams = {}) => {
   try {
     const response = await api.post(
       'api/Employee/get-employee-by-search-and-filter-with-pagination',
@@ -15,8 +25,10 @@ export const getEmployees = async ({
         isActive,
         pageNumber,
         pageSize,
+        businessUnitId, // 👈 SEND TO BACKEND
       },
     );
+
     return response.data;
   } catch (error) {
     console.error('Error fetching employees:', error);
@@ -78,6 +90,19 @@ export const addEmployee = async (payload: AddEmployeePayload) => {
     return response.data; // { status, message, data }
   } catch (error) {
     console.error('Add employee error:', error);
+    throw error;
+  }
+};
+
+
+
+export const deleteEmployee = async (employeeId: string) => {
+  try {
+    const response = await api.delete(`api/Employee/delete-employee/${employeeId}`);
+    console.log('Delete Employee Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Delete Employee Error:', error.response || error.message);
     throw error;
   }
 };

@@ -22,6 +22,8 @@ import AboutUsScreen from "../screens/AboutUsScreen";
 import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
 import VaccinationStockScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
+import EmployeeScreen from "../screens/EmployeeScreen";
+import SupplierScreen from "../screens/SupplierScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -46,6 +48,10 @@ const AuthStackNavigation = () => {
         <Stack.Screen
         name={CustomConstants.CUSTOMER_SCREEN}
         component={CustomerScreen}
+      />
+         <Stack.Screen
+        name={CustomConstants.SUPPILER_SCREEN}
+        component={SupplierScreen}
       />
        <Stack.Screen
         name={CustomConstants.DASHBOARD_SCREEN}
@@ -111,6 +117,11 @@ const AuthStackNavigation = () => {
         name={CustomConstants.VACCINE_SCHEDULE_SCREEN}
         component={VaccineScheduleScreen}
       />
+       <Stack.Screen
+        name={CustomConstants.EMPLOYEE_SCREEN}
+        component={EmployeeScreen}
+      />
+      
     </Stack.Navigator>
   );
 };

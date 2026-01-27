@@ -82,3 +82,16 @@ export const changeUserStatus = async (payload: ChangeUserStatusPayload) => {
     throw error;
   }
 };
+
+
+
+export const deleteUser = async (userId: string) => {
+  try {
+    const response = await api.delete(`api/User/delete-user/${userId}`);
+    console.log('Delete User Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Delete User Error:', error.response || error.message);
+    throw error;
+  }
+};

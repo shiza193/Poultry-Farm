@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRoute } from '@react-navigation/native';
 
 import TopBarCard from '../components/customCards/TopBarCard';
 import {
@@ -8,6 +9,7 @@ import {
   getUserRoles,
   getUsers,
   changeUserStatus,
+  deleteUser,
 } from '../services/UserScreen';
 
 import UserCard from '../components/customCards/UserCard';
@@ -15,6 +17,8 @@ import AddModal from '../components/customPopups/AddModal';
 import Theme from '../theme/Theme';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
+import { useBusinessUnit } from '../context/BusinessContext';
+import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 
 type User = {
   id: string;
@@ -23,62 +27,63 @@ type User = {
   email: string;
   isActive: boolean;
   role?: string;
+  businessUnitId: string;
 };
 
 const UserScreen = () => {
   const insets = useSafeAreaInsets();
+  const route = useRoute<any>();
+  const { businessUnitId: contextBU } = useBusinessUnit();
+
+  const routeBusinessUnitId = route.params?.businessUnitId ?? null;
 
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<User[]>([]);
-  const [roleItems, setRoleItems] = useState<{ label: string; value: string }[]>([]);
+  const [roleItems, setRoleItems] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-
+  const [selectedBU, setSelectedBU] = useState<string | null>(
+    routeBusinessUnitId || null,
+  );
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [pageNumber, setPageNumber] = useState(1);
   const [loading, setLoading] = useState(true);
+  const pageSize = 50;
 
-  const pageSize = 5;
-
-  // Fetch user roles on mount
-  React.useEffect(() => {
+  // ================= FETCH ROLES =================
+  useEffect(() => {
     const fetchRoles = async () => {
       try {
         const roles = await getUserRoles();
         setRoleItems(
-          roles.map((r: any) => ({
-            label: r.value,
-            value: r.key.toString(),
-          })),
+          roles.map((r: any) => ({ label: r.value, value: r.key.toString() })),
         );
       } catch (error) {
-        showErrorToast('Failed to fetch roles'); // show toast for backend error
+        showErrorToast('Failed to fetch roles');
         console.log('Failed to fetch roles', error);
       }
     };
-
     fetchRoles();
   }, []);
 
-  // Fetch users when search or pageNumber changes
-  React.useEffect(() => {
-    fetchUsers();
-  }, [search, pageNumber]);
-
-  // Fetch users function
+  // ================= FETCH USERS =================
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const payload = {
+
+      const payload: any = {
         searchKey: search || null,
         businessTypeId: null,
         isActive: null,
-        pageNumber,
+        pageNumber: 1,
         pageSize,
       };
+      if (selectedBU) payload.businessUnitId = selectedBU;
 
       const response = await getUsers(payload);
       const dataList = response.list || [];
-      console.log('Fetched Users:', dataList);
 
       const mappedUsers: User[] = dataList.map((u: any) => ({
         id: u.userId,
@@ -86,7 +91,8 @@ const UserScreen = () => {
         email: u.email,
         isActive: u.isActive,
         role: u.userRole || '',
-        image: u.imageLink || '',
+        image: u.imageLink || '', 
+        businessUnitId: u.businessUnitId || '',
       }));
 
       setUsers(mappedUsers);
@@ -98,105 +104,136 @@ const UserScreen = () => {
     }
   };
 
-  // Open add user modal
-  const handleAddUser = () => {
-    setShowAddModal(true);
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, [search, status, selectedBU]);
 
-  // Save new user
-  const handleSaveUser = async (data: { name: string; role: string; email: string; password: string }) => {
+  // ================= FILTER USERS =================
+  const filteredUsers = users.filter(user => {
+    if (status === 'active' && !user.isActive) return false;
+    if (status === 'inactive' && user.isActive) return false;
+
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !user.name.toLowerCase().includes(q) &&
+        !user.email.toLowerCase().includes(q)
+      )
+        return false;
+    }
+
+    if (selectedBU && user.businessUnitId !== selectedBU) return false;
+
+    return true;
+  });
+
+  // ================= HANDLERS =================
+  const handleAddUser = () => setShowAddModal(true);
+
+  const handleSaveUser = async (data: {
+    name: string;
+    role: string;
+    email: string;
+    password: string;
+  }) => {
     try {
       const roleObj = roleItems.find(r => r.value === data.role);
-      if (!roleObj) {
-        showErrorToast('Invalid role selected');
-        return;
-      }
+      if (!roleObj) return showErrorToast('Invalid role selected');
 
       const payload = {
         fullName: data.name,
         email: data.email,
         password: data.password,
         userRoleId: Number(roleObj.value),
+        businessUnitId: contextBU,
       };
 
       const res = await addUser(payload);
+      if (res.error) return showErrorToast(res.error);
 
-      if (res.error) {
-        showErrorToast(res.error); 
-        return;
-      }
+      //   ider ya is vaja sa add kia ha like jb user add ho to 
+      //  full screen refresh ho jy or card per image set ho jy api vali
 
-      const newUser: User = {
-        id: res.data?.id || (users.length + 1).toString(),
-        name: data.name,
-        email: data.email,
-        isActive: true,
-        role: roleObj.label,
-        image: res.data?.imageLink || '',
-      };
+      await fetchUsers();
 
-      setUsers(prev => [...prev, newUser]);
-      showSuccessToast(res.message || 'User added successfully'); 
+      showSuccessToast(res.message || 'User added successfully');
     } catch (error) {
       showErrorToast('Failed to add user');
       console.error('Add user failed', error);
     } finally {
-      setShowAddModal(false); // close modal
+      setShowAddModal(false);
     }
   };
 
-  // Toggle user active/inactive status
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const payload = { userId: id, isActive: !currentStatus };
-      const res = await changeUserStatus(payload);
-
-      if (res.error) {
-        showErrorToast(res.error); 
-        return;
-      }
+      const res = await changeUserStatus({
+        userId: id,
+        isActive: !currentStatus,
+      });
+      if (res.error) return showErrorToast(res.error);
 
       setUsers(prev =>
-        prev.map(user => (user.id === id ? { ...user, isActive: !user.isActive } : user)),
+        prev.map(u => (u.id === id ? { ...u, isActive: !currentStatus } : u)),
       );
-
-      showSuccessToast(res.message || `User status updated to ${!currentStatus ? 'Active' : 'Inactive'}`);
+      showSuccessToast(
+        res.message ||
+          `User status updated to ${!currentStatus ? 'Active' : 'Inactive'}`,
+      );
     } catch (error) {
-      showErrorToast('Failed to update user status'); 
+      showErrorToast('Failed to update user status');
     }
   };
 
-  // Delete user
-  const handleDeleteUser = (id: string) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
-    showSuccessToast('User deleted successfully'); 
+  const handleDeletePress = (id: string) => {
+    setSelectedUserId(id);
+    setDeleteModalVisible(true);
   };
 
-  // Reset password (for simplicity, just show toast)
-  const handleResetPassword = (name: string) => {
-    showSuccessToast(`Reset password for ${name}`); 
+  const handleConfirmDelete = async () => {
+    if (!selectedUserId) return;
+
+    try {
+      const res = await deleteUser(selectedUserId);
+      if (res.error || res.success === false) {
+        const msg = res.error || res.message || 'Failed to delete user';
+        return showErrorToast(msg);
+      }
+
+      setUsers(prev => prev.filter(u => u.id !== selectedUserId));
+      showSuccessToast(res.message || 'User deleted successfully');
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to delete user';
+      showErrorToast(msg);
+      console.error('Delete user failed', error);
+    } finally {
+      setDeleteModalVisible(false);
+      setSelectedUserId(null);
+    }
   };
 
-  // Filter users based on status
-  const filteredUsers = users.filter(user => {
-    if (status === 'active') return user.isActive === true;
-    if (status === 'inactive') return user.isActive === false;
-    return true;
-  });
+  const resetFilters = () => {
+    setSearch('');
+    setStatus('all');
+    setSelectedBU(null);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Top bar with search, add, and status filter */}
       <TopBarCard
         onAddPress={handleAddUser}
         searchValue={search}
         onSearchChange={setSearch}
         status={status}
         onStatusChange={setStatus}
-        onReset={() => setStatus('all')}
+        value={selectedBU}
+        onBusinessUnitChange={setSelectedBU}
+        onReset={resetFilters}
       />
 
-      {/* User list */}
       {filteredUsers.length > 0 ? (
         <FlatList
           data={filteredUsers}
@@ -205,10 +242,12 @@ const UserScreen = () => {
           renderItem={({ item }) => (
             <UserCard
               user={item}
-              onPressName={() => showSuccessToast(item.name)} // toast instead of alert
+              onPressName={() => showSuccessToast(item.name)}
               onToggleStatus={() => handleToggleStatus(item.id, item.isActive)}
-              onPressDelete={() => handleDeleteUser(item.id)}
-              onResetPassword={() => handleResetPassword(item.name)}
+              onPressDelete={() => handleDeletePress(item.id)}
+              onResetPassword={() =>
+                showSuccessToast(`Reset password for ${item.name}`)
+              }
             />
           )}
         />
@@ -224,7 +263,6 @@ const UserScreen = () => {
         )
       )}
 
-      {/* Add user modal */}
       <AddModal
         visible={showAddModal}
         type="user"
@@ -233,8 +271,14 @@ const UserScreen = () => {
         onClose={() => setShowAddModal(false)}
         onSave={handleSaveUser}
       />
+      <ConfirmationModal
+        type="delete"
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleConfirmDelete}
+        title="Are you sure you want to delete this user?"
+      />
 
-      {/* Loading overlay */}
       <LoadingOverlay visible={loading} />
     </View>
   );
@@ -243,21 +287,8 @@ const UserScreen = () => {
 export default UserScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.white,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  noDataContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noDataImage: {
-    width: 300,
-    height: 360,
-    marginBottom: 90,
-  },
+  container: { flex: 1, backgroundColor: Theme.colors.white },
+  listContent: { paddingBottom: 20 },
+  noDataContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  noDataImage: { width: 300, height: 360, marginBottom: 90 },
 });

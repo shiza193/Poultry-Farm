@@ -70,7 +70,6 @@ const AddModal: React.FC<AddModalProps> = ({
   );
 
   // Inside AddModal component
-  const [poultryFarm, setPoultryFarm] = useState<string | null>(null);
   const [salary, setSalary] = useState('');
   const [joiningDate, setJoiningDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -117,6 +116,8 @@ const AddModal: React.FC<AddModalProps> = ({
       setPaymentStatus('Paid');
     }
   }, [type, isEdit, initialData, visible]);
+const [passwordError, setPasswordError] = useState('');
+
 
   useEffect(() => {
     if (type === 'employee') {
@@ -138,7 +139,7 @@ const AddModal: React.FC<AddModalProps> = ({
     }
   }, [type]);
 
-  /* ===== VALIDATION ===== */
+  
   useEffect(() => {
     if (type === 'employee') {
       const isValid =
@@ -318,31 +319,49 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
               ) : null}
 
-              <Text style={styles.label}>
-                Password<Text style={styles.required}>*</Text>
-              </Text>
-              <View style={{ position: 'relative' }}>
-                <TextInput
-                  style={[styles.input, { paddingRight: 45 }]}
-                  placeholder="********"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: 10, top: 12 }}
-                >
-                  <Image
-                    source={
-                      showPassword
-                        ? Theme.icons.showPassword
-                        : Theme.icons.hidePassword
-                    }
-                    style={{ width: 25, height: 25 }}
-                  />
-                </TouchableOpacity>
-              </View>
+             <Text style={styles.label}>
+  Password<Text style={styles.required}>*</Text>
+</Text>
+<View style={{ position: 'relative' }}>
+  <TextInput
+    style={[styles.input, { paddingRight: 45 }]}
+    placeholder="********"
+    value={password}
+    onChangeText={text => {
+      setPassword(text);
+      // Show validation error below
+      if (text && !isValidPassword(text)) {
+        setPasswordError(
+          'Password must be 8+ chars, include uppercase, lowercase, number & symbol'
+        );
+      } else {
+        setPasswordError('');
+      }
+    }}
+    secureTextEntry={!showPassword}
+  />
+  <TouchableOpacity
+    onPress={() => setShowPassword(!showPassword)}
+    style={{ position: 'absolute', right: 10, top: 12 }}
+  >
+    <Image
+      source={
+        showPassword
+          ? Theme.icons.showPassword
+          : Theme.icons.hidePassword
+      }
+      style={{ width: 25, height: 25 }}
+    />
+  </TouchableOpacity>
+</View>
+
+{/* Show password error */}
+{passwordError ? (
+  <Text style={{ color: 'red', fontSize: 12, marginBottom: 5 }}>
+    {passwordError}
+  </Text>
+) : null}
+
             </>
           )}
 

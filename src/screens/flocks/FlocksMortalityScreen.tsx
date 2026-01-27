@@ -22,6 +22,7 @@ import {
 import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
 import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
 import ScreenTipCard from '../../components/customCards/ScreenTipCard';
+import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlocksMortalityScreen: React.FC = () => {
   const [activeScreen, setActiveScreen] = useState<ScreenType>(
@@ -33,11 +34,15 @@ const FlocksMortalityScreen: React.FC = () => {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedRecordName, setSelectedRecordName] = useState<string>('');
 
-  const businessUnitId = '157cc479-dc81-4845-826c-5fb991bd3d47';
+  const { businessUnitId } = useBusinessUnit();
 
   // Fetch API data
   useEffect(() => {
     const fetchHealthRecords = async () => {
+       if (!businessUnitId) {
+      console.warn('Business Unit ID is not set');
+      return;
+    }
       setLoading(true);
       try {
         const response = await getFlockHealthRecords(businessUnitId, 1);

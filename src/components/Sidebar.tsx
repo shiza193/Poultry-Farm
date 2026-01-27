@@ -165,19 +165,19 @@ const managementSubItems = [
     name: 'Customers',
     tab: 'Customers',
     icon: Theme.icons.customer,
-    screen: CustomConstants.FLOCK_SALE_SCREEN,
+    screen: CustomConstants.CUSTOMER_SCREEN,
   },
   {
     name: 'Suppliers',
     tab: 'Suppliers',
     icon: Theme.icons.supplier,
-    screen: CustomConstants.FLOCK_SALE_SCREEN,
+    screen: CustomConstants.SUPPILER_SCREEN,
   },
   {
     name: 'Employees',
     tab: 'Employees',
     icon: Theme.icons.employee,
-    screen: CustomConstants.FLOCK_SALE_SCREEN,
+    screen: CustomConstants.EMPLOYEE_SCREEN,
   },
   {
     name: 'Settings',

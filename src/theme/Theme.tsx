@@ -24,7 +24,7 @@ const colors = {
   info: '#2563EB',
 
   /* ===== Borders ===== */
-  borderLight: '#ccc',
+  borderLight: '#e7e7e7',
   borderYellow: '#F9C74F',
   grey: '#B0B0B0',
   lightGrey: '#f5f5f5',

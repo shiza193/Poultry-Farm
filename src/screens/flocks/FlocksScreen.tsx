@@ -35,6 +35,7 @@ import {
   CalculateFCRPayload,
 } from '../../services/FlockService';
 import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
+import { useBusinessUnit } from '../../context/BusinessContext';
 
 interface Flock {
   flockId: string;
@@ -52,7 +53,7 @@ interface Flock {
 }
 
 const FlocksScreen = (navigation: any) => {
-  const businessUnitId = '157cc479-dc81-4845-826c-5fb991bd3d47';
+const { businessUnitId } = useBusinessUnit();
 
   // ===== FILTER STATES =====
   const [search, setSearch] = useState('');
@@ -89,37 +90,38 @@ const FlocksScreen = (navigation: any) => {
   const [flockToDelete, setFlockToDelete] = useState<Flock | null>(null);
 
   // ===== FETCH FLOCKS BASED ON FILTERS =====
-  const fetchFlocks = async (
-    filterFlock?: string,
-    filterSupplier?: string,
-    filterComplete?: boolean,
-  ) => {
-    setLoading(true);
-    try {
-      const data = await getFlockByFilter({
-        businessUnitId,
-        searchKey: search,
-        isEnded:
-          filterComplete !== undefined
-            ? filterComplete
-            : complete
-            ? true
-            : null,
-        flockId: filterFlock || null,
-        supplierId: filterSupplier || null,
-        pageNumber: 1,
-        pageSize: 10,
-      });
-      setFlocks(data.list || []);
-    } catch {
-      setFlocks([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchFlocks = async (filterFlock?: string, filterSupplier?: string, filterComplete?: boolean) => {
+  if (!businessUnitId) return; 
+  setLoading(true);
+  try {
+    const data = await getFlockByFilter({
+      businessUnitId,
+      searchKey: search,
+      isEnded: filterComplete !== undefined ? filterComplete : complete ? true : null,
+      flockId: filterFlock || null,
+      supplierId: filterSupplier || null,
+      pageNumber: 1,
+      pageSize: 10,
+    });
+    setFlocks(data.list || []);
+  } catch {
+    setFlocks([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  // ===== FETCH FLOCKS FOR DROPDOWN =====
+useEffect(() => {
+  console.log('businessUnitId changed:', businessUnitId);
+}, [businessUnitId]);
+
+
+
   const fetchDropdownFlocks = async () => {
+    if (!businessUnitId) {
+      console.warn('Business Unit ID is not set');
+      return;
+    }
     const data = await getFlocks(businessUnitId);
     setDropdownItems(
       data.map((i: any) => ({
@@ -129,371 +131,390 @@ const FlocksScreen = (navigation: any) => {
     );
   };
 
-  // ===== FETCH SUPPLIERS =====
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      const data = await getParties(businessUnitId, 1);
-      setSupplierItems(
-        data.map((s: any) => ({ label: s.name, value: s.partyId })),
-      );
-    };
+  
+useEffect(() => {
+  if (!businessUnitId) return;
 
-    fetchSuppliers();
-    fetchDropdownFlocks();
-    fetchFlocks();
-  }, []);
+  // Clear previous flocks
+  setFlocks([]);
 
-  // ===== REFRESH FLOCKS ON SEARCH OR COMPLETE STATUS CHANGE =====
-  useEffect(() => {
-    fetchFlocks();
-  }, [search, complete]);
+  fetchFlocks();
+  fetchDropdownFlocks();
+
+  // Fetch suppliers
+  const fetchSuppliers = async () => {
+    const data = await getParties(businessUnitId, 1);
+    setSupplierItems(
+      data.map((s: any) => ({ label: s.name, value: s.partyId })),
+    );
+  };
+  fetchSuppliers();
+}, [businessUnitId]);
+
+
+
 
   return (
-   <ScrollView
-  style={{ flex: 1, backgroundColor: Theme.colors.white }}
-  contentContainerStyle={{ flexGrow: 1 }}
->
-
-    <SidebarWrapper
-      activeScreen={activeScreen}
-      setActiveScreen={setActiveScreen}
+    <ScrollView
+      style={{ flex: 1, backgroundColor: Theme.colors.white }}
+      contentContainerStyle={{ flexGrow: 1 }}
     >
-      <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
-
-      {/* ===== TOP ROW: TITLE + DOTS MENU ===== */}
-      <View style={styles.topRow}>
-        <Text style={styles.topRowTitle}>My Flocks</Text>
-        <TouchableOpacity
-          style={styles.friendIconContainer}
-          onPress={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
-        >
-          <Image source={Theme.icons.dots} style={styles.friendIcon} />
-        </TouchableOpacity>
-      </View>
-
-      {/* ===== DOTS MENU ===== */}
-      {/* ===== DOTS MENU ===== */}
-      {isDotsMenuVisible && (
-        <TouchableOpacity
-          style={styles.dotsOverlay}
-          activeOpacity={1}
-          onPress={() => setIsDotsMenuVisible(false)}
-        >
-          <View style={styles.dotsMenu}>
-            {/* ===== TOGGLE COMPLETE (keep same) ===== */}
+      <SidebarWrapper
+        activeScreen={activeScreen}
+        setActiveScreen={setActiveScreen}
+      >
+        <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
+          {/* ===== TOP ROW: TITLE + DOTS MENU ===== */}
+          <View style={styles.topRow}>
+            <Text style={styles.topRowTitle}>My Flocks</Text>
             <TouchableOpacity
-              style={styles.dotsMenuItem}
-              onPress={() => {
-                setComplete(!complete);
-                setIsDotsMenuVisible(false);
-              }}
+              style={styles.friendIconContainer}
+              onPress={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
             >
-              <View style={styles.menuItemRow}>
-                <View
-                  style={[
-                    styles.checkboxSmall,
-                    complete && { backgroundColor: Theme.colors.primaryYellow },
-                  ]}
+              <Image source={Theme.icons.dots} style={styles.friendIcon} />
+            </TouchableOpacity>
+          </View>
+
+          {/* ===== DOTS MENU ===== */}
+          {/* ===== DOTS MENU ===== */}
+          {isDotsMenuVisible && (
+            <TouchableOpacity
+              style={styles.dotsOverlay}
+              activeOpacity={1}
+              onPress={() => setIsDotsMenuVisible(false)}
+            >
+              <View style={styles.dotsMenu}>
+                {/* ===== TOGGLE COMPLETE (keep same) ===== */}
+                <TouchableOpacity
+                  style={styles.dotsMenuItem}
+                  onPress={() => {
+                    setComplete(!complete);
+                    setIsDotsMenuVisible(false);
+                  }}
+                >
+                  <View style={styles.menuItemRow}>
+                    <View
+                      style={[
+                        styles.checkboxSmall,
+                        complete && {
+                          backgroundColor: Theme.colors.primaryYellow,
+                        },
+                      ]}
+                    />
+                    <Text style={styles.dotsMenuText}>Complete</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* ===== EXPORT EXCEL / DATA ===== */}
+                <TouchableOpacity
+                  style={styles.dotsMenuItemCustom}
+                  onPress={() => {
+                    console.log('Export Data clicked');
+                    setIsDotsMenuVisible(false);
+                  }}
+                >
+                  <View style={styles.menuItemRowCustom}>
+                    <View
+                      style={[
+                        styles.circleIcon,
+                        { backgroundColor: '#FFD8B5' },
+                      ]}
+                    >
+                      <Image
+                        source={Theme.icons.download}
+                        style={styles.menuIconCustom}
+                      />
+                    </View>
+                    <Text style={styles.dotsMenuText}>Export Data</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* ===== ADD NEW FLOCK ===== */}
+                <TouchableOpacity
+                  style={styles.dotsMenuItemCustom}
+                  onPress={() => {
+                    setIsAddModalVisible(true);
+                    setIsDotsMenuVisible(false);
+                  }}
+                >
+                  <View style={styles.menuItemRowCustom}>
+                    <View
+                      style={[
+                        styles.circleIcon,
+                        { backgroundColor: '#D7F4E2' },
+                      ]}
+                    >
+                      <Image
+                        source={Theme.icons.plus}
+                        style={styles.menuIconCustom}
+                      />
+                    </View>
+                    <Text style={styles.dotsMenuText}>New Flock</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* ===== TIP CARD ===== */}
+          <View style={styles.tipCardContainer}>
+            <ScreenTipCard screen={CustomConstants.FLOCKS_SCREEN} />
+          </View>
+
+          <View style={styles.mainContainer}>
+            {/* ===== SEARCH + FILTER ROW ===== */}
+            <View style={styles.searchRow}>
+              <View style={styles.searchBoxSmall}>
+                <Image source={Theme.icons.search} style={styles.icon} />
+                <TextInput
+                  placeholder="Search Flock..."
+                  value={search}
+                  onChangeText={setSearch}
+                  style={styles.searchInput}
                 />
-                <Text style={styles.dotsMenuText}>Complete</Text>
               </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.filterBtn}
+                onPress={() => setIsFilterModalVisible(true)}
+              >
+                <Image source={Theme.icons.filter} style={styles.filterIcon} />
+              </TouchableOpacity>
+            </View>
 
-            {/* ===== EXPORT EXCEL / DATA ===== */}
-            <TouchableOpacity
-              style={styles.dotsMenuItemCustom}
-              onPress={() => {
-                console.log('Export Data clicked');
-                setIsDotsMenuVisible(false);
-              }}
-            >
-              <View style={styles.menuItemRowCustom}>
-                <View
-                  style={[styles.circleIcon, { backgroundColor: '#FFD8B5' }]}
-                >
-                  <Image
-                    source={Theme.icons.download}
-                    style={styles.menuIconCustom}
-                  />
-                </View>
-                <Text style={styles.dotsMenuText}>Export Data</Text>
-              </View>
-            </TouchableOpacity>
+            {/* ===== FLOCK LIST ===== */}
 
-            {/* ===== ADD NEW FLOCK ===== */}
-            <TouchableOpacity
-              style={styles.dotsMenuItemCustom}
-              onPress={() => {
-                setIsAddModalVisible(true);
-                setIsDotsMenuVisible(false);
-              }}
-            >
-              <View style={styles.menuItemRowCustom}>
-                <View
-                  style={[styles.circleIcon, { backgroundColor: '#D7F4E2' }]}
-                >
-                  <Image
-                    source={Theme.icons.plus}
-                    style={styles.menuIconCustom}
-                  />
-                </View>
-                <Text style={styles.dotsMenuText}>New Flock</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      )}
-
-      {/* ===== TIP CARD ===== */}
-      <View style={styles.tipCardContainer}>
-        <ScreenTipCard screen={CustomConstants.FLOCKS_SCREEN} />
-      </View>
-
-      <View style={styles.mainContainer}>
-        {/* ===== SEARCH + FILTER ROW ===== */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchBoxSmall}>
-            <Image source={Theme.icons.search} style={styles.icon} />
-            <TextInput
-              placeholder="Search Flock..."
-              value={search}
-              onChangeText={setSearch}
-              style={styles.searchInput}
-            />
-          </View>
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setIsFilterModalVisible(true)}
-          >
-            <Image source={Theme.icons.filter} style={styles.filterIcon} />
-          </TouchableOpacity>
-        </View>
-
-        {/* ===== FLOCK LIST ===== */}
-    
-          {loading ? (
-            <ActivityIndicator
-              size="large"
-              color={Theme.colors.primaryYellow}
-            />
-          ) : flocks.length === 0 ? (
-            <Image
-              source={Theme.icons.nodata}
-              style={{
-                width: 290,
-                height: 290,
-                resizeMode: 'contain',
-                marginBottom: 12,
-              }}
-            />
-          ) : (
-            <FlockTableComponent
-              flocks={flocks}
-              onFlockPress={item =>
-                navigation.navigate('FlocksScreen', { flockId: item.flockId })
-              }
-              onFeed={flock => {
-                setSelectedFlock(flock);
-                setIsFeedModalVisible(true);
-              }}
-              onFCR={flock => {
-                setSelectedFlock(flock);
-                setIsFCRModalVisible(true);
-              }}
-              onMortality={flock => {
-                setSelectedFlock(flock);
-                setIsMortalityModalVisible(true);
-              }}
-              onHospital={flock => {
-                setSelectedFlock(flock);
-                setIsHospitalityModalVisible(true);
-              }}
-              onComplete={async flock => {
-                if (flock.isEnded) {
-                  Alert.alert('Info', 'This flock is already ended.');
-                  return;
+            {loading ? (
+              <ActivityIndicator
+                size="large"
+                color={Theme.colors.primaryYellow}
+              />
+            ) : flocks.length === 0 ? (
+              <Image
+                source={Theme.icons.nodata}
+                style={{
+                  width: 290,
+                  height: 290,
+                  resizeMode: 'contain',
+                  marginBottom: 12,
+                }}
+              />
+            ) : (
+              <FlockTableComponent
+                flocks={flocks}
+                onFlockPress={item =>
+                  navigation.navigate('FlocksScreen', { flockId: item.flockId })
                 }
-                try {
-                  const result = await updateFlockIsEnded(flock.flockId, true);
-                  if (result) {
-                    setFlocks(prev =>
-                      prev.map(f =>
-                        f.flockId === flock.flockId
-                          ? { ...f, isEnded: true }
-                          : f,
-                      ),
+                onFeed={flock => {
+                  setSelectedFlock(flock);
+                  setIsFeedModalVisible(true);
+                }}
+                onFCR={flock => {
+                  setSelectedFlock(flock);
+                  setIsFCRModalVisible(true);
+                }}
+                onMortality={flock => {
+                  setSelectedFlock(flock);
+                  setIsMortalityModalVisible(true);
+                }}
+                onHospital={flock => {
+                  setSelectedFlock(flock);
+                  setIsHospitalityModalVisible(true);
+                }}
+                onComplete={async flock => {
+                  if (flock.isEnded) {
+                    Alert.alert('Info', 'This flock is already ended.');
+                    return;
+                  }
+                  try {
+                    const result = await updateFlockIsEnded(
+                      flock.flockId,
+                      true,
                     );
+                    if (result) {
+                      setFlocks(prev =>
+                        prev.map(f =>
+                          f.flockId === flock.flockId
+                            ? { ...f, isEnded: true }
+                            : f,
+                        ),
+                      );
+                      Alert.alert(
+                        'Success',
+                        'Flock has been successfully ended.',
+                      );
+                    }
+                  } catch (error: any) {
                     Alert.alert(
-                      'Success',
-                      'Flock has been successfully ended.',
+                      'Error',
+                      error.response?.data?.message || 'Failed to end flock',
                     );
                   }
-                } catch (error: any) {
-                  Alert.alert(
-                    'Error',
-                    error.response?.data?.message || 'Failed to end flock',
-                  );
-                }
-              }}
-              onDelete={flock => {
-                setFlockToDelete(flock);
-                setIsConfirmModalVisible(true);
-              }}
-            />
-          )}
-        
-      </View>
+                }}
+                onDelete={flock => {
+                  setFlockToDelete(flock);
+                  setIsConfirmModalVisible(true);
+                }}
+              />
+            )}
+          </View>
 
-      {/* ===== ADD FLOCK MODAL ===== */}
-      <AddFlockModal
-        visible={isAddModalVisible}
-        onClose={() => setIsAddModalVisible(false)}
-        businessUnitId={businessUnitId}
-        onSave={async data => {
-          const payload: AddFlockPayload = {
-            businessUnitId,
-            flockTypeId: Number(data.flockType),
-            breed: data.breed,
-            quantity: Number(data.quantity),
-            price: Number(data.price),
-            supplierId: data.supplier!,
-            isHen: data.isHen,
-            isPaid: data.isPaid,
-            dateOfBirth: data.dob?.toISOString().split('T')[0] || '',
-            arrivalDate: data.arrivalDate?.toISOString().split('T')[0] || '',
-            weight: data.avgWeight ? Number(data.avgWeight) : null,
-          };
+          {/* ===== ADD FLOCK MODAL ===== */}
+          <AddFlockModal
+            visible={isAddModalVisible}
+            onClose={() => setIsAddModalVisible(false)}
+            businessUnitId={businessUnitId}
+            onSave={async data => {
+              const payload: AddFlockPayload = {
+                businessUnitId: businessUnitId!,
+                flockTypeId: Number(data.flockType),
+                breed: data.breed,
+                quantity: Number(data.quantity),
+                price: Number(data.price),
+                supplierId: data.supplier!,
+                isHen: data.isHen,
+                isPaid: data.isPaid,
+                dateOfBirth: data.dob?.toISOString().split('T')[0] || '',
+                arrivalDate:
+                  data.arrivalDate?.toISOString().split('T')[0] || '',
+                weight: data.avgWeight ? Number(data.avgWeight) : null,
+              };
 
-          await addFlock(payload);
-          fetchFlocks();
-          fetchDropdownFlocks();
-          setIsAddModalVisible(false);
-        }}
-      />
+              await addFlock(payload);
+              fetchFlocks();
+              fetchDropdownFlocks();
+              setIsAddModalVisible(false);
+            }}
+          />
 
-      {/* ===== ITEM ENTRY MODALS (Feed / FCR / Mortality / Hospitality) ===== */}
-      <ItemEntryModal
-        visible={isFeedModalVisible}
-        type="feed"
-        onClose={() => setIsFeedModalVisible(false)}
-        onSave={async data => {
-          if (!selectedFlock) return;
+          {/* ===== ITEM ENTRY MODALS (Feed / FCR / Mortality / Hospitality) ===== */}
+          <ItemEntryModal
+            visible={isFeedModalVisible}
+            type="feed"
+            onClose={() => setIsFeedModalVisible(false)}
+            onSave={async data => {
+              if (!selectedFlock) return;
 
-          const payload: AutoFeedRecordPayload = {
-            flockId: selectedFlock.flockId,
-            feedId: Number(data.feed),
-            quantity: Number(data.quantity),
-            businessUnitId,
-          };
-          await addAutomaticFeedRecord(payload);
-          setFlocks(prev =>
-            prev.map(f =>
-              f.flockId === selectedFlock.flockId ? { ...f, hasFeed: true } : f,
-            ),
-          );
-          Alert.alert('Success', 'Feed record added');
-          setIsFeedModalVisible(false);
-          fetchFlocks();
-        }}
-      />
+              const payload: AutoFeedRecordPayload = {
+                flockId: selectedFlock.flockId,
+                feedId: Number(data.feed),
+                quantity: Number(data.quantity),
+                businessUnitId: businessUnitId!,
+              };
+              await addAutomaticFeedRecord(payload);
+              setFlocks(prev =>
+                prev.map(f =>
+                  f.flockId === selectedFlock.flockId
+                    ? { ...f, hasFeed: true }
+                    : f,
+                ),
+              );
+              Alert.alert('Success', 'Feed record added');
+              setIsFeedModalVisible(false);
+              fetchFlocks();
+            }}
+          />
 
-      <ItemEntryModal
-        visible={isFCRModalVisible}
-        type="fcr"
-        onClose={() => setIsFCRModalVisible(false)}
-        onSave={async data => {
-          if (!selectedFlock) return;
-          const payload: CalculateFCRPayload = {
-            flockId: selectedFlock.flockId,
-            currentWeight: Number(data.currentWeight),
-          };
-          return await calculateFCR(payload);
-        }}
-      />
+          <ItemEntryModal
+            visible={isFCRModalVisible}
+            type="fcr"
+            onClose={() => setIsFCRModalVisible(false)}
+            onSave={async data => {
+              if (!selectedFlock) return;
+              const payload: CalculateFCRPayload = {
+                flockId: selectedFlock.flockId,
+                currentWeight: Number(data.currentWeight),
+              };
+              return await calculateFCR(payload);
+            }}
+          />
 
-      <ItemEntryModal
-        visible={isMortalityModalVisible}
-        type="mortality"
-        onClose={() => setIsMortalityModalVisible(false)}
-        onSave={async data => {
-          if (!selectedFlock) return;
-          const payload = {
-            flockId: selectedFlock.flockId,
-            quantity: Number(data.quantity),
-            date:
-              data.expireDate?.toISOString().split('T')[0] ||
-              new Date().toISOString().split('T')[0],
-            flockHealthStatusId: 1,
-          };
-          const response = await addFlockHealthRecord(payload);
-          Alert.alert('Success', response.message);
-          setIsMortalityModalVisible(false);
-          fetchFlocks();
-        }}
-      />
+          <ItemEntryModal
+            visible={isMortalityModalVisible}
+            type="mortality"
+            onClose={() => setIsMortalityModalVisible(false)}
+            onSave={async data => {
+              if (!selectedFlock) return;
+              const payload = {
+                flockId: selectedFlock.flockId,
+                quantity: Number(data.quantity),
+                date:
+                  data.expireDate?.toISOString().split('T')[0] ||
+                  new Date().toISOString().split('T')[0],
+                flockHealthStatusId: 1,
+              };
+              const response = await addFlockHealthRecord(payload);
+              Alert.alert('Success', response.message);
+              setIsMortalityModalVisible(false);
+              fetchFlocks();
+            }}
+          />
 
-      <ItemEntryModal
-        visible={isHospitalityModalVisible}
-        type="hospitality"
-        onClose={() => setIsHospitalityModalVisible(false)}
-        onSave={async data => {
-          if (!selectedFlock) return;
-          const payload = {
-            flockId: selectedFlock.flockId,
-            date:
-              data.hospitalityDate?.toISOString().split('T')[0] ||
-              new Date().toISOString().split('T')[0],
-            quantity: Number(data.quantity),
-            averageWeight: Number(data.averageWeight),
-            symptoms: data.symptoms,
-            diagnosis: data.diagnosis,
-            medication: data.medication,
-            dosage: data.dosage,
-            treatmentDays: Number(data.treatmentDays),
-            vetName: data.vetName,
-            remarks: data.remarks || null,
-            businessUnitId,
-          };
-          const response = await addHospitality(payload);
-          Alert.alert('Success', response.message);
-          fetchFlocks();
-          setIsHospitalityModalVisible(false);
-        }}
-      />
+          <ItemEntryModal
+            visible={isHospitalityModalVisible}
+            type="hospitality"
+            onClose={() => setIsHospitalityModalVisible(false)}
+            onSave={async data => {
+              if (!selectedFlock) return;
+              const payload = {
+                flockId: selectedFlock.flockId,
+                date:
+                  data.hospitalityDate?.toISOString().split('T')[0] ||
+                  new Date().toISOString().split('T')[0],
+                quantity: Number(data.quantity),
+                averageWeight: Number(data.averageWeight),
+                symptoms: data.symptoms,
+                diagnosis: data.diagnosis,
+                medication: data.medication,
+                dosage: data.dosage,
+                treatmentDays: Number(data.treatmentDays),
+                vetName: data.vetName,
+                remarks: data.remarks || null,
+                businessUnitId: businessUnitId!,
+              };
+              const response = await addHospitality(payload);
+              Alert.alert('Success', response.message);
+              fetchFlocks();
+              setIsHospitalityModalVisible(false);
+            }}
+          />
 
-      {/* ===== DELETE CONFIRMATION MODAL ===== */}
-      <ConfirmationModal
-        type="delete"
-        title={`Are you sure you want to delete flock ${flockToDelete?.ref}?`}
-        visible={isConfirmModalVisible}
-        onClose={() => setIsConfirmModalVisible(false)}
-        onConfirm={async () => {
-          if (!flockToDelete) return;
-          await deleteFlock(flockToDelete.flockId);
-          fetchFlocks();
-          fetchDropdownFlocks();
-          setIsConfirmModalVisible(false);
-          setFlockToDelete(null);
-        }}
-      />
+          {/* ===== DELETE CONFIRMATION MODAL ===== */}
+          <ConfirmationModal
+            type="delete"
+            title={`Are you sure you want to delete flock ${flockToDelete?.ref}?`}
+            visible={isConfirmModalVisible}
+            onClose={() => setIsConfirmModalVisible(false)}
+            onConfirm={async () => {
+              if (!flockToDelete) return;
+              await deleteFlock(flockToDelete.flockId);
+              fetchFlocks();
+              fetchDropdownFlocks();
+              setIsConfirmModalVisible(false);
+              setFlockToDelete(null);
+            }}
+          />
 
-      {/* ===== FILTER MODAL ===== */}
-      <BusinessUnitModal
-        visible={isFilterModalVisible}
-        onClose={() => setIsFilterModalVisible(false)}
-        mode="filter"
-        flockItems={dropdownItems}
-        supplierItems={supplierItems}
-        selectedFlockId={selectedFlockId}
-        selectedSupplier={selectedSupplier}
-        onApplyFilter={(flockId, supplierId) => {
-          setSelectedFlockId(flockId);
-          setSelectedSupplier(supplierId);
-          fetchFlocks(flockId ?? undefined, supplierId ?? undefined, complete);
-        }}
-      />
-      </View>
-    </SidebarWrapper>
+          {/* ===== FILTER MODAL ===== */}
+          <BusinessUnitModal
+            visible={isFilterModalVisible}
+            onClose={() => setIsFilterModalVisible(false)}
+            mode="filter"
+            flockItems={dropdownItems}
+            supplierItems={supplierItems}
+            selectedFlockId={selectedFlockId}
+            selectedSupplier={selectedSupplier}
+            onApplyFilter={(flockId, supplierId) => {
+              setSelectedFlockId(flockId);
+              setSelectedSupplier(supplierId);
+              fetchFlocks(
+                flockId ?? undefined,
+                supplierId ?? undefined,
+                complete,
+              );
+            }}
+          />
+        </View>
+      </SidebarWrapper>
     </ScrollView>
   );
 };
@@ -503,9 +524,9 @@ export default FlocksScreen;
 // ===== STYLES =====
 const styles = StyleSheet.create({
   mainContainer: {
-  flex: 1,
-  backgroundColor: Theme.colors.white,
-},
+    flex: 1,
+    backgroundColor: Theme.colors.white,
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',

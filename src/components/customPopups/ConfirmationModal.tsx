@@ -14,7 +14,7 @@ type ConfirmationModalProps = {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  title?: string; // ✅ optional custom title
+  title?: string; 
 };
 
 const ConfirmationModal = ({
@@ -22,7 +22,7 @@ const ConfirmationModal = ({
   visible,
   onClose,
   onConfirm,
-  title, // receive title from props
+  title,
 }: ConfirmationModalProps) => {
   // ===== DYNAMIC TITLE =====
   const defaultTitle =

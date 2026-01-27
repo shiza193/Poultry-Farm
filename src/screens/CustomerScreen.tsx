@@ -8,6 +8,8 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { deleteParty } from '../services/PartyService';
+import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 
 import TopBarCard from '../components/customCards/TopBarCard';
 import DataCard from '../components/customCards/DataCard';
@@ -20,6 +22,8 @@ import {
   updatePartyIsActive,
 } from '../services/PartyService';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
+import { useBusinessUnit } from '../context/BusinessContext';
+import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 
 /* ===== TYPES ===== */
 type User = {
@@ -29,16 +33,20 @@ type User = {
   phone: string | null;
   address: string;
   isActive: boolean;
+  businessUnitId: string | null;
 };
 
 const CustomerScreen = () => {
   const insets = useSafeAreaInsets();
+  const { businessUnitId: contextBU } = useBusinessUnit();
 
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
 
   const [users, setUsers] = useState<User[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -46,87 +54,58 @@ const CustomerScreen = () => {
 
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
 
-  const fetchCustomers = async () => {
-    console.log(' fetchCustomers CALLED');
+  // Local Business Unit filter state
+  // Initially null so all customers are shown
+  const [selectedBU, setSelectedBU] = useState<string | null>(null);
 
+  // ================= FETCH CUSTOMERS =================
+  const fetchCustomers = async () => {
     try {
       setLoading(true);
 
       const payload = {
         searchKey: search || null,
-        isActive: null,
+        isActive: status === 'all' ? null : status === 'active',
         pageNumber: currentPage,
         pageSize: itemsPerPage,
         partyTypeId: 0,
-        businessUnitId: null,
+        businessUnitId: selectedBU || null, // Only filter if user selects BU
       };
-
-      console.log(' REQUEST PAYLOAD:', payload);
 
       const response = await getPartyBySearchAndFilter(payload);
 
-      console.log(' RAW API RESPONSE:', response);
-      console.log(' RESPONSE TYPE:', typeof response);
-
-      if (!response) {
-        console.log(' RESPONSE IS NULL OR UNDEFINED');
+      if (!response || !Array.isArray(response.list)) {
         setUsers([]);
         setTotalCount(0);
         return;
       }
 
-      console.log(' RESPONSE KEYS:', Object.keys(response));
+      const formatted: User[] = response.list.map((item: any) => ({
+        id: item.partyId,
+        name: item.name,
+        email: item.email,
+        phone: item.phone,
+        address: item.address,
+        isActive: item.isActive,
+        businessUnitId: item.businessUnitId || null,
+      }));
 
-      if (Array.isArray(response.list)) {
-        console.log(' LIST FOUND, LENGTH:', response.list.length);
-
-        const formatted: User[] = response.list.map(
-          (item: any, index: number) => {
-            console.log(` ITEM ${index}:`, item);
-
-            return {
-              id: item.partyId,
-              name: item.name,
-              email: item.email,
-              phone: item.phone,
-              address: item.address,
-              isActive: item.isActive,
-            };
-          },
-        );
-
-        setUsers(formatted);
-        setTotalCount(response.totalCount ?? 0);
-      } else {
-        console.log(' response.list IS NOT ARRAY:', response.list);
-        setUsers([]);
-        setTotalCount(0);
-      }
+      setUsers(formatted);
+      setTotalCount(response.totalCount ?? 0);
     } catch (error: any) {
-      console.log(' API ERROR FULL OBJECT:', error);
-
-      if (error?.response) {
-        console.log(' ERROR STATUS:', error.response.status);
-        console.log('ERROR DATA:', error.response.data);
-        console.log(' ERROR HEADERS:', error.response.headers);
-      } else if (error?.request) {
-        console.log(' NO RESPONSE RECEIVED:', error.request);
-      } else {
-        console.log(' GENERAL ERROR MESSAGE:', error.message);
-      }
-
+      console.error('Error fetching customers:', error);
       Alert.alert('Error', 'Failed to load customers');
     } finally {
       setLoading(false);
-      console.log('🏁 fetchCustomers FINISHED');
     }
   };
 
-  /* ===== EFFECT ===== */
+  // Fetch customers whenever search/status/BU/page changes
   useEffect(() => {
     fetchCustomers();
-  }, [currentPage, search]);
+  }, [currentPage, search, status, selectedBU]);
 
+  // ================= HANDLERS =================
   const handleAddCustomer = async (formData: {
     name: string;
     phone?: string | null;
@@ -142,28 +121,21 @@ const CustomerScreen = () => {
         email: formData.email?.trim() || null,
         address: formData.address?.trim() || '',
         partyTypeId: 0,
-        businessUnitId: '157cc479-dc81-4845-826c-5fb991bd3d47',
+        businessUnitId: selectedBU || contextBU, // Use selected BU or fallback
       };
-
-      console.log(' ADD PARTY PAYLOAD:', payload);
 
       const response = await addParty(payload);
 
-      console.log(' ADD PARTY RESPONSE:', response);
-
       if (response) {
-        Alert.alert('Success', 'Customer added successfully');
-
+        showSuccessToast('Success', 'Customer added successfully');
         setShowAddModal(false);
         setCurrentPage(1);
         fetchCustomers();
       }
     } catch (error: any) {
-      console.error(' ADD CUSTOMER ERROR:', error);
-
+      console.error('Add customer error:', error);
       const errMsg = error?.response?.data?.message || 'Failed to add customer';
-
-      Alert.alert('Error', errMsg);
+      showErrorToast('Error', errMsg);
     } finally {
       setLoading(false);
     }
@@ -181,19 +153,52 @@ const CustomerScreen = () => {
         ),
       );
 
-      Alert.alert(
+    showSuccessToast(
         'Success',
         `Customer status updated to ${!currentStatus ? 'Active' : 'Inactive'}`,
       );
     } catch (error: any) {
       console.error('Error updating status:', error);
-      Alert.alert('Error', 'Failed to update customer status');
+      showErrorToast('Error', 'Failed to update customer status');
     } finally {
       setLoading(false);
     }
   };
+  const handleDeletePress = (partyId: string) => {
+    setSelectedPartyId(partyId);
+    setDeleteModalVisible(true);
+  };
+  const handleConfirmDelete = async () => {
+    if (!selectedPartyId) return;
 
-  /* ===== PAGINATION ===== */
+    try {
+      const res = await deleteParty(selectedPartyId);
+
+      // Show backend message if returned
+      if (res.error || res.success === false) {
+        return showErrorToast(
+          'Error',
+          res.error || res.message || 'Failed to delete customer',
+        );
+      }
+
+      // Remove from state
+      setUsers(prev => prev.filter(u => u.id !== selectedPartyId));
+      showSuccessToast('Success', res.message || 'Customer deleted successfully');
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to delete customer';
+    showErrorToast('Error', msg);
+      console.error('Delete customer failed', error);
+    } finally {
+      setDeleteModalVisible(false);
+      setSelectedPartyId(null);
+    }
+  };
+
+  // ================= PAGINATION =================
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   const handleNext = () =>
@@ -202,13 +207,15 @@ const CustomerScreen = () => {
   const handleFirst = () => setCurrentPage(1);
   const handleLast = () => setCurrentPage(totalPages);
 
-  const filteredUsers = users.filter(user => {
-    if (status === 'active') return user.isActive === true;
-    if (status === 'inactive') return user.isActive === false;
-    return true;
-  });
+  // ================= RESET FILTERS =================
+  const resetFilters = () => {
+    setSearch('');
+    setStatus('all');
+    setSelectedBU(null); // reset BU to null
+    setCurrentPage(1);
+  };
 
-  /* ===== UI ===== */
+  // ================= UI =================
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* ===== TOP BAR ===== */}
@@ -220,15 +227,23 @@ const CustomerScreen = () => {
           setSearch(text);
         }}
         status={status}
-        onStatusChange={setStatus}
-        onReset={() => setStatus('all')}
+        onStatusChange={s => {
+          setCurrentPage(1);
+          setStatus(s);
+        }}
+        value={selectedBU}
+        onBusinessUnitChange={buId => {
+          setCurrentPage(1);
+          setSelectedBU(buId);
+        }}
+        onReset={resetFilters}
       />
 
       {/* ===== TABLE ===== */}
       <ScrollView horizontal contentContainerStyle={{ paddingHorizontal: 16 }}>
         <View>
           <FlatList
-           data={filteredUsers}
+            data={users}
             keyExtractor={item => item.id}
             ListHeaderComponent={() => <DataCard isHeader />}
             renderItem={({ item }) => (
@@ -241,14 +256,14 @@ const CustomerScreen = () => {
                 onToggleStatus={() =>
                   handleToggleStatus(item.id, item.isActive)
                 }
-                onDelete={() => {}}
+                onDelete={() => handleDeletePress(item.id)}
               />
             )}
             scrollEnabled={false}
           />
-          {/* ===== NO DATA IMAGE ===== */}
+
           {!loading && users.length === 0 && (
-            <View style={{ alignItems: 'center', marginTop: 50 }}>
+            <View style={{ alignItems: 'flex-start', marginBottom: 200 }}>
               <Image
                 source={Theme.icons.nodata}
                 style={{ width: 300, height: 360 }}
@@ -266,10 +281,10 @@ const CustomerScreen = () => {
           totalPages={totalPages}
           totalItems={totalCount}
           itemsPerPage={itemsPerPage}
-          onNext={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-          onPrev={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          onFirst={() => setCurrentPage(1)}
-          onLast={() => setCurrentPage(totalPages)}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onFirst={handleFirst}
+          onLast={handleLast}
         />
       )}
 
@@ -281,8 +296,15 @@ const CustomerScreen = () => {
         onClose={() => setShowAddModal(false)}
         onSave={handleAddCustomer}
       />
+      <ConfirmationModal
+        type="delete"
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleConfirmDelete}
+        title="Are you sure you want to delete this customer?"
+      />
 
-      {/* ===== LOADING OVERLAY ===== */}
+    
       <LoadingOverlay visible={loading} />
     </View>
   );

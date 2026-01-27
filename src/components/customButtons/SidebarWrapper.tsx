@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.buttonPrimary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 46,
+    marginTop: 53,
     elevation: 3,
   },
 });
