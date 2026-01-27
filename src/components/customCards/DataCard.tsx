@@ -60,8 +60,15 @@ interface Labels {
   vaccineName?: string;
   supplierName?: string;
   vaccineDate?: string;
-  vaccineQuantity?: number | string; 
+  vaccineQuantity?: number | string;
   vaccinePrice?: number | string;
+  // Vaccination Schedule Table Props
+  ref?: string;
+  vaccineflockValue?: string;
+  vaccinationName?: string;
+  scheduledDate?: string;
+  vaccinationQuantityValue?: number | string;
+  done?: boolean;
 }
 
 interface Props {
@@ -140,6 +147,17 @@ interface Props {
   vaccineDate?: string;
   vaccineQuantity?: number | string;
   vaccinePrice?: number | string;
+
+  // Vaccination Schedule Table Props
+  showVaccinationSchedule?: boolean;
+  refValue?: string;
+  vaccineflockValue?: string;
+  vaccinationNameValue?: string;
+  scheduledDateValue?: string;
+  vaccinationQuantityValue?: number | string;
+  doneValue?: boolean;
+
+  onToggleDone?: () => void;
 }
 
 const DataCard: React.FC<Props> = ({
@@ -216,6 +234,15 @@ const DataCard: React.FC<Props> = ({
   vaccineDate,
   vaccineQuantity,
   vaccinePrice,
+  // Vaccination Schedule
+  showVaccinationSchedule = false,
+  refValue,
+  vaccineflockValue,
+  vaccinationNameValue,
+  scheduledDateValue,
+  vaccinationQuantityValue,
+  doneValue,
+  onToggleDone,
 }) => {
   const isActive = status === 'Active';
 
@@ -533,7 +560,34 @@ const DataCard: React.FC<Props> = ({
       </View>
     );
   }
-
+  /* ================= VACCINATION SCHEDULE TABLE ================= */
+  if (showVaccinationSchedule) {
+    return (
+      <View style={[styles.row, isHeader && styles.headerRow]}>
+        <Text style={styles.cell}>{isHeader ? 'REF' : refValue || '-'}</Text>
+        <Text style={styles.cell}>{isHeader ? 'FLOCK' : vaccineflockValue || '-'}</Text>
+        <Text style={styles.cell}>{isHeader ? 'Vaccination Name' : vaccinationNameValue || '-'}</Text>
+        <Text style={styles.cell}>{isHeader ? 'Scheduled Date' : scheduledDateValue || '-'}</Text>
+        <Text style={styles.cell}>{isHeader ? 'Quantity' : vaccinationQuantityValue ?? '-'}</Text>
+        <Text style={styles.cell}>
+          {isHeader ? 'Done' : (
+            <TouchableOpacity onPress={onToggleDone}>
+              <Text style={{ fontSize: 16 }}>{doneValue ? '✔️' : '❌'}</Text>
+            </TouchableOpacity>
+          )}
+        </Text>
+        <Text style={styles.cell}>
+          {isHeader ? 'Actions' : (
+            <View style={styles.cellActions}>
+              <TouchableOpacity onPress={onEdit}>
+                <Image source={Theme.icons.edit} style={styles.icon} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </Text>
+      </View>
+    );
+  }
   return (
     <View style={[styles.row, isHeader && styles.headerRow]}>
       <Text style={[styles.cellName, isHeader && styles.headerText]}>
@@ -608,7 +662,7 @@ const DataCard: React.FC<Props> = ({
               <Image source={Theme.icons.edit} style={styles.icon} />
             </TouchableOpacity>
             <TouchableOpacity onPress={onDelete}>
-              <Image source={Theme.icons.bin} style={styles.icon} />
+              <Image source={Theme.icons.delete} style={styles.delicon} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -693,7 +747,6 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     marginHorizontal: 6,
-    tintColor: Theme.colors.error,
   },
   // Flock & Flock Sale Table Cell
   cell: { width: 140, textAlign: 'center', fontSize: 12, fontWeight: '600' },

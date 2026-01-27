@@ -21,7 +21,7 @@ import EggStockScreen from "../screens/eggs/EggStockScreen";
 import AboutUsScreen from "../screens/AboutUsScreen";
 import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
 import VaccinationStockScreen from "../screens/vaccinations/VaccineScheduleScreen";
-import VaccineScheduleScreen from "../screens/vaccinations/VaccinationStockScreen";
+import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 
 const Stack = createNativeStackNavigator();
 

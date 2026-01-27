@@ -12,16 +12,16 @@ import SidebarWrapper from "../../components/customButtons/SidebarWrapper";
 import { CustomConstants } from "../../constants/CustomConstants";
 import DataCard from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
-import { getVaccinations, Vaccination, getSuppliers, getVaccines, addVaccination } from "../../services/VaccinationService";
+import { getVaccinations, Vaccination, getSuppliers, getVaccines, addVaccination, updateVaccination,deleteVaccination } from "../../services/VaccinationService";
 import DropDownPicker from "react-native-dropdown-picker";
 import { TextInput } from "react-native";
 import styles from "./style";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import AddModal from "../../components/customPopups/AddModal";
-import { showErrorToast, toastAddSuccess } from "../../utils/AppToast";
+import { showErrorToast, showSuccessToast, } from "../../utils/AppToast";
+import ConfirmationModal from "../../components/customPopups/ConfirmationModal";
 const VaccinationsScreen = () => {
     const activeScreen = CustomConstants.VACCINATIONS_SCREEN;
-
     const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
@@ -31,8 +31,11 @@ const VaccinationsScreen = () => {
     const [supplierValue, setSupplierValue] = useState<string | null>(null);
     const [supplierItems, setSupplierItems] = useState<any[]>([]);
     const [addVaccinationModalVisible, setAddVaccinationModalVisible] = useState(false);
-    const [vaccineItems, setVaccineItems] = useState<{ label: string; value: string }[]>([]);
-
+    const [vaccineItems, setVaccineItems] =
+        useState<{ label: string; value: number }[]>([]); const [isEditMode, setIsEditMode] = useState(false);
+    const [selectedVaccination, setSelectedVaccination] = useState<any>(null);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [vaccinationToDelete, setVaccinationToDelete] = useState<Vaccination | null>(null);
     const businessUnitId = "157cc479-dc81-4845-826c-5fb991bd3d47";
 
     // Header labels for DataCard
@@ -73,7 +76,7 @@ const VaccinationsScreen = () => {
     }, []);
     useEffect(() => {
         const fetchVaccines = async () => {
-            const data = await getVaccines(); // API call
+            const data = await getVaccines();
             setVaccineItems(data);
             console.log("Vaccines fetched:", data);
         };
@@ -111,7 +114,7 @@ const VaccinationsScreen = () => {
 
             if (res.status === "Success") {
                 setVaccinations(prev => [...prev, res.data]);
-                toastAddSuccess();
+                showSuccessToast("Vaccination Added successfuly");
             } else {
                 showErrorToast(res.message || "Failed to add vaccination");
             }
@@ -121,6 +124,41 @@ const VaccinationsScreen = () => {
             setLoading(false);
         }
     };
+    const handleUpdateVaccination = async (data: any) => {
+        const payload = {
+            vaccinationId: selectedVaccination.vaccinationId,
+            vaccineId: Number(data.vaccine),
+            date: data.date.toISOString().split('T')[0],
+            quantity: Number(data.quantity),
+            price: Number(data.price || 0),
+            note: data.note || '',
+            supplierId: data.supplier,
+            businessUnitId: businessUnitId,
+        };
+
+        try {
+            const res = await updateVaccination(payload);
+
+            if (res.status === 'Success') {
+                // 🔥 local list update
+                setVaccinations(prev =>
+                    prev.map(v =>
+                        v.vaccinationId === payload.vaccinationId
+                            ? res.data
+                            : v
+                    )
+                );
+                showSuccessToast("Vaccination updatewd successfuly");
+            } else {
+                showErrorToast(res.message || 'Update failed');
+            }
+        } catch (error: any) {
+            showErrorToast(error.message || 'Something went wrong');
+        } finally {
+        }
+    };
+
+
     return (
         <SidebarWrapper
             activeScreen={activeScreen}
@@ -182,8 +220,9 @@ const VaccinationsScreen = () => {
                             <TouchableOpacity
                                 style={styles.dotsMenuItemCustom}
                                 onPress={() => {
+                                    setIsEditMode(false);
+                                    setSelectedVaccination(null);
                                     setAddVaccinationModalVisible(true);
-                                    setIsDotsMenuVisible(false);
                                 }}
                             >
                                 <View style={styles.menuItemRowCustom}>
@@ -247,8 +286,15 @@ const VaccinationsScreen = () => {
                                         vaccineDate={item.date.split("T")[0]}
                                         vaccineQuantity={item.quantity}
                                         vaccinePrice={item.price}
-                                        onEdit={() => Alert.alert(`Edit ${item.vaccine}`)}
-                                        onDelete={() => Alert.alert(`Delete ${item.vaccine}`)}
+                                        onEdit={() => {
+                                            setIsEditMode(true);
+                                            setSelectedVaccination(item);
+                                            setAddVaccinationModalVisible(true);
+                                        }}
+                                        onDelete={() => {
+                                            setVaccinationToDelete(item);
+                                            setDeleteModalVisible(true);
+                                        }}
                                     />
                                 ))
                             )}
@@ -258,19 +304,57 @@ const VaccinationsScreen = () => {
                 <AddModal
                     visible={addVaccinationModalVisible}
                     type="vaccination"
-                    title="Add Vaccination"
-                    onClose={() => setAddVaccinationModalVisible(false)}
+                    title={isEditMode ? "Edit Vaccination" : "Add Vaccination"}
+                    isEdit={isEditMode}
+                    initialData={selectedVaccination}
+                    onClose={() => {
+                        setAddVaccinationModalVisible(false);
+                        setIsEditMode(false);
+                        setSelectedVaccination(null);
+                    }}
                     onSave={(data) => {
-                        handleAddVaccination(data);
+                        isEditMode
+                            ? handleUpdateVaccination(data)
+                            : handleAddVaccination(data);
+
                         setAddVaccinationModalVisible(false);
                     }}
                     vaccineItems={vaccineItems}
                     supplierItems={supplierItems}
                 />
+                <ConfirmationModal
+                    type="delete"
+                    visible={deleteModalVisible}
+                    title={`Are you sure you want to delete ${vaccinationToDelete?.vaccine}?`}
+                    onClose={() => {
+                        setDeleteModalVisible(false);
+                        setVaccinationToDelete(null);
+                    }}
+                    onConfirm={async () => {
+                        if (!vaccinationToDelete) return;
+
+                        try {
+                            const res = await deleteVaccination(vaccinationToDelete.vaccinationId);
+                            if (res.status === "Success") {
+                                setVaccinations(prev =>
+                                    prev.filter(v => v.vaccinationId !== vaccinationToDelete.vaccinationId)
+                                );
+                                showSuccessToast("Vaccination deleted successfully");
+                            } else {
+                                showErrorToast(res.message || "Delete failed");
+                            }
+                        } catch (error: any) {
+                            showErrorToast(error.message || "Something went wrong");
+                        } finally {
+                            setDeleteModalVisible(false);
+                            setVaccinationToDelete(null);
+                        }
+                    }}
+                />
+
             </View>
         </SidebarWrapper>
     );
 };
 
 export default VaccinationsScreen;
-

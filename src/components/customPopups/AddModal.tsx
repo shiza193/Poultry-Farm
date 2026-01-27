@@ -25,9 +25,11 @@ interface AddModalProps {
   onClose: () => void;
   onSave: (data: any) => void;
   roleItems?: { label: string; value: string }[];
-  vaccineItems?: { label: string; value: string }[];
+  vaccineItems?: { label: string; value: number }[];
   supplierItems?: { label: string; value: string }[];
-
+  // ✅ ADD THESE
+  isEdit?: boolean;
+  initialData?: any;
 }
 
 const AddModal: React.FC<AddModalProps> = ({
@@ -39,6 +41,8 @@ const AddModal: React.FC<AddModalProps> = ({
   roleItems,
   vaccineItems,
   supplierItems,
+  isEdit = false,
+  initialData = null,
 }) => {
   /* ===== COMMON ===== */
   const [name, setName] = useState('');
@@ -79,7 +83,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const [showJoiningPicker, setShowJoiningPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   /* ===== VACCINATION ===== */
-  const [vaccine, setVaccine] = useState<string | null>(null);
+  const [vaccine, setVaccine] = useState<number | null>(null);
   const [supplier, setSupplier] = useState<string | null>(null);
   const [vaccineOpen, setVaccineOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false); const [quantity, setQuantity] = useState('');
@@ -89,6 +93,30 @@ const AddModal: React.FC<AddModalProps> = ({
   const [note, setNote] = useState('');
   /* ===== VACCINATION PAYMENT STATUS ===== */
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
+  /* ===== 🟢 EDIT MODE PREFILL USEEFFECT (YAHAN) ===== */
+  useEffect(() => {
+    if (type === 'vaccination' && isEdit && initialData) {
+      setVaccine(initialData.vaccineId);
+      setSupplier(initialData.supplierId);
+      setQuantity(initialData.quantity?.toString() || '');
+      setPrice(initialData.price?.toString() || '');
+      setVaccinationDate(
+        initialData.date ? new Date(initialData.date) : null
+      );
+      setNote(initialData.note || '');
+      setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
+    }
+
+    if (type === 'vaccination' && !isEdit) {
+      setVaccine(null);
+      setSupplier(null);
+      setQuantity('');
+      setVaccinationDate(null);
+      setPrice('');
+      setNote('');
+      setPaymentStatus('Paid');
+    }
+  }, [type, isEdit, initialData, visible]);
 
   useEffect(() => {
     if (type === 'employee') {
@@ -158,11 +186,11 @@ const AddModal: React.FC<AddModalProps> = ({
     role,
     email,
     password,
-      // ✅ Add vaccination fields here
-  vaccine,
-  supplier,
-  quantity,
-  vaccinationDate,
+    // ✅ Add vaccination fields here
+    vaccine,
+    supplier,
+    quantity,
+    vaccinationDate,
   ]);
 
   const reset = () => {
@@ -562,25 +590,27 @@ const AddModal: React.FC<AddModalProps> = ({
                 onChangeText={setNote}
               />
               {/* PAID / UNPAID RADIO TOGGLE */}
-              <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-                {(['Paid', 'Unpaid'] as const).map((status) => (
-                  <TouchableOpacity
-                    key={status}
-                    style={styles.radioContainer}
-                    onPress={() => setPaymentStatus(status)}
-                  >
-                    <View style={[
-                      styles.radioCircle,
-                      paymentStatus === status && styles.radioSelected
-                    ]}>
-                      {paymentStatus === status && (
-                        <View style={styles.radioTick} />
-                      )}
-                    </View>
-                    <Text style={{ marginLeft: 8 }}>{status}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {!isEdit && (
+                <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                  {(['Paid', 'Unpaid'] as const).map((status) => (
+                    <TouchableOpacity
+                      key={status}
+                      style={styles.radioContainer}
+                      onPress={() => setPaymentStatus(status)}
+                    >
+                      <View style={[
+                        styles.radioCircle,
+                        paymentStatus === status && styles.radioSelected
+                      ]}>
+                        {paymentStatus === status && (
+                          <View style={styles.radioTick} />
+                        )}
+                      </View>
+                      <Text style={{ marginLeft: 8 }}>{status}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </>
           )}
 

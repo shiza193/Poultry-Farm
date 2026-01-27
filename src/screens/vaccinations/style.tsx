@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 1000,
+        zIndex: 99999,
     },
     dotsMenu: {
         position: 'absolute',
@@ -81,7 +81,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         marginBottom: 10,
         gap: 10,
-        zIndex: 1000,
     },
 
     /* ===== SEARCH ===== */
@@ -95,7 +94,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         backgroundColor: Theme.colors.white,
         height: 45,
-        position: "relative", 
+        position: "relative",
         zIndex: 10,
     },
     searchIcon: {
@@ -112,22 +111,133 @@ const styles = StyleSheet.create({
 
     /* ===== DROPDOWN ===== */
     dropdownWrapper: {
-        width: 150,
-        zIndex: 2000,
+        width: 120,
     },
     dropdown: {
         borderColor: Theme.colors.borderLight,
         borderRadius: 10,
         height: 45,
+        minHeight: 45,
+        justifyContent: "center",
+        paddingVertical: 0,
     },
     dropdownContainer: {
         borderColor: Theme.colors.borderLight,
         borderRadius: 10,
+
     },
     dropdownText: {
         fontSize: 14,
         color: Theme.colors.textPrimary,
     },
 });
-
 export default styles
+
+export const vsstyles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Theme.colors.white,
+        padding: 16,
+    },
+
+    // ===== TOP ROW =====
+    topRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    sidebarIcon: { width: 24, height: 24, tintColor: Theme.colors.black },
+    topRowTitle: {
+        flex: 1,
+        textAlign: "center",
+        fontSize: 20,
+        fontWeight: "bold",
+        color: Theme.colors.black
+    },
+    dotsIcon: {
+        width: 22, height: 22, tintColor: Theme.colors.black, borderColor: Theme.colors.borderLight,
+    },
+
+    // ===== SEARCH + DROPDOWN ROW =====
+    filterRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 10,
+        marginTop: 10
+    },
+    searchContainer: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: Theme.colors.borderLight,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        height: 40,
+        marginRight: 10,
+        backgroundColor: Theme.colors.white,
+    },
+    searchIcon: { width: 18, height: 18, tintColor: Theme.colors.textSecondary, marginRight: 6 },
+    searchInput: { flex: 1, fontSize: 14, color: Theme.colors.black },
+
+    dropdownWrapper: { width: 140, zIndex: 2000 },
+    dropdown: {
+        borderColor: Theme.colors.borderLight, height: 40,
+        minHeight: 40,
+    },
+    dropdownContainer: { borderColor: Theme.colors.borderLight },
+    dropdownText: { color: Theme.colors.black },
+
+    // ===== DOTS MENU =====
+    dotsOverlay: {
+        position: "absolute",
+        top: 50,
+        right: 20,
+        left: 0,
+        bottom: 0,
+        zIndex: 3000,
+    },
+    dotsMenu: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        width: 160,
+        backgroundColor: "#fff",
+        borderRadius: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 5,
+        paddingVertical: 6,
+        zIndex: 3000,
+    },
+     circleIcon: {
+        width: 35,
+        height: 35,
+        borderRadius: 18,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 10,
+    },
+    menuIconCustom: {
+        width: 18,
+        height: 18,
+        resizeMode: "contain",
+    },
+    dotsMenuItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 12,
+    },
+    dotsMenuText: {
+        fontSize: 14,
+        color: Theme.colors.black,
+    },
+
+});
+
+
+

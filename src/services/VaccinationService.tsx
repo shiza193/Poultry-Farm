@@ -71,14 +71,14 @@ export const getSuppliers = async (businessUnitId: string) => {
       {
         params: {
           businessUnitId,
-          partyTypeId: 1, 
+          partyTypeId: 1,
         },
       }
     );
 
     console.log("Supplier API RAW Response:", response.data);
 
-    return response.data.data; 
+    return response.data.data;
   } catch (error) {
     console.log("Supplier API Error:", error);
     return [];
@@ -92,7 +92,7 @@ export const getVaccines = async () => {
     if (response.data && response.data.status === 'Success') {
       return response.data.data.map((v: any) => ({
         label: v.name,
-        value: v.vaccineId.toString(),
+        value: Number(v.vaccineId), // ✅ number
       }));
     }
     return [];
@@ -114,9 +114,96 @@ export const addVaccination = async (payload: {
 }) => {
   try {
     const response = await api.post(`api/Vaccination/add-vaccination`, payload);
-    return response.data; 
+    return response.data;
   } catch (error: any) {
     console.log("Add Vaccination API error:", error.response || error.message);
     throw error;
   }
+};
+
+
+export const updateVaccination = async (payload: {
+  vaccinationId: string;
+  vaccineId: number;
+  date: string;
+  quantity: number;
+  price: number;
+  note?: string;
+  supplierId: string;
+  businessUnitId: string;
+}) => {
+  try {
+    const response = await api.put(
+      `api/Vaccination/update-vaccination`,
+      payload
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Update vaccination error:', error);
+    throw error?.response?.data || error;
+  }
+};
+
+// VaccinationService.ts
+
+
+export const deleteVaccination = async (vaccinationId: string) => {
+  try {
+    // ✅ Using your axios instance `api`
+    const response = await api.delete(`api/Vaccination/delete-vaccination`, {
+      params: { vaccinationId }, 
+    });
+
+    return response.data; 
+  } catch (error: any) {
+    console.error("Delete vaccination error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export interface VaccinationSchedule {
+  vaccinationScheduleId: string;
+  refCount: number;
+  ref: string;
+  vaccineId: number;
+  vaccine: string;
+  businessUnitId: string;
+  businessUnitName: string;
+  flockId: string;
+  flockRef: string;
+  scheduledDate: string;
+  quantity: number;
+  breed: string;
+  isVaccinated: boolean;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
+export interface VaccinationScheduleResponse {
+  status: string;
+  message: string;
+  data: {
+    totalCount: number;
+    list: VaccinationSchedule[];
+  };
+}
+
+export interface VaccinationSchedulePayload {
+  searchKey?: string | null;
+  businessUnitId: string;
+  flockId?: string | null;
+  pageNumber: number;
+  pageSize: number;
+}
+export const  getVaccinationSchedule = async (
+  payload: VaccinationSchedulePayload
+): Promise<VaccinationScheduleResponse> => {
+  const response = await api.post<VaccinationScheduleResponse>(
+    `api/VaccinationSchedule/get-vaccination-schedule-by-search-and-filter-with-pagination`,
+    payload
+  );
+  return response.data;
 };

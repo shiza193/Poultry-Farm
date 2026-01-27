@@ -133,6 +133,7 @@ download: require('../resources/images/download.png'),
   image7: require('../resources/images/image7.png'),
   image8: require('../resources/images/image8.png'),
   image9: require('../resources/images/image9.png'),
+  delete: require('../resources/images/delete.png'),
 
 
 
