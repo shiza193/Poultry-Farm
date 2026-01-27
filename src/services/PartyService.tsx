@@ -84,3 +84,15 @@ export const updatePartyIsActive = async (partyId: string, isActive: boolean) =>
 
 
 
+
+
+export const deleteParty = async (partyId: string) => {
+  try {
+    const response = await api.delete(`api/Party/delete-party/${partyId}`);
+    console.log('Delete Party Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Delete Party Error:', error.response || error.message);
+    throw error;
+  }
+};

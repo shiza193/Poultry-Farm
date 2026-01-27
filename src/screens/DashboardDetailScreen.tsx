@@ -15,8 +15,12 @@ import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { CustomConstants, ScreenType } from '../constants/CustomConstants';
 import { getPoultryFarmSummary } from '../services/BusinessUnit';
 import ScreenTipCard from '../components/customCards/ScreenTipCard';
+import { useBusinessUnit } from '../context/BusinessContext';
 
 const DashboardDetailScreen = ({ navigation }: any) => {
+  const { businessUnitId } = useBusinessUnit();
+  
+  
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
@@ -27,7 +31,6 @@ const DashboardDetailScreen = ({ navigation }: any) => {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const activeScreen = CustomConstants.DASHBOARD_DETAIL_SCREEN;
-  const businessUnitId = '157cc479-dc81-4845-826c-5fb991bd3d47';
 
   const bannerImages = [
     Theme.icons.image1,
@@ -50,12 +53,13 @@ const DashboardDetailScreen = ({ navigation }: any) => {
 
   // Fetch poultry data
   const fetchPoultrySummary = async () => {
+    if (!businessUnitId) return; // safety check
     try {
       setLoading(true);
       const data = await getPoultryFarmSummary(
         businessUnitId,
-        fromDate ? fromDate.toISOString() : null,
-        toDate ? toDate.toISOString() : null,
+        fromDate?.toISOString() || null,
+        toDate?.toISOString() || null
       );
       setPoultryData(data);
     } finally {
@@ -65,7 +69,8 @@ const DashboardDetailScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     fetchPoultrySummary();
-  }, [fromDate, toDate]);
+  }, [businessUnitId, fromDate, toDate]);
+
 
   // Stat card component
   const StatCard = ({ title, value, bgColor, icon }: any) => {

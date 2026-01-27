@@ -13,6 +13,7 @@ import { getFlockStock, FlockStock } from '../../services/FlockService';
 import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
 import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
 import ScreenTipCard from '../../components/customCards/ScreenTipCard';
+import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlockStockScreen = () => {
   const [activeScreen, setActiveScreen] = useState<ScreenType>(
@@ -22,9 +23,13 @@ const FlockStockScreen = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const businessUnitId = '157cc479-dc81-4845-826c-5fb991bd3d47';
+  const { businessUnitId } = useBusinessUnit();
 
   const fetchFlockStock = async () => {
+     if (!businessUnitId) {
+      console.warn('Business Unit ID is not set');
+      return;
+    }
     try {
       setLoading(true);
       const data = await getFlockStock(businessUnitId);

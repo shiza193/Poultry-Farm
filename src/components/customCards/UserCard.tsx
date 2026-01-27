@@ -1,7 +1,12 @@
 import React from 'react';
-import { Dimensions } from 'react-native';
-
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  Dimensions,
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import Theme from '../../theme/Theme';
 
 type User = {
@@ -23,38 +28,37 @@ interface UserRowProps {
   onPressName?: () => void;
   onToggleStatus?: () => void;
   actions?: Action[];
-  onPressDelete?: () => void; 
-
-  onResetPassword?: () => void; 
+  onPressDelete?: () => void;
+  onResetPassword?: () => void;
 }
 
 const { width } = Dimensions.get('window');
+
 const UserCard = ({
   user,
   onPressName,
   onToggleStatus,
   actions,
   onResetPassword,
-  onPressDelete, 
+  onPressDelete,
 }: UserRowProps) => {
   const defaultActions: Action[] = [
-    
     {
       image: 'https://cdn-icons-png.flaticon.com/512/992/992651.png',
       onPress: () => console.log('Add'),
-      backgroundColor:Theme.colors.secondaryYellow,
+      backgroundColor: Theme.colors.secondaryYellow,
     },
-   
   ];
 
   return (
     <View style={styles.card}>
+      {/* Status Toggle */}
       <View style={styles.topRightToggle}>
         <TouchableOpacity
           style={[
             styles.toggleBtnSmall,
             user.isActive
-              ? { backgroundColor:Theme.colors.secondaryYellow }
+              ? { backgroundColor: Theme.colors.secondaryYellow }
               : { backgroundColor: '#fff' },
             { borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
           ]}
@@ -93,25 +97,10 @@ const UserCard = ({
 
       {/* User Info */}
       <TouchableOpacity onPress={onPressName} style={styles.userInfoRow}>
-        <View style={{ position: 'relative' }}>
-          <Image
-            source={{
-              uri:
-                user.image ||
-                'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-            }}
-            style={styles.avatar}
-          />
-          <View style={styles.iconOverlay}>
-            <Image
-              source={{
-                uri: 'https://i.pinimg.com/1200x/08/a7/4d/08a74dfad26fee01049ad9b621962542.jpg',
-              }}
-              style={styles.overlayIcon}
-            />
-          </View>
-        </View>
-
+        <Image
+          source={{ uri: user.image }} // ✅ ONLY API image
+          style={styles.avatar}
+        />
         <View style={styles.userInfo}>
           <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
             {user.name}
@@ -124,12 +113,8 @@ const UserCard = ({
 
       {/* Actions Row */}
       <View style={styles.actionsRow}>
-        {/* Icons with label on top */}
         <View style={{ alignItems: 'flex-start' }}>
-          {/* Single label above icons */}
           <Text style={styles.singleActionLabel}>Assign PoultryFarm</Text>
-
-          {/* Icons row */}
           <View style={{ flexDirection: 'row', marginTop: 4, marginLeft: -6 }}>
             {(actions || defaultActions).map((action, index) => (
               <TouchableOpacity
@@ -152,15 +137,13 @@ const UserCard = ({
           </View>
         </View>
 
-        {/* Right side buttons */}
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity
             style={[styles.resetBtn, styles.deleteBtn]}
-            onPress={onPressDelete} 
+            onPress={onPressDelete}
           >
             <Text style={[styles.resetText, { color: 'red' }]}>Delete 🗑️</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.resetBtn, styles.resetBtnPrimary]}
             onPress={onResetPassword}
@@ -176,79 +159,6 @@ const UserCard = ({
 export default UserCard;
 
 const styles = StyleSheet.create({
-  userInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    paddingRight: 90, 
-  },
-
-  avatar: {
-    width: 67,
-    height: 67,
-    borderRadius: 35,
-  },
-
-  iconOverlay: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 25,
-    height: 24,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  overlayIcon: {
-    width: 28, // icon bhi bada
-    height: 28,
-    resizeMode: 'contain',
-  },
-
-  userInfo: {
-    marginLeft: 12,
-    flex: 1,
-    overflow: 'hidden',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: 12,
-  },
-
-  name: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
-    flexShrink: 1,
-  },
-
-  email: {
-    fontSize: 14,
-    color: '#007BFF',
-    flexShrink: 1,
-  },
-
-  actionButtonsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 18,
-  },
-
-  deleteBtn: {
-    backgroundColor: '#fde2e2',
-  },
-
-  resetBtnPrimary: {
-    backgroundColor: '#ffe0e0',
-  },
-
   card: {
     backgroundColor: '#fff',
     borderRadius: 14,
@@ -261,7 +171,22 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
-
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    paddingRight: 90,
+  },
+  avatar: { width: 67, height: 67, borderRadius: 35 },
+  userInfo: { marginLeft: 12, flex: 1, overflow: 'hidden' },
+  name: { fontSize: 17, fontWeight: 'bold', color: '#333', flexShrink: 1 },
+  email: { fontSize: 14, color: '#007BFF', flexShrink: 1 },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 12,
+  },
   singleActionLabel: {
     fontSize: 12,
     fontWeight: '600',
@@ -269,8 +194,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: 'center',
   },
-
-  // Top-right toggle
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 18,
+  },
+  deleteBtn: { backgroundColor: '#fde2e2' },
+  resetBtnPrimary: { backgroundColor: '#ffe0e0' },
+  resetBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: '#ffe0e0',
+    borderRadius: 8,
+  },
+  resetText: { color: 'red', fontSize: 13, fontWeight: '600' },
   topRightToggle: {
     flexDirection: 'row',
     position: 'absolute',
@@ -282,14 +220,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 10,
   },
-  actionLabel: {
-    marginTop: 4,
-    fontSize: 11,
-    color: '#333',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-
   toggleBtnSmall: {
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -297,7 +227,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleTextSmall: { fontWeight: '600', fontSize: 11 },
-
   actionBtn: {
     width: 38,
     height: 38,
@@ -307,11 +236,4 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   actionImg: { width: 20, height: 20, resizeMode: 'contain' },
-  resetBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: '#ffe0e0',
-    borderRadius: 8,
-  },
-  resetText: { color: 'red', fontSize: 13, fontWeight: '600' },
 });

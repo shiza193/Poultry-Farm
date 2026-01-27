@@ -5,6 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DataCard from '../components/customCards/DataCard';
 import TopBarCard from '../components/customCards/TopBarCard';
 import AddModal from '../components/customPopups/AddModal';
+import { useRoute } from '@react-navigation/native';
+import { useBusinessUnit } from '../context/BusinessContext';
+import { deleteEmployee } from '../services/EmployeeService';
+import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 
 import {
   getEmployees,
@@ -13,6 +17,7 @@ import {
 } from '../services/EmployeeService';
 
 import Theme from '../theme/Theme';
+import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 
 type EmployeeStatus = 'Active' | 'Inactive';
 
@@ -28,13 +33,30 @@ interface Employee {
 }
 
 const EmployeeScreen = () => {
+  const route = useRoute<any>();
+  const { businessUnitId: contextBU } = useBusinessUnit();
+
+  // 👉 navigation param (agar aya ho)
+  const routeBU = route.params?.businessUnitId;
+
+  // 👉 final business unit id
+  const activeBusinessUnitId = route.params?.businessUnitId ?? null;
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
+    null,
+  );
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<
+    string | null
+  >(null);
 
   const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] =
-    useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'active' | 'inactive'
+  >('all');
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -42,7 +64,18 @@ const EmployeeScreen = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const data = await getEmployees({ pageNumber: 1, pageSize: 50 });
+
+      const params: any = {
+        pageNumber: 1,
+        pageSize: 50,
+      };
+
+      if (selectedBusinessUnitId) {
+        params.businessUnitId = selectedBusinessUnitId;
+      }
+      const data = await getEmployees(params);
+
+      console.log(JSON.stringify(data, null, 2));
 
       const mapped: Employee[] = data.list.map((emp: any) => ({
         employeeId: emp.employeeId,
@@ -51,15 +84,13 @@ const EmployeeScreen = () => {
         salary: emp.salary,
         poultryFarm: emp.businessUnit,
         joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
-        endDate: emp.endDate
-          ? new Date(emp.endDate).toLocaleDateString()
-          : '',
+        endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
         status: emp.isActive ? 'Active' : 'Inactive',
       }));
 
       setEmployees(mapped);
       setFilteredEmployees(mapped);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to fetch employees');
     } finally {
       setLoading(false);
@@ -68,7 +99,7 @@ const EmployeeScreen = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [activeBusinessUnitId]);
 
   // ================= FILTER =================
   useEffect(() => {
@@ -85,9 +116,7 @@ const EmployeeScreen = () => {
     }
 
     if (statusFilter !== 'all') {
-      updated = updated.filter(
-        e => e.status.toLowerCase() === statusFilter,
-      );
+      updated = updated.filter(e => e.status.toLowerCase() === statusFilter);
     }
 
     setFilteredEmployees(updated);
@@ -103,15 +132,23 @@ const EmployeeScreen = () => {
 
       setEmployees(prev =>
         prev.map(e =>
-          e.employeeId === emp.employeeId
-            ? { ...e, status: newStatus }
-            : e,
+          e.employeeId === emp.employeeId ? { ...e, status: newStatus } : e,
         ),
       );
+
+      // Show success toast
+      showSuccessToast(
+        'Success',
+        `Employee has been ${newStatus.toLowerCase()} successfully`,
+      );
     } catch {
-      Alert.alert('Error', 'Status update failed');
+      showErrorToast('Error', 'Status update failed');
     }
   };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [searchText, statusFilter, selectedBusinessUnitId]);
 
   // ================= ADD EMPLOYEE (API) =================
   const handleAddEmployee = async (data: any) => {
@@ -136,25 +173,66 @@ const EmployeeScreen = () => {
         salary: emp.salary,
         poultryFarm: emp.businessUnit,
         joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
-        endDate: emp.endDate
-          ? new Date(emp.endDate).toLocaleDateString()
-          : '',
+        endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
         status: emp.isActive ? 'Active' : 'Inactive',
       };
 
       setEmployees(prev => [newEmployee, ...prev]);
       setFilteredEmployees(prev => [newEmployee, ...prev]);
 
-      Alert.alert('Success', 'Employee added successfully');
+      showSuccessToast('Success', 'Employee added successfully');
       setIsModalVisible(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to add employee');
+      showErrorToast('Error', 'Failed to add employee');
     }
   };
 
-  const resetFilters = () => {
+  const resetFilters = async () => {
     setSearchText('');
     setStatusFilter('all');
+    setSelectedBusinessUnitId(null);
+
+    await fetchEmployees();
+  };
+  const handleDeletePress = (employeeId: string) => {
+    setSelectedEmployeeId(employeeId);
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedEmployeeId) return;
+    try {
+      const res = await deleteEmployee(selectedEmployeeId);
+
+      // Show backend message if returned
+      if (res.error || res.success === false) {
+        return showErrorToast(
+          'Error',
+          res.error || res.message || 'Failed to delete employee',
+        );
+      }
+      setEmployees(prev =>
+        prev.filter(e => e.employeeId !== selectedEmployeeId),
+      );
+      setFilteredEmployees(prev =>
+        prev.filter(e => e.employeeId !== selectedEmployeeId),
+      );
+
+      showSuccessToast(
+        'Success',
+        res.message || 'Employee deleted successfully',
+      );
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to delete employee';
+      showErrorToast('Error', msg);
+      console.error('Delete employee failed', error);
+    } finally {
+      setDeleteModalVisible(false);
+      setSelectedEmployeeId(null);
+    }
   };
 
   const employeeLabels = {
@@ -185,6 +263,8 @@ const EmployeeScreen = () => {
           status={statusFilter}
           onStatusChange={setStatusFilter}
           onReset={resetFilters}
+          value={selectedBusinessUnitId}
+          onBusinessUnitChange={setSelectedBusinessUnitId}
           onAddPress={() => setIsModalVisible(true)}
         />
 
@@ -198,6 +278,7 @@ const EmployeeScreen = () => {
               <DataCard isHeader labels={employeeLabels} />
               {filteredEmployees.map((emp, index) => (
                 <DataCard
+                  onDelete={() => handleDeletePress(emp.employeeId!)}
                   key={emp.employeeId}
                   {...emp}
                   onToggleStatus={() => toggleStatus(index)}
@@ -215,6 +296,13 @@ const EmployeeScreen = () => {
         title="Add Employee"
         onClose={() => setIsModalVisible(false)}
         onSave={handleAddEmployee}
+      />
+      <ConfirmationModal
+        type="delete"
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleConfirmDelete}
+        title="Are you sure you want to delete this employee?"
       />
     </SafeAreaView>
   );

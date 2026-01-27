@@ -45,6 +45,9 @@ export type ScreenType =
   | typeof CustomConstants.EGG_STOCK_SCREEN
   | typeof CustomConstants.EGG_SALE_SCREEN
   | typeof CustomConstants.EGG_PRODUCTION_SCREEN
+   | typeof CustomConstants.CUSTOMER_SCREEN
+    | typeof CustomConstants.EMPLOYEE_SCREEN
+     | typeof CustomConstants.SUPPILER_SCREEN
   | typeof CustomConstants.VACCINATIONS_SCREEN
   | typeof CustomConstants.VACCINATION_STOCK_SCREEEN
   | typeof CustomConstants.VACCINE_SCHEDULE_SCREEN;

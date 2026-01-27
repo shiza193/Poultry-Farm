@@ -28,6 +28,7 @@ import {
 import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
 import ScreenTipCard from '../../components/customCards/ScreenTipCard';
 import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
+import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlockSaleScreen = () => {
   const [activeScreen, setActiveScreen] = useState<ScreenType>(
@@ -54,9 +55,15 @@ const FlockSaleScreen = () => {
     { label: string; value: string }[]
   >([]);
 
-  const businessUnitId = '157cc479-dc81-4845-826c-5fb991bd3d47';
+  const { businessUnitId } = useBusinessUnit();
 
   const fetchSalesData = async (filters?: GetSaleFilters) => {
+    // Check if businessUnitId exists
+    if (!businessUnitId) {
+      console.warn('Business Unit ID is not set');
+      return;
+    }
+
     try {
       setLoading(true);
       const data = await getSalesByFilter({
@@ -74,7 +81,10 @@ const FlockSaleScreen = () => {
     }
   };
 
-  
+  useEffect(() => {
+    if (!businessUnitId) return;
+    fetchSalesData();
+  }, [businessUnitId]);
 
   const formatDate = (date?: Date | string) => {
     if (!date) return '';
@@ -84,6 +94,8 @@ const FlockSaleScreen = () => {
 
   useEffect(() => {
     const fetchCustomers = async () => {
+      if (!businessUnitId) return; // don't call API if null
+
       try {
         const parties = await getParties(businessUnitId, 0);
         const customerDropdown = parties.map(p => ({
@@ -97,7 +109,7 @@ const FlockSaleScreen = () => {
     };
 
     fetchCustomers();
-  }, []);
+  }, [businessUnitId]); // dependency array ensures effect runs when ID changes
 
   const applyFilter = () => {
     const filters: GetSaleFilters = {};
@@ -295,15 +307,15 @@ const FlockSaleScreen = () => {
           try {
             // Construct payload
             const payload: AddSalePayload = {
-              customerId: data.customerName, // partyId from modal
-              flockId: data.flockName, // flockId from modal
+              customerId: data.customerName,
+              flockId: data.flockName,
               quantity: Number(data.quantity),
               price: Number(data.price),
               date: data.saleDate
                 ? data.saleDate.toISOString()
                 : new Date().toISOString(),
               note: data.remarks || '',
-              businessUnitId,
+              businessUnitId: businessUnitId!,
             };
 
             console.log('Sending Flock Sale Payload:', payload);
