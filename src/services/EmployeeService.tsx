@@ -37,7 +37,7 @@ export const getEmployees = async ({
 };
 
 
-export const updateEmployeeIsActive = async (employeeId:any, isActive:any) => {
+export const updateEmployeeIsActive = async (employeeId: any, isActive: any) => {
   try {
     const response = await api.put(
       `api/Employee/update-employee-isActive/${employeeId}/${isActive}`
@@ -73,10 +73,9 @@ interface AddEmployeePayload {
   joiningDate: string; // ISO string
   salary: number;
   endDate?: string | null;
-  businessUnitId: string;
 }
 
-export const addEmployee = async (payload: AddEmployeePayload) => {
+export const addEmployee = async (payload: AddEmployeePayload & { businessUnitId: string }) => {
   try {
     const response = await api.post('api/Employee/add-employee', {
       name: payload.name,
@@ -84,17 +83,15 @@ export const addEmployee = async (payload: AddEmployeePayload) => {
       joiningDate: payload.joiningDate,
       salary: payload.salary,
       endDate: payload.endDate ?? null,
-      businessUnitId: payload.businessUnitId,
+      businessUnitId: payload.businessUnitId, 
     });
 
-    return response.data; // { status, message, data }
+    return response.data;
   } catch (error) {
     console.error('Add employee error:', error);
     throw error;
   }
 };
-
-
 
 export const deleteEmployee = async (employeeId: string) => {
   try {

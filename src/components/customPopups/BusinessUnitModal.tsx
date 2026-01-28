@@ -5,6 +5,7 @@ import {
   Modal,
   TouchableOpacity,
   StyleSheet,
+  Image
 } from "react-native";
 import Theme from "../../theme/Theme";
 import InputField from "../customInputs/Input";
@@ -13,9 +14,10 @@ import DropDownPicker from "react-native-dropdown-picker";
 interface BusinessUnitModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave?: (data: { name: string; location: string }) => void; // optional for Add/Edit
+  onSave?: (data: { name: string; location: string }) => void;
+  onResetPassword?: (data: { newPassword: string; confirmPassword: string }) => void;
   initialData?: { name: string; location: string };
-  mode?: "add" | "edit" | "filter"; // filter mode added
+  mode?: "add" | "edit" | "filter" | "reset";
   flockItems?: { label: string; value: string }[];
   supplierItems?: { label: string; value: string }[];
   selectedFlockId?: string | null;
@@ -28,6 +30,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   onClose,
   onSave,
   initialData,
+  onResetPassword,
   mode = "add",
   flockItems = [],
   supplierItems = [],
@@ -48,6 +51,11 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     initialSupplier || null
   );
 
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   useEffect(() => {
     if (initialData) {
       setName(initialData.name);
@@ -59,6 +67,15 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     setSelectedFlockId(initialFlockId || null);
     setSelectedSupplier(initialSupplier || null);
   }, [initialData, initialFlockId, initialSupplier, visible]);
+
+  useEffect(() => {
+    if (mode === "reset") {
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    }
+  }, [visible, mode]);
 
   const isSaveDisabled = name.trim() === "" || location.trim() === "";
 
@@ -84,11 +101,12 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          {mode === "filter" ? (
+
+          {/* ===== FILTER MODE ===== */}
+          {mode === "filter" && (
             <>
               <Text style={styles.title}>Flock Filter</Text>
 
-              {/* FLOCK DROPDOWN */}
               <Text style={styles.inputLabel}>Flock</Text>
               <DropDownPicker
                 open={dropdownOpen}
@@ -96,7 +114,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 items={flockItems}
                 setOpen={setDropdownOpen}
                 setValue={setSelectedFlockId}
-                setItems={() => {}}
+                setItems={() => { }}
                 placeholder="Select flock"
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
@@ -105,7 +123,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 zIndexInverse={1000}
               />
 
-              {/* SUPPLIER DROPDOWN */}
               <Text style={styles.inputLabel}>Supplier</Text>
               <DropDownPicker
                 open={supplierDropdownOpen}
@@ -113,13 +130,12 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 items={supplierItems}
                 setOpen={setSupplierDropdownOpen}
                 setValue={setSelectedSupplier}
-                setItems={() => {}}
+                setItems={() => { }}
                 placeholder="Select supplier"
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
               />
 
-              {/* BUTTONS */}
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={styles.resetButton}
@@ -136,7 +152,83 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 </TouchableOpacity>
               </View>
             </>
-          ) : (
+          )}
+
+          {/* ===== RESET PASSWORD MODE ===== */}
+          {mode === "reset" && (
+            <>
+              <Text style={styles.title}>Reset Password</Text>
+              <Text style={styles.inputLabel}>New Password</Text>
+              <View style={styles.passwordContainer}>
+                <InputField
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showNewPassword}
+                  style={{  paddingRight: 40, paddingVertical: 5 }} 
+                />
+                <TouchableOpacity
+                  style={styles.eyeIconContainer}
+                  onPress={() => setShowNewPassword(prev => !prev)}
+                >
+                  <Image
+                    source={showNewPassword ? Theme.icons.showPassword : Theme.icons.hidePassword}
+                    style={{ width: 24, height: 24 }}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.inputLabel}>Confirm Password</Text>
+              <View style={styles.passwordContainer}>
+                <InputField
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword} 
+                  secureTextEntry={!showConfirmPassword}
+                  style={{  paddingRight: 40, paddingVertical: 5 }} 
+                />
+                <TouchableOpacity
+                  style={styles.eyeIconContainer}
+                  onPress={() => setShowConfirmPassword(prev => !prev)}
+                >
+                  <Image
+                    source={showConfirmPassword ? Theme.icons.showPassword : Theme.icons.hidePassword}
+                    style={{ width: 24, height: 24 }}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.discardButton]}
+                  onPress={onClose}
+                >
+                  <Text style={[styles.buttonText, styles.discardText]}>Discard</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    styles.saveButton,
+                    (newPassword.trim() === "" || confirmPassword.trim() === "") && styles.saveButtonDisabled
+                  ]}
+                  disabled={newPassword.trim() === "" || confirmPassword.trim() === ""}
+                  onPress={() => {
+                    if (onResetPassword) {
+                      onResetPassword({ newPassword, confirmPassword });
+                    }
+                    onClose();
+                  }}
+                >
+                  <Text style={[styles.buttonText, styles.saveText]}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+
+          {/* ===== ADD / EDIT MODE ===== */}
+          {(mode === "add" || mode === "edit") && (
             <>
               <Text style={styles.title}>
                 {mode === "add" ? "Add Poultry Farm" : "Edit Poultry Farm"}
@@ -162,9 +254,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   onPress={onClose}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.buttonText, styles.discardText]}>
-                    Discard
-                  </Text>
+                  <Text style={[styles.buttonText, styles.discardText]}>Discard</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -182,6 +272,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               </View>
             </>
           )}
+
         </View>
       </View>
     </Modal>
@@ -260,12 +351,29 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: 5,
     elevation: 2,
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+    minHeight: 45,
+  },
+  eyeIconContainer: {
+    position: "absolute",
+    right: 10,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   discardButton: {
     backgroundColor: Theme.colors.white,

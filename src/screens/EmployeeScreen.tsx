@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Alert, View, Text, StyleSheet, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import DataCard from '../components/customCards/DataCard';
-import TopBarCard from '../components/customCards/TopBarCard';
-import AddModal from '../components/customPopups/AddModal';
+import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
-import { useBusinessUnit } from '../context/BusinessContext';
-import { deleteEmployee } from '../services/EmployeeService';
-import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 
+import Header from '../components/common/Header';
+import DataCard, { TableColumn } from '../components/customCards/DataCard';
+import AddModal from '../components/customPopups/AddModal';
+import ConfirmationModal from '../components/customPopups/ConfirmationModal';
+import LoadingOverlay from '../components/loading/LoadingOverlay';
+
+import Theme from '../theme/Theme';
 import {
   getEmployees,
   updateEmployeeIsActive,
   addEmployee,
+  deleteEmployee,
 } from '../services/EmployeeService';
-
-import Theme from '../theme/Theme';
-import { showErrorToast, showSuccessToast } from '../utils/AppToast';
+import { showSuccessToast, showErrorToast } from '../utils/AppToast';
+import StatusToggle from '../components/common/StatusToggle';
+import TopBarCard from '../components/customCards/TopBarCard';
 
 type EmployeeStatus = 'Active' | 'Inactive';
 
@@ -33,49 +34,30 @@ interface Employee {
 }
 
 const EmployeeScreen = () => {
+  const insets = useSafeAreaInsets();
   const route = useRoute<any>();
-  const { businessUnitId: contextBU } = useBusinessUnit();
-
-  // 👉 navigation param (agar aya ho)
-  const routeBU = route.params?.businessUnitId;
-
-  // 👉 final business unit id
-  const activeBusinessUnitId = route.params?.businessUnitId ?? null;
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
-    null,
-  );
-
+  const routeBU = route.params?.businessUnitId ?? null;
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<
-    string | null
-  >(null);
-
-  const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<
-    'all' | 'active' | 'inactive'
-  >('all');
-
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [selectedBU, setSelectedBU] = useState<string | null>(routeBU);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [showDotsMenu, setShowDotsMenu] = useState(false);
+  const [rowModalVisible, setRowModalVisible] = useState(false);
+  const [openRowDotsId, setOpenRowDotsId] = useState<string | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const pageSize = 50;
 
   // ================= FETCH EMPLOYEES =================
   const fetchEmployees = async () => {
     try {
       setLoading(true);
+      const params: any = { pageNumber: 1, pageSize };
+      if (selectedBU) params.businessUnitId = selectedBU;
 
-      const params: any = {
-        pageNumber: 1,
-        pageSize: 50,
-      };
-
-      if (selectedBusinessUnitId) {
-        params.businessUnitId = selectedBusinessUnitId;
-      }
       const data = await getEmployees(params);
-
-      console.log(JSON.stringify(data, null, 2));
 
       const mapped: Employee[] = data.list.map((emp: any) => ({
         employeeId: emp.employeeId,
@@ -89,9 +71,8 @@ const EmployeeScreen = () => {
       }));
 
       setEmployees(mapped);
-      setFilteredEmployees(mapped);
-    } catch {
-      Alert.alert('Error', 'Failed to fetch employees');
+    } catch (error) {
+      showErrorToast('Failed to fetch employees');
     } finally {
       setLoading(false);
     }
@@ -99,101 +80,99 @@ const EmployeeScreen = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, [activeBusinessUnitId]);
+  }, [search, status, selectedBU]);
 
   // ================= FILTER =================
-  useEffect(() => {
-    let updated = [...employees];
-
-    if (searchText) {
-      const q = searchText.toLowerCase();
-      updated = updated.filter(
-        e =>
-          e.name.toLowerCase().includes(q) ||
-          e.type.toLowerCase().includes(q) ||
-          e.poultryFarm.toLowerCase().includes(q),
-      );
+  const filteredEmployees = employees.filter(emp => {
+    if (status === 'active' && emp.status !== 'Active') return false;
+    if (status === 'inactive' && emp.status !== 'Inactive') return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !emp.name.toLowerCase().includes(q) &&
+        !emp.type.toLowerCase().includes(q) &&
+        !emp.poultryFarm.toLowerCase().includes(q)
+      )
+        return false;
     }
+    if (selectedBU && emp.poultryFarm !== selectedBU) return false;
+    return true;
+  });
 
-    if (statusFilter !== 'all') {
-      updated = updated.filter(e => e.status.toLowerCase() === statusFilter);
-    }
-
-    setFilteredEmployees(updated);
-  }, [searchText, statusFilter, employees]);
-
-  // ================= TOGGLE STATUS =================
-  const toggleStatus = async (index: number) => {
-    const emp = filteredEmployees[index];
-    const newStatus = emp.status === 'Active' ? 'Inactive' : 'Active';
-
+  // ================= TABLE COLUMNS =================
+  const columns: TableColumn[] = [
+    {
+      key: 'name', title: 'Name', width: 120, isTitle: true, showDots: true,
+      onDotsPress: (row) => {
+        setOpenRowDotsId(row.employeeId);
+        setRowModalVisible(true);
+      },
+    },
+    { key: 'type', title: 'Type', width: 120 },
+    { key: 'salary', title: 'Salary', width: 120 },
+    { key: 'poultryFarm', title: 'Farm', width: 140 },
+    { key: 'joiningDate', title: 'Joining Date', width: 120 },
+    { key: 'endDate', title: 'End Date', width: 120 },
+    {
+      key: 'status',
+      title: 'Status',
+      width: 120,
+      render: (value, row) => (
+        <StatusToggle
+          isActive={row.status === 'Active'}
+          onToggle={() => handleToggleStatus(row)}
+        />
+      ),
+    },
+  ];
+  // ================= HANDLERS =================
+  const handleToggleStatus = async (emp: Employee) => {
     try {
-      await updateEmployeeIsActive(emp.employeeId!, newStatus === 'Active');
-
+      const newStatus = emp.status === 'Active' ? false : true;
+      await updateEmployeeIsActive(emp.employeeId!, newStatus);
       setEmployees(prev =>
         prev.map(e =>
-          e.employeeId === emp.employeeId ? { ...e, status: newStatus } : e,
+          e.employeeId === emp.employeeId
+            ? { ...e, status: newStatus ? 'Active' : 'Inactive' }
+            : e,
         ),
       );
-
-      // Show success toast
       showSuccessToast(
         'Success',
-        `Employee has been ${newStatus.toLowerCase()} successfully`,
+        `Employee ${newStatus ? 'Activated' : 'Deactivated'} successfully`,
       );
     } catch {
-      showErrorToast('Error', 'Status update failed');
+      showErrorToast('Failed to update status');
     }
   };
-
-  useEffect(() => {
-    fetchEmployees();
-  }, [searchText, statusFilter, selectedBusinessUnitId]);
-
-  // ================= ADD EMPLOYEE (API) =================
+  const formatDate = (date: Date) => {
+    const d = new Date(date);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${year}-${month}-${day}`;
+  };
   const handleAddEmployee = async (data: any) => {
     try {
       const payload = {
         name: data.name,
-        employeeTypeId: Number(data.employeeType),
-        joiningDate: data.joiningDate.toISOString(),
+        employeeTypeId: Number(data.type), 
+        joiningDate: formatDate(data.joiningDate),
         salary: Number(data.salary),
-        endDate: data.endDate ? data.endDate.toISOString() : null,
+        endDate: data.endDate ? formatDate(data.endDate) : null,
         businessUnitId: data.poultryFarm,
       };
-
+      console.log('Add payload:', payload);
       const res = await addEmployee(payload);
-
-      const emp = res.data;
-
-      const newEmployee: Employee = {
-        employeeId: emp.employeeId,
-        name: emp.name,
-        type: emp.employeeType,
-        salary: emp.salary,
-        poultryFarm: emp.businessUnit,
-        joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
-        endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
-        status: emp.isActive ? 'Active' : 'Inactive',
-      };
-
-      setEmployees(prev => [newEmployee, ...prev]);
-      setFilteredEmployees(prev => [newEmployee, ...prev]);
-
-      showSuccessToast('Success', 'Employee added successfully');
-      setIsModalVisible(false);
+      fetchEmployees();
+      showSuccessToast('Employee added successfully');
+      setIsAddModalVisible(false);
     } catch (error) {
-      showErrorToast('Error', 'Failed to add employee');
+      console.error('Add employee error:', error);
+      showErrorToast('Failed to add employee');
     }
   };
 
-  const resetFilters = async () => {
-    setSearchText('');
-    setStatusFilter('all');
-    setSelectedBusinessUnitId(null);
-
-    await fetchEmployees();
-  };
   const handleDeletePress = (employeeId: string) => {
     setSelectedEmployeeId(employeeId);
     setDeleteModalVisible(true);
@@ -202,101 +181,102 @@ const EmployeeScreen = () => {
   const handleConfirmDelete = async () => {
     if (!selectedEmployeeId) return;
     try {
-      const res = await deleteEmployee(selectedEmployeeId);
-
-      // Show backend message if returned
-      if (res.error || res.success === false) {
-        return showErrorToast(
-          'Error',
-          res.error || res.message || 'Failed to delete employee',
-        );
-      }
-      setEmployees(prev =>
-        prev.filter(e => e.employeeId !== selectedEmployeeId),
-      );
-      setFilteredEmployees(prev =>
-        prev.filter(e => e.employeeId !== selectedEmployeeId),
-      );
-
-      showSuccessToast(
-        'Success',
-        res.message || 'Employee deleted successfully',
-      );
-    } catch (error: any) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to delete employee';
-      showErrorToast('Error', msg);
-      console.error('Delete employee failed', error);
+      await deleteEmployee(selectedEmployeeId);
+      setEmployees(prev => prev.filter(e => e.employeeId !== selectedEmployeeId));
+      showSuccessToast('Employee deleted successfully');
+    } catch {
+      showErrorToast('Failed to delete employee');
     } finally {
       setDeleteModalVisible(false);
       setSelectedEmployeeId(null);
     }
   };
 
-  const employeeLabels = {
-    name: 'Name',
-    type: 'Type',
-    salary: 'Salary',
-    poultryFarm: 'Poultry Farm',
-    joiningDate: 'Joining Date',
-    endDate: 'End Date',
-    status: 'Status',
-    actions: 'Actions',
+  const resetFilters = () => {
+    setSearch('');
+    setStatus('all');
+    setSelectedBU(null);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  const tableData = filteredEmployees.map(emp => ({ ...emp, raw: emp }));
 
+  // ================= UI =================
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-        <TopBarCard
-          searchValue={searchText}
-          onSearchChange={setSearchText}
-          status={statusFilter}
-          onStatusChange={setStatusFilter}
-          onReset={resetFilters}
-          value={selectedBusinessUnitId}
-          onBusinessUnitChange={setSelectedBusinessUnitId}
-          onAddPress={() => setIsModalVisible(true)}
-        />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <Header title="Employees"
+        onPressDots={() => setShowDotsMenu(prev => !prev)}
+      />
 
-        {filteredEmployees.length === 0 ? (
+      {/* ===== DOT MENU ===== */}
+      {showDotsMenu && (
+        <View style={styles.dotsMenu}>
+          <TouchableOpacity
+            onPress={() => {
+              setIsAddModalVisible(true);
+              setShowDotsMenu(false);
+            }}
+          >
+            <Text style={styles.menuText}>+ Add New</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {openRowDotsId && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 267,
+            marginLeft: 16,
+            backgroundColor: Theme.colors.white,
+            borderRadius: 6,
+            elevation: 5,
+            padding: 8,
+            zIndex: 999,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedEmployeeId(openRowDotsId);
+              setDeleteModalVisible(true);
+              setOpenRowDotsId(null); // close menu after pressing
+            }}
+          >
+            <Text style={{ color: 'red', fontWeight: '600' }}>Delete Emp</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+
+      {/* ===== TOP BAR ===== */}
+      <TopBarCard
+        searchValue={search}
+        onSearchChange={setSearch}
+        status={status}
+        onStatusChange={setStatus}
+        value={selectedBU}
+        onBusinessUnitChange={setSelectedBU}
+        onReset={resetFilters}
+      />
+      {tableData.length > 0 ? (
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+          <DataCard columns={columns} data={tableData} itemsPerPage={5} />
+        </View>
+      ) : (
+        !loading && (
           <View style={styles.noDataContainer}>
             <Image source={Theme.icons.nodata} style={styles.noDataImage} />
           </View>
-        ) : (
-          <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
-            <View>
-              <DataCard isHeader labels={employeeLabels} />
-              {filteredEmployees.map((emp, index) => (
-                <DataCard
-                  onDelete={() => handleDeletePress(emp.employeeId!)}
-                  key={emp.employeeId}
-                  {...emp}
-                  onToggleStatus={() => toggleStatus(index)}
-                  labels={employeeLabels}
-                />
-              ))}
-            </View>
-          </ScrollView>
-        )}
-      </ScrollView>
+        )
+      )}
 
       <AddModal
-        visible={isModalVisible}
+        visible={isAddModalVisible}
         type="employee"
         title="Add Employee"
-        onClose={() => setIsModalVisible(false)}
+        onClose={() => setIsAddModalVisible(false)}
         onSave={handleAddEmployee}
       />
+
       <ConfirmationModal
         type="delete"
         visible={deleteModalVisible}
@@ -304,25 +284,41 @@ const EmployeeScreen = () => {
         onConfirm={handleConfirmDelete}
         title="Are you sure you want to delete this employee?"
       />
-    </SafeAreaView>
+
+      <LoadingOverlay visible={loading} />
+    </View>
   );
 };
 
 export default EmployeeScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.white },
-  loadingContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.white,
+  },
+  noDataContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  noDataContainer: {
-    alignItems: 'center',
-    marginTop: 50,
-  },
   noDataImage: {
     width: 300,
-    height: 300,
+    height: 360,
+  },
+  dotsMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    backgroundColor: Theme.colors.white,
+    padding: 12,
+    borderRadius: 8,
+    elevation: 6,
+    zIndex: 999,
+  },
+  menuText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Theme.colors.success,
   },
 });
