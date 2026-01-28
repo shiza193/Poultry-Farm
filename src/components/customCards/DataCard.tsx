@@ -10,7 +10,7 @@ export interface TableColumn {
   isTitle?: boolean;
   titleColor?: string;
 
-  showDots?: boolean;           
+  showDots?: boolean;
   onDotsPress?: (row: any) => void;
 }
 
@@ -55,7 +55,6 @@ const DataCard: React.FC<DataCardProps> = ({
     (containerWidth / contentWidth) * containerWidth,
     40
   );
-
   const thumbTranslateX =
     (scrollX / (contentWidth - containerWidth)) *
     (containerWidth - thumbWidth);
@@ -75,6 +74,11 @@ const DataCard: React.FC<DataCardProps> = ({
         <View>
           {/* ===== HEADER ===== */}
           <View style={styles.headerRow}>
+            {/* DOTS HEADER (EMPTY) */}
+            {columns.some(c => c.showDots) && (
+              <Text style={[styles.headerCell, { width: 50 }]} />
+            )}
+
             {columns.map(col => (
               <Text
                 key={col.key}
@@ -83,13 +87,13 @@ const DataCard: React.FC<DataCardProps> = ({
                 {col.title}
               </Text>
             ))}
+
             {showActions && (
               <Text style={[styles.headerCell, { width: 100 }]}>
                 Actions
               </Text>
             )}
           </View>
-
           {/* ===== ROWS ===== */}
           {paginatedData.length === 0 ? (
             <View
@@ -120,6 +124,33 @@ const DataCard: React.FC<DataCardProps> = ({
                   onPress={() => onRowPress?.(row)}
                   activeOpacity={0.7}
                 >
+                  {/* ===== DOTS COLUMN (SAB SE PEHLE) ===== */}
+                  {columns.some(c => c.showDots) && (
+                    <View
+                      style={[
+                        styles.dataCell,
+                        {
+                          width: 50,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={() =>
+                          columns.find(c => c.showDots)?.onDotsPress?.(row)
+                        }
+                        activeOpacity={0.6}
+                      >
+                        <Image
+                          source={Theme.icons.dots}
+                          style={{ width: 20, height: 20, }}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* ===== NORMAL COLUMNS ===== */}
                   {columns.map(col => {
                     const value = row[col.key];
 
@@ -135,21 +166,6 @@ const DataCard: React.FC<DataCardProps> = ({
                           },
                         ]}
                       >
-                        {/* DOTS ICON (sirf jahan showDots true ho) */}
-                        {col.showDots && (
-                          <TouchableOpacity
-                            onPress={() => col.onDotsPress?.(row)}
-                            style={{ marginRight: 6 }}
-                            activeOpacity={0.6}
-                          >
-                            <Image
-                              source={Theme.icons.dots}
-                              style={{ width: 16, height: 16 }}
-                            />
-                          </TouchableOpacity>
-                        )}
-
-                        {/* 🔵 CELL CONTENT */}
                         {col.render ? (
                           col.render(value, row)
                         ) : col.isTitle ? (
@@ -157,9 +173,7 @@ const DataCard: React.FC<DataCardProps> = ({
                             style={[
                               styles.titleText,
                               {
-                                color:
-                                  col.titleColor ||
-                                  styles.titleText.color,
+                                color: col.titleColor || styles.titleText.color,
                               },
                             ]}
                             numberOfLines={1}
@@ -180,7 +194,7 @@ const DataCard: React.FC<DataCardProps> = ({
                     );
                   })}
 
-
+                  {/* ===== ACTIONS (AGAR HAIN) ===== */}
                   {showActions && (
                     <View
                       style={[
@@ -212,6 +226,7 @@ const DataCard: React.FC<DataCardProps> = ({
                     </View>
                   )}
                 </RowWrapper>
+
               );
             })
           )}
@@ -290,7 +305,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 10,
   },
   headerCell: {
-    color: Theme.colors.white,
+    color: Theme.colors.black,
     fontWeight: "700",
     fontSize: 13,
     textAlign: "left",
@@ -300,7 +315,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: Theme.colors.white,
     borderBottomWidth: 1,
-    borderColor: "#e5e5e5",
+    borderColor: Theme.colors.borderColor,
     paddingVertical: 10,
   },
   dataCell: {
@@ -353,7 +368,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 10,
-    backgroundColor: Theme.colors.lightGrey,
+    backgroundColor: Theme.colors.paginationcolor,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.borderColor,
     borderBottomLeftRadius: 8,
@@ -365,7 +380,7 @@ const styles = StyleSheet.create({
   },
   pageText: {
     fontSize: 16,
-    color: Theme.colors.white,
+    color: Theme.colors.black,
   },
   disabled: {
     opacity: 0.3,
@@ -374,7 +389,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     fontSize: 14,
     fontWeight: "500",
-    color: Theme.colors.white,
+    color: Theme.colors.black,
   },
 
 });

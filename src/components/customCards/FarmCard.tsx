@@ -103,7 +103,7 @@ const FarmCard: React.FC<FarmCardProps> = ({
           <View style={styles.statBox}>
             {/* LABEL — TOUCHABLE */}
             <TouchableOpacity onPress={onUserCountPress} activeOpacity={0.7}>
-              <Text style={styles.statLabel}>TOTAL USERS</Text>
+              <Text style={styles.statLabel}> USERS</Text>
             </TouchableOpacity>
 
             {/* ICON + COUNT — TOUCHABLE */}
@@ -137,7 +137,7 @@ const FarmCard: React.FC<FarmCardProps> = ({
               onPress={onEmployeeCountPress}
               activeOpacity={0.7}
             >
-              <Text style={styles.statLabel}>TOTAL EMPLOYEES</Text>
+              <Text style={styles.statLabel}> EMPLOYEES</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

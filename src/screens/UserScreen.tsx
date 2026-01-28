@@ -21,14 +21,14 @@ import {
   deleteUser,
 } from '../services/UserScreen';
 
-import UserCard from '../components/customCards/UserCard';
 import AddModal from '../components/customPopups/AddModal';
 import Theme from '../theme/Theme';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
 import { useBusinessUnit } from '../context/BusinessContext';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
-
+import DataCard, { TableColumn } from '../components/customCards/DataCard';
+import StatusToggle from '../components/common/StatusToggle';
 type User = {
   id: string;
   image: string;
@@ -36,9 +36,9 @@ type User = {
   email: string;
   isActive: boolean;
   role?: string;
+  businessUnit?: string;
   businessUnitId: string;
 };
-
 const UserScreen = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
@@ -55,7 +55,6 @@ const UserScreen = () => {
   const [selectedBU, setSelectedBU] = useState<string | null>(
     routeBusinessUnitId,
   );
-
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
 
@@ -109,6 +108,8 @@ const UserScreen = () => {
           role: u.userRole || '',
           image: u.imageLink || '',
           businessUnitId: u.businessUnitId || '',
+          businessUnit: u.businessUnit ?? '—',
+
         })),
       );
     } catch {
@@ -140,7 +141,13 @@ const UserScreen = () => {
 
     return true;
   });
-
+  const tableData = filteredUsers.map(u => ({
+    name: u.name,
+    email: u.email,
+    businessUnit: u.businessUnit,
+    status: u.isActive,
+    raw: u,
+  }));
   // ================= HANDLERS =================
   const handleSaveUser = async (data: any) => {
     try {
@@ -205,6 +212,40 @@ const UserScreen = () => {
     setStatus('all');
     setSelectedBU(null);
   };
+  const columns: TableColumn[] = [
+    {
+      key: "name",
+      title: "Name",
+      width: 110,
+      isTitle: true,
+      showDots: true,
+      onDotsPress: (row) => {
+        setSelectedUserId(row.raw.id);
+        setDeleteModalVisible(true);
+      },
+    },
+    {
+      key: "email",
+      title: "Email",
+      width: 220,
+    },
+    {
+      key: "businessUnit",
+      title: "Farm",
+      width: 160,
+    },
+    {
+      key: "status",
+      title: "Status",
+      width: 120,
+      render: (value, row) => (
+        <StatusToggle
+          isActive={value}
+          onToggle={() => handleToggleStatus(row.raw)}
+        />
+      ),
+    },
+  ];
 
   // ================= UI =================
   return (
@@ -240,22 +281,14 @@ const UserScreen = () => {
         onReset={resetFilters}
       />
 
-      {/* ===== LIST ===== */}
-      {filteredUsers.length > 0 ? (
-        <FlatList
-          data={filteredUsers}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <UserCard
-              user={item}
-              onToggleStatus={() => handleToggleStatus(item)}
-              onPressDelete={() => {
-                setSelectedUserId(item.id);
-                setDeleteModalVisible(true);
-              }}
-            />
-          )}
-        />
+      {tableData.length > 0 ? (
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>  
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={5}
+          />
+        </View>
       ) : (
         !loading && (
           <View style={styles.noDataContainer}>
