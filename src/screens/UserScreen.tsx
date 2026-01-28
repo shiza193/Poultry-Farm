@@ -19,6 +19,9 @@ import {
   getUsers,
   changeUserStatus,
   deleteUser,
+  resetPassword,
+  getUserFarms,
+  updateUserBusinessUnits,
 } from '../services/UserScreen';
 
 import AddModal from '../components/customPopups/AddModal';
@@ -29,6 +32,8 @@ import { useBusinessUnit } from '../context/BusinessContext';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import StatusToggle from '../components/common/StatusToggle';
+import BusinessUnitModal from '../components/customPopups/BusinessUnitModal';
+import AssignFarmRoleModal from '../components/customPopups/AssignRolePopup';
 type User = {
   id: string;
   image: string;
@@ -43,7 +48,6 @@ const UserScreen = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   const { businessUnitId: contextBU } = useBusinessUnit();
-
   const routeBusinessUnitId = route.params?.businessUnitId ?? null;
 
   const [search, setSearch] = useState('');
@@ -55,13 +59,17 @@ const UserScreen = () => {
   const [selectedBU, setSelectedBU] = useState<string | null>(
     routeBusinessUnitId,
   );
+  const [showAssignFarmModal, setShowAssignFarmModal] = useState(false);
+  const [farms, setFarms] = useState<{ id: number, name: string }[]>([]);
+  const [rowModalVisible, setRowModalVisible] = useState(false);
+  const [selectedRowUser, setSelectedRowUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
-
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
   const [loading, setLoading] = useState(true);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
   const pageSize = 50;
 
   // ================= FETCH ROLES =================
@@ -206,7 +214,26 @@ const UserScreen = () => {
       setSelectedUserId(null);
     }
   };
+  const handleAssignPoultry = async (user: User) => {
+    try {
+      setSelectedRowUser(user);
 
+      const farmList = await getUserFarms(user.id);
+      setFarms(farmList.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        isAdded: f.isAdded,
+        userRoleId: f.userRoleId,
+        userRole: f.userRole,
+      })));
+
+      setShowAssignFarmModal(true);
+    } catch (error) {
+      console.error(error);
+      showErrorToast("Failed to fetch farms");
+    } finally {
+    }
+  };
   const resetFilters = () => {
     setSearch('');
     setStatus('all');
@@ -220,8 +247,8 @@ const UserScreen = () => {
       isTitle: true,
       showDots: true,
       onDotsPress: (row) => {
-        setSelectedUserId(row.raw.id);
-        setDeleteModalVisible(true);
+        setSelectedRowUser(row.raw);
+        setRowModalVisible(true);
       },
     },
     {
@@ -269,6 +296,75 @@ const UserScreen = () => {
           </TouchableOpacity>
         </View>
       )}
+      {/* ===== ROW ACTION MODAL ===== */}
+      {rowModalVisible && selectedRowUser && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 230,
+            left: 40,
+            right: 0,
+            bottom: 0,
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            zIndex: 1000,
+          }}
+          activeOpacity={1}
+          onPress={() => setRowModalVisible(false)}
+        >
+          <View
+            style={{
+              backgroundColor: Theme.colors.white,
+              borderRadius: 8,
+              padding: 5,
+              minWidth: 140,
+              elevation: 10,
+            }}
+          >
+            <TouchableOpacity
+              style={{ paddingVertical: 10, paddingHorizontal: 10 }}
+              onPress={() => {
+                setDeleteModalVisible(true);
+                setRowModalVisible(false);
+              }}
+            >
+              <Text style={{ fontSize: 16, color: "red", fontWeight: '500' }}>
+                Delete
+              </Text>
+            </TouchableOpacity>
+            {/* Separator */}
+            <View style={{ height: 1, backgroundColor: Theme.colors.buttonPrimary, marginVertical: 2 }} />
+
+            <TouchableOpacity
+              style={{ paddingVertical: 10, paddingHorizontal: 10 }}
+              onPress={() => {
+                setSelectedUserForReset(selectedRowUser);
+                setShowResetModal(true);
+                setRowModalVisible(false);
+              }}
+            >
+              <Text style={{ fontSize: 16, color: Theme.colors.textPrimary, fontWeight: '500' }}>
+                Reset Password
+              </Text>
+            </TouchableOpacity>
+
+            {/* Separator */}
+            <View style={{ height: 1, backgroundColor: Theme.colors.buttonPrimary, marginVertical: 2 }} />
+
+            <TouchableOpacity
+              style={{ paddingVertical: 10, paddingHorizontal: 10 }}
+              onPress={() => {
+                handleAssignPoultry(selectedRowUser!);
+                setRowModalVisible(false);
+              }}
+            >
+              <Text style={{ fontSize: 16, color: Theme.colors.textPrimary, fontWeight: '500' }}>
+                Assign to Poultry
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* ===== TOP BAR ===== */}
       <TopBarCard
@@ -282,7 +378,7 @@ const UserScreen = () => {
       />
 
       {tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>  
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard
             columns={columns}
             data={tableData}
@@ -314,7 +410,63 @@ const UserScreen = () => {
         onConfirm={handleConfirmDelete}
         title="Are you sure you want to delete this user?"
       />
+      <BusinessUnitModal
+        visible={showResetModal}
+        mode="reset"
+        onClose={() => {
+          setShowResetModal(false);
+          setSelectedUserForReset(null);
+        }}
+        onResetPassword={async ({ newPassword, confirmPassword }) => {
+          if (!selectedUserForReset) return;
 
+          // Validate passwords match
+          if (newPassword !== confirmPassword) {
+            showErrorToast("Passwords do not match");
+            return;
+          }
+          try {
+            await resetPassword({
+              userId: selectedUserForReset.id,
+              newPassword: newPassword,
+              conformPassword: confirmPassword,
+            });
+
+            showSuccessToast("Password reset successfully");
+            setShowResetModal(false);
+            setSelectedUserForReset(null);
+          } catch (error) {
+            console.error(error);
+            showErrorToast("Failed to reset password");
+          }
+        }}
+      />
+      <AssignFarmRoleModal
+        visible={showAssignFarmModal}
+        farms={farms}
+        getUserRoles={getUserRoles}
+        onClose={() => setShowAssignFarmModal(false)}
+        onSave={async (data) => {
+          if (!selectedRowUser) return;
+
+          try {
+            const payload = Object.keys(data).map((farmId) => ({
+              businessUnitId: farmId,          
+              userRoleId: data[farmId]?.roleId ?? null,
+              isChecked: data[farmId]?.checked ?? false,
+            }));
+
+            await updateUserBusinessUnits(selectedRowUser.id, payload);
+
+            showSuccessToast("Farms & roles updated successfully");
+            setShowAssignFarmModal(false);
+            fetchUsers();
+          } catch (error) {
+            console.error(error);
+            showErrorToast("Failed to assign farms");
+          }
+        }}
+      />
       <LoadingOverlay visible={loading} />
     </View>
   );
@@ -330,7 +482,7 @@ const styles = StyleSheet.create({
 
   dotsMenu: {
     position: 'absolute',
-    top: 90,
+    top: 40,
     right: 20,
     backgroundColor: Theme.colors.white,
     padding: 12,
@@ -342,7 +494,7 @@ const styles = StyleSheet.create({
   menuText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Theme.colors.textPrimary,
+    color: Theme.colors.success,
   },
 
   noDataContainer: {

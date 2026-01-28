@@ -36,10 +36,10 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
 export default PrimaryButton;
 const styles = StyleSheet.create({
   button: {
-    width: "70%",
+    width: "100%",
     backgroundColor: Theme.colors.login,
     paddingVertical: 14,
-    borderRadius: 6,
+    borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
   },

@@ -95,3 +95,61 @@ export const deleteUser = async (userId: string) => {
     throw error;
   }
 };
+
+interface ResetPasswordPayload {
+  userId: string;
+  newPassword: string;
+  conformPassword: string;
+}
+
+export const resetPassword = async (payload: ResetPasswordPayload) => {
+  try {
+    const response = await api.post('api/User/reset-password', payload);
+    console.log('Reset Password Response:', response.data);
+    return response.data; // { status, message, data }
+  } catch (error: any) {
+    console.error('Reset Password Error:', error.response || error.message);
+    throw error;
+  }
+};
+
+
+export const getUserFarms = async (userId: string) => {
+  try {
+    const res = await api.get(
+      `/api/BusinessUnit/get-all-business-unit-by-user-with-added-flag/${userId}`
+    );
+
+    if (res.data.status === "Success") {
+      return res.data.data.map((item: any) => ({
+        id: item.businessUnitId,
+        name: item.name,      
+        isAdded: item.isAdded,   
+        userRoleId: item.userRoleId,
+        userRole: item.userRole,
+      }));
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch farms", error);
+    return [];
+  }
+};
+
+
+export const updateUserBusinessUnits = async (
+  userId: string,
+  payload: {
+    businessUnitId: string;
+    userRoleId: number | null;
+    isChecked: boolean;
+  }[]
+) => {
+  const response = await api.put(
+    `api/UserBusinessUnit/update-user-business-unit/${userId}`,
+    payload
+  );
+
+  return response.data;
+};
