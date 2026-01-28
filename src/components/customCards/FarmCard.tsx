@@ -12,7 +12,6 @@ interface FarmCardProps {
   onEmployeeCountPress?: () => void;
   onAddUser?: () => void;
   onAddEmployee?: () => void;
-
   onPressTitle?: () => void;
   onEdit?: () => void;
   onDelete: () => void;
@@ -42,54 +41,55 @@ const FarmCard: React.FC<FarmCardProps> = ({
       {/* DETAILS */}
       <View style={styles.details}>
         {/* HEADER */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={onPressTitle} style={{ flex: 1 }}>
-            <Text style={styles.title} numberOfLines={1}>
-              {title}
-            </Text>
+   <View style={styles.headerRow}>
+  {/* Make only the Text itself touchable, no flex */}
+  <TouchableOpacity onPress={onPressTitle}>
+    <Text style={styles.title} numberOfLines={1}>
+      {title}
+    </Text>
+  </TouchableOpacity>
+
+  {/* 3 DOT MENU stays independent */}
+  <View style={{ position: 'relative', marginLeft: 8 }}>
+    <TouchableOpacity
+      onPress={() => setMenuVisible(prev => !prev)}
+      style={styles.dotsWrapper}
+    >
+      <Image source={Theme.icons.dots} style={styles.dotsIcon} />
+    </TouchableOpacity>
+
+    {menuVisible && (
+      <TouchableOpacity
+        style={styles.menuOverlay}
+        activeOpacity={1}
+        onPress={() => setMenuVisible(false)}
+      >
+        <View style={styles.menu}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setMenuVisible(false);
+              onEdit && onEdit();
+            }}
+          >
+            <Text style={styles.menuText}>Edit</Text>
           </TouchableOpacity>
 
-          {/* 3 DOT MENU */}
-
-          <View style={{ position: 'relative' }}>
-            <TouchableOpacity
-              onPress={() => setMenuVisible(prev => !prev)}
-              style={styles.dotsWrapper}
-            >
-              <Image source={Theme.icons.dots} style={styles.dotsIcon} />
-            </TouchableOpacity>
-
-            {menuVisible && (
-              <TouchableOpacity
-                style={styles.menuOverlay}
-                activeOpacity={1}
-                onPress={() => setMenuVisible(false)}
-              >
-                <View style={styles.menu}>
-                  <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => {
-                      setMenuVisible(false);
-                      onEdit && onEdit();
-                    }}
-                  >
-                    <Text style={styles.menuText}>Edit</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.menuItem, styles.deleteItem]}
-                    onPress={() => {
-                      setMenuVisible(false);
-                      onDelete();
-                    }}
-                  >
-                    <Text style={styles.deleteText}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
+          <TouchableOpacity
+            style={[styles.menuItem, styles.deleteItem]}
+            onPress={() => {
+              setMenuVisible(false);
+              onDelete();
+            }}
+          >
+            <Text style={styles.deleteText}>Delete</Text>
+          </TouchableOpacity>
         </View>
+      </TouchableOpacity>
+    )}
+  </View>
+</View>
+
 
         {/* LOCATION */}
         <View style={styles.locationRow}>
@@ -206,8 +206,9 @@ const styles = StyleSheet.create({
   },
 
   dotsIcon: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
+    marginLeft:117,
     tintColor: Theme.colors.textPrimary,
   },
   menuOverlay: {

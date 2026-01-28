@@ -3,26 +3,22 @@ import {
   View,
   FlatList,
   StyleSheet,
-  Alert,
   ScrollView,
   Image,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { deleteParty } from '../services/PartyService';
+import { deleteParty, getPartyBySearchAndFilter, addParty, updatePartyIsActive } from '../services/PartyService';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
-
 import TopBarCard from '../components/customCards/TopBarCard';
 import Theme from '../theme/Theme';
 import DataCard from '../components/customCards/DataCard';
 import AddModal from '../components/customPopups/AddModal';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
-import {
-  getPartyBySearchAndFilter,
-  addParty,
-  updatePartyIsActive,
-} from '../services/PartyService';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
+import Header from '../components/common/Header';
 import ProfileModal from '../components/customPopups/ProfileModal';
 
 type User = {
@@ -44,15 +40,13 @@ const SupplierScreen = () => {
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [dotsMenuVisible, setDotsMenuVisible] = useState(false);
+  const [openProfile, setOpenProfile] = useState(false);
 
-  // All suppliers fetched from API
   const [users, setUsers] = useState<User[]>([]);
-  // Filtered suppliers for UI
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Local state for dropdown
   const [selectedBU, setSelectedBU] = useState<string | null>(null);
 
   // ================= FETCH SUPPLIERS =================
@@ -64,7 +58,7 @@ const SupplierScreen = () => {
         searchKey: null,
         isActive: null,
         pageNumber: 1,
-        pageSize: 100, 
+        pageSize: 100,
         partyTypeId: 1,
       };
 
@@ -97,7 +91,6 @@ const SupplierScreen = () => {
     }
   };
 
-  // Initial load
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -106,20 +99,9 @@ const SupplierScreen = () => {
   useEffect(() => {
     let updated = [...users];
 
-    if (selectedBU) {
-      updated = updated.filter(u => u.businessUnitId === selectedBU);
-    }
-
-    if (status !== 'all') {
-      updated = updated.filter(u =>
-        status === 'active' ? u.isActive : !u.isActive,
-      );
-    }
-
-    if (search) {
-      const q = search.toLowerCase();
-      updated = updated.filter(u => u.name.toLowerCase().includes(q));
-    }
+    if (selectedBU) updated = updated.filter(u => u.businessUnitId === selectedBU);
+    if (status !== 'all') updated = updated.filter(u => (status === 'active' ? u.isActive : !u.isActive));
+    if (search) updated = updated.filter(u => u.name.toLowerCase().includes(search.toLowerCase()));
 
     setFilteredUsers(updated);
   }, [selectedBU, status, search, users]);
@@ -166,17 +148,12 @@ const SupplierScreen = () => {
       await updatePartyIsActive(userId, !currentStatus);
 
       setUsers(prev =>
-        prev.map(u =>
-          u.id === userId ? { ...u, isActive: !currentStatus } : u,
-        ),
+        prev.map(u => (u.id === userId ? { ...u, isActive: !currentStatus } : u)),
       );
 
-      // Show success toast
       showSuccessToast(
         'Success',
-        `Supplier has been ${
-          !currentStatus ? 'activated' : 'deactivated'
-        } successfully`,
+        `Supplier has been ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
       );
     } catch (error: any) {
       console.error('Error updating status:', error);
@@ -206,22 +183,13 @@ const SupplierScreen = () => {
       const res = await deleteParty(selectedPartyId);
 
       if (res.error || res.success === false) {
-        return showErrorToast(
-          'Error',
-          res.error || res.message || 'Failed to delete supplier',
-        );
+        return showErrorToast('Error', res.error || res.message || 'Failed to delete supplier');
       }
 
       setUsers(prev => prev.filter(u => u.id !== selectedPartyId));
-      showSuccessToast(
-        'Success',
-        res.message || 'Supplier deleted successfully',
-      );
+      showSuccessToast('Success', res.message || 'Supplier deleted successfully');
     } catch (error: any) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to delete supplier';
+      const msg = error?.response?.data?.message || error?.message || 'Failed to delete supplier';
       showErrorToast('Error', msg);
       console.error('Delete supplier failed', error);
     } finally {
@@ -232,8 +200,28 @@ const SupplierScreen = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* ===== HEADER ===== */}
+      <Header
+        title="Suppliers"
+        onPressDots={() => setDotsMenuVisible(prev => !prev)}
+      />
+
+      {/* ===== DOTS MENU ===== */}
+      {dotsMenuVisible && (
+        <View style={styles.dotsMenu}>
+          <TouchableOpacity
+            onPress={() => {
+              setShowAddModal(true);
+              setDotsMenuVisible(false);
+            }}
+          >
+            <Text style={styles.menuText}>+ Add New</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ===== TOP BAR CARD (no add button) ===== */}
       <TopBarCard
-        onAddPress={() => setShowAddModal(true)}
         searchValue={search}
         onSearchChange={setSearch}
         status={status}
@@ -243,44 +231,13 @@ const SupplierScreen = () => {
         onReset={resetFilters}
       />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-      >
+      {/* ===== DATA TABLE ===== */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
         <View style={{ flex: 1 }}>
-          <FlatList
-            data={filteredUsers}
-            keyExtractor={item => item.id}
-            ListHeaderComponent={() => <DataCard isHeader />}
-            contentContainerStyle={{ paddingBottom: 20 }}
-            renderItem={({ item }) => (
-              <DataCard
-                name={item.name}
-                email={item.email ?? '-----'}
-                phone={item.phone ?? '-----'}
-                address={item.address || '-----'}
-                status={item.isActive ? 'Active' : 'Inactive'}
-                onToggleStatus={() =>
-                  handleToggleStatus(item.id, item.isActive)
-                }
-                onDelete={() => handleDeletePress(item.id)}
-                onEdit={() => {
-                  console.log('EDIT CLICKED');
-                  setOpen(true);
-                }}
-              />
-            )}
-          />
+         
 
           {!loading && filteredUsers.length === 0 && (
-            <View
-              style={{
-                justifyContent: 'flex-start',
-                alignItems: 'flex-start',
-                marginTop: 50,
-              }}
-            >
+            <View style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginTop: 50 }}>
               <Image
                 source={Theme.icons.nodata}
                 style={{ width: 300, height: 360, marginBottom: 30 }}
@@ -291,6 +248,7 @@ const SupplierScreen = () => {
         </View>
       </ScrollView>
 
+      {/* ===== ADD MODAL ===== */}
       <AddModal
         visible={showAddModal}
         type="customer"
@@ -299,6 +257,7 @@ const SupplierScreen = () => {
         onSave={handleAddSupplier}
       />
 
+      {/* ===== DELETE CONFIRMATION ===== */}
       <ConfirmationModal
         type="delete"
         visible={deleteModalVisible}
@@ -306,8 +265,11 @@ const SupplierScreen = () => {
         onConfirm={handleConfirmDelete}
         title="Are you sure you want to delete this supplier?"
       />
-      <ProfileModal visible={open} onClose={() => setOpen(false)} />
 
+      {/* ===== PROFILE MODAL ===== */}
+      {/* <ProfileModal visible={openProfile} onClose={() => setOpenProfile(false)} /> */}
+
+      {/* ===== LOADING ===== */}
       <LoadingOverlay visible={loading} />
     </View>
   );
@@ -316,8 +278,17 @@ const SupplierScreen = () => {
 export default SupplierScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: Theme.colors.white },
+
+  dotsMenu: {
+    position: 'absolute',
+    top: 90,
+    right: 16,
     backgroundColor: Theme.colors.white,
+    padding: 12,
+    borderRadius: 8,
+    elevation: 6,
+    zIndex: 999,
   },
+  menuText: { fontSize: 15, fontWeight: '600', color: Theme.colors.success },
 });

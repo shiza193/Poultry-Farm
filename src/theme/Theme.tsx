@@ -50,7 +50,7 @@ dashboard:'#fafafa',
   feedcolor: '#d1f3d2',
   toast: '#fceac3',
   sold: '#b8bdec',
-
+dark:'#000000',
 };
 
 const icons = {

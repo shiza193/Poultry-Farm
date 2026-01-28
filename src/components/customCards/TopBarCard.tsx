@@ -34,10 +34,11 @@ const TopBarCard: React.FC<Props> = ({
   const [buOpen, setBUOpen] = useState(false);
   const [buValue, setBUValue] = useState<string | null>(selectedBU ?? null);
   const [items, setItems] = useState<{ label: string; value: string }[]>([]);
+  const [tempSearch, setTempSearch] = useState(searchValue ?? '');
 
   // ===== Active Filter =====
   const [activeState, setActiveState] = useState<boolean | null>(
-    status === 'all' ? null : status === 'active'
+    status === 'all' ? null : status === 'active',
   );
 
   // Fetch Business Units
@@ -48,7 +49,7 @@ const TopBarCard: React.FC<Props> = ({
         units.map((u: any) => ({
           label: u.name,
           value: u.businessUnitId,
-        }))
+        })),
       );
     })();
   }, []);
@@ -62,7 +63,8 @@ const TopBarCard: React.FC<Props> = ({
     setActiveState(status === 'all' ? null : status === 'active');
   }, [status]);
 
-  const isFilterApplied = buValue !== null || activeState !== null || !!searchValue;
+  const isFilterApplied =
+    buValue !== null || activeState !== null || !!searchValue;
 
   return (
     <View style={styles.container}>
@@ -74,17 +76,30 @@ const TopBarCard: React.FC<Props> = ({
             placeholder="Search"
             placeholderTextColor={Theme.colors.grey}
             style={styles.searchInput}
-            value={searchValue}
-            onChangeText={onSearchChange}
+            value={tempSearch}
+            onChangeText={setTempSearch}
           />
 
-          {searchValue?.length ? (
-            <TouchableOpacity onPress={() => onSearchChange?.('')}>
+          {/* Clear button */}
+          {tempSearch?.length ? (
+            <TouchableOpacity
+              onPress={() => {
+                setTempSearch('');
+                onSearchChange?.('');
+              }}
+            >
               <Image source={Theme.icons.close1} style={styles.clearIcon} />
             </TouchableOpacity>
           ) : null}
 
-          <Image source={Theme.icons.search} style={styles.searchIcon} />
+          {/* Search icon */}
+          <TouchableOpacity
+            onPress={() => {
+              onSearchChange?.(tempSearch); // trigger search only on icon press
+            }}
+          >
+            <Image source={Theme.icons.search} style={styles.searchIcon} />
+          </TouchableOpacity>
         </View>
 
         {/* BUSINESS UNIT */}
@@ -112,8 +127,7 @@ const TopBarCard: React.FC<Props> = ({
           style={styles.activeCheckboxWrapper}
           onPress={() => {
             setActiveState(prev => {
-              const next =
-                prev === null ? true : prev === true ? false : null;
+              const next = prev === null ? true : prev === true ? false : null;
 
               if (next === null) onStatusChange?.('all');
               else onStatusChange?.(next ? 'active' : 'inactive');
@@ -129,18 +143,12 @@ const TopBarCard: React.FC<Props> = ({
             ]}
           >
             {activeState !== null && (
-              <Text style={styles.checkboxTick}>
-                {activeState ? '✓' : '✕'}
-              </Text>
+              <Text style={styles.checkboxTick}>{activeState ? '✓' : '✕'}</Text>
             )}
           </View>
 
           <Text style={styles.activeText}>
-            {activeState === null
-              ? 'All'
-              : activeState
-              ? 'Active'
-              : 'Inactive'}
+            {activeState === null ? 'All' : activeState ? 'Active' : 'Inactive'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -195,22 +203,31 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.success,
     borderRadius: 8,
     paddingHorizontal: 8,
-    height: 36,
+    height: 42,
   },
-  searchInput: { flex: 1, fontSize: 13 },
-  searchIcon: { width: 16, height: 16, tintColor: Theme.colors.success },
-  clearIcon: { width: 14, height: 14, marginRight: 4, tintColor: Theme.colors.success },
+  searchInput: { flex: 1, fontSize: 15 },
+  searchIcon: { width: 24, height: 24, tintColor: Theme.colors.success },
+  clearIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 5,
+    tintColor: Theme.colors.success,
+  },
 
   businessDropdown: { width: 130, zIndex: 2000 },
 
   dropdown: {
-    borderWidth: 1,
     borderColor: Theme.colors.success,
     borderRadius: 8,
-    minHeight: 36,
+    minHeight: 42,
+    backgroundColor: Theme.colors.white,
   },
-  dropdownContainer: { borderRadius: 8 },
-  dropdownText: { fontSize: 13,  },
+  dropdownContainer: {
+    borderRadius: 8,
+    backgroundColor: Theme.colors.white,
+    borderColor: Theme.colors.success,
+  },
+  dropdownText: { fontSize: 13, color: Theme.colors.success },
 
   activeCheckboxWrapper: {
     flexDirection: 'row',
@@ -219,8 +236,8 @@ const styles = StyleSheet.create({
   },
 
   checkboxBox: {
-    width: 18,
-    height: 18,
+    width: 20,
+    height: 20,
     borderWidth: 1,
     borderColor: Theme.colors.success,
     alignItems: 'center',

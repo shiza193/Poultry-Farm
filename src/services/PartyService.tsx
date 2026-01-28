@@ -96,3 +96,30 @@ export const deleteParty = async (partyId: string) => {
     throw error;
   }
 };
+
+interface UpdatePartyPayload {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string;
+  partyTypeId: number;
+  businessUnitId: string;
+  // You can add more fields if API supports them, e.g., accountHeadId
+  accountHeadId?: string;
+}
+
+export const updateParty = async (partyId: string, payload: UpdatePartyPayload) => {
+  try {
+    const response = await api.put(`api/Party/update-party/${partyId}`, payload);
+
+    if (response.data && response.data.status === 'Success') {
+      return response.data.data; 
+    }
+
+    console.warn('Unexpected response:', response.data);
+    return null;
+  } catch (error) {
+    console.error('Error updating party:', error);
+    throw error;
+  }
+};
