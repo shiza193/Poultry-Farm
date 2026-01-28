@@ -11,7 +11,9 @@ import {
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
 import { getBusinessUnits } from '../../services/BusinessUnit';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
@@ -77,7 +79,9 @@ const AddModal: React.FC<AddModalProps> = ({
   const [typeOpen, setTypeOpen] = useState(false);
 
   const [employeeType, setEmployeeType] = useState<string | null>(null);
-  const [typeItems, setTypeItems] = useState<{ label: string; value: string }[]>([]);
+  const [typeItems, setTypeItems] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   const [showJoiningPicker, setShowJoiningPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -85,7 +89,8 @@ const AddModal: React.FC<AddModalProps> = ({
   const [vaccine, setVaccine] = useState<number | null>(null);
   const [supplier, setSupplier] = useState<string | null>(null);
   const [vaccineOpen, setVaccineOpen] = useState(false);
-  const [supplierOpen, setSupplierOpen] = useState(false); const [quantity, setQuantity] = useState('');
+  const [supplierOpen, setSupplierOpen] = useState(false);
+  const [quantity, setQuantity] = useState('');
   const [vaccinationDate, setVaccinationDate] = useState<Date | null>(null);
   const [showVaccinationPicker, setShowVaccinationPicker] = useState(false);
   const [price, setPrice] = useState('');
@@ -99,9 +104,7 @@ const AddModal: React.FC<AddModalProps> = ({
       setSupplier(initialData.supplierId);
       setQuantity(initialData.quantity?.toString() || '');
       setPrice(initialData.price?.toString() || '');
-      setVaccinationDate(
-        initialData.date ? new Date(initialData.date) : null
-      );
+      setVaccinationDate(initialData.date ? new Date(initialData.date) : null);
       setNote(initialData.note || '');
       setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
     }
@@ -116,8 +119,7 @@ const AddModal: React.FC<AddModalProps> = ({
       setPaymentStatus('Paid');
     }
   }, [type, isEdit, initialData, visible]);
-const [passwordError, setPasswordError] = useState('');
-
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     if (type === 'employee') {
@@ -128,7 +130,7 @@ const [passwordError, setPasswordError] = useState('');
             data.map((item: any) => ({
               label: item.name,
               value: item.employeeTypeId,
-            }))
+            })),
           );
         } catch (error) {
           console.log('Employee type error', error);
@@ -139,7 +141,6 @@ const [passwordError, setPasswordError] = useState('');
     }
   }, [type]);
 
-  
   useEffect(() => {
     if (type === 'employee') {
       const isValid =
@@ -187,7 +188,6 @@ const [passwordError, setPasswordError] = useState('');
     role,
     email,
     password,
-    // ✅ Add vaccination fields here
     vaccine,
     supplier,
     quantity,
@@ -206,7 +206,6 @@ const [passwordError, setPasswordError] = useState('');
     setRoleOpen(false);
     setBuOpen(false);
     setEmailError('');
-    // ✅ Vaccination fields
     setVaccine(null);
     setSupplier(null);
     setQuantity('');
@@ -251,7 +250,7 @@ const [passwordError, setPasswordError] = useState('');
         supplier,
         price,
         note,
-        paymentStatus
+        paymentStatus,
       });
     }
     reset();
@@ -319,49 +318,48 @@ const [passwordError, setPasswordError] = useState('');
                 <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
               ) : null}
 
-             <Text style={styles.label}>
-  Password<Text style={styles.required}>*</Text>
-</Text>
-<View style={{ position: 'relative' }}>
-  <TextInput
-    style={[styles.input, { paddingRight: 45 }]}
-    placeholder="********"
-    value={password}
-    onChangeText={text => {
-      setPassword(text);
-      // Show validation error below
-      if (text && !isValidPassword(text)) {
-        setPasswordError(
-          'Password must be 8+ chars, include uppercase, lowercase, number & symbol'
-        );
-      } else {
-        setPasswordError('');
-      }
-    }}
-    secureTextEntry={!showPassword}
-  />
-  <TouchableOpacity
-    onPress={() => setShowPassword(!showPassword)}
-    style={{ position: 'absolute', right: 10, top: 12 }}
-  >
-    <Image
-      source={
-        showPassword
-          ? Theme.icons.showPassword
-          : Theme.icons.hidePassword
-      }
-      style={{ width: 25, height: 25 }}
-    />
-  </TouchableOpacity>
-</View>
+              <Text style={styles.label}>
+                Password<Text style={styles.required}>*</Text>
+              </Text>
+              <View style={{ position: 'relative' }}>
+                <TextInput
+                  style={[styles.input, { paddingRight: 45 }]}
+                  placeholder="********"
+                  value={password}
+                  onChangeText={text => {
+                    setPassword(text);
+                    // Show validation error below
+                    if (text && !isValidPassword(text)) {
+                      setPasswordError(
+                        'Password must be 8+ chars, include uppercase, lowercase, number & symbol',
+                      );
+                    } else {
+                      setPasswordError('');
+                    }
+                  }}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: 10, top: 12 }}
+                >
+                  <Image
+                    source={
+                      showPassword
+                        ? Theme.icons.showPassword
+                        : Theme.icons.hidePassword
+                    }
+                    style={{ width: 25, height: 25 }}
+                  />
+                </TouchableOpacity>
+              </View>
 
-{/* Show password error */}
-{passwordError ? (
-  <Text style={{ color: 'red', fontSize: 12, marginBottom: 5 }}>
-    {passwordError}
-  </Text>
-) : null}
-
+              {/* Show password error */}
+              {passwordError ? (
+                <Text style={{ color: 'red', fontSize: 12, marginBottom: 5 }}>
+                  {passwordError}
+                </Text>
+              ) : null}
             </>
           )}
 
@@ -440,7 +438,6 @@ const [passwordError, setPasswordError] = useState('');
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
               />
-
 
               <Text style={styles.label}>
                 Salary<Text style={styles.required}>*</Text>
@@ -553,12 +550,11 @@ const [passwordError, setPasswordError] = useState('');
                 onPress={() => setShowVaccinationPicker(true)}
               >
                 <Text style={{ flex: 1 }}>
-                  {vaccinationDate ? vaccinationDate.toLocaleDateString() : 'mm/dd/yyyy'}
+                  {vaccinationDate
+                    ? vaccinationDate.toLocaleDateString()
+                    : 'mm/dd/yyyy'}
                 </Text>
-                <Image
-                  source={Theme.icons.date}
-                  style={styles.dateIcon}
-                />
+                <Image source={Theme.icons.date} style={styles.dateIcon} />
               </TouchableOpacity>
               {showVaccinationPicker && (
                 <DateTimePicker
@@ -611,16 +607,18 @@ const [passwordError, setPasswordError] = useState('');
               {/* PAID / UNPAID RADIO TOGGLE */}
               {!isEdit && (
                 <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-                  {(['Paid', 'Unpaid'] as const).map((status) => (
+                  {(['Paid', 'Unpaid'] as const).map(status => (
                     <TouchableOpacity
                       key={status}
                       style={styles.radioContainer}
                       onPress={() => setPaymentStatus(status)}
                     >
-                      <View style={[
-                        styles.radioCircle,
-                        paymentStatus === status && styles.radioSelected
-                      ]}>
+                      <View
+                        style={[
+                          styles.radioCircle,
+                          paymentStatus === status && styles.radioSelected,
+                        ]}
+                      >
                         {paymentStatus === status && (
                           <View style={styles.radioTick} />
                         )}

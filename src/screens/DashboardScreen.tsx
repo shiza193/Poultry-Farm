@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Header from '../components/common/Header';
 
 import {
   deleteBusinessUnit,
@@ -58,6 +59,8 @@ const DashboardScreen = () => {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
+
   const [roleItems, setRoleItems] = useState<
     { label: string; value: string }[]
   >([]);
@@ -240,7 +243,7 @@ const DashboardScreen = () => {
       showErrorToast('Failed to add user');
       console.error('Add user failed', error);
     } finally {
-      setShowAddModal(false); 
+      setShowAddModal(false);
     }
   };
 
@@ -254,27 +257,58 @@ const DashboardScreen = () => {
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* HEADER */}
-          <View style={styles.topHeader}>
-            <Image source={Theme.icons.logo2} style={styles.logo} />
-            <Text style={styles.topHeaderText}>Poultry Farms</Text>
-            <TouchableOpacity onPress={() => setShowLogoutModal(true)}>
-              <Image source={Theme.icons.logout} style={styles.logoutIcon} />
-            </TouchableOpacity>
-          </View>
+          <Header
+            title="Poultry Farms"
+            onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
+          />
+
+          {isDotsMenuVisible && (
+            <View style={styles.dotsOverlayContainer}>
+              {/* Transparent overlay to detect outside clicks */}
+              <TouchableOpacity
+                style={styles.dotsOverlay}
+                activeOpacity={1}
+                onPress={() => setIsDotsMenuVisible(false)}
+              />
+
+              {/* Actual menu */}
+              <View style={styles.dotsMenu}>
+                {/* ===== LOGOUT ITEM ===== */}
+                <TouchableOpacity
+                  style={styles.dotsMenuItem}
+                  onPress={() => {
+                    setIsDotsMenuVisible(false);
+                    setShowLogoutModal(true);
+                  }}
+                >
+                  <View style={styles.menuItemRow}>
+                    <Image
+                      source={Theme.icons.logout}
+                      style={styles.menuItemIcon}
+                    />
+                    <Text style={styles.dotsMenuText}>Logout</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {/* ADD FARM */}
           <TouchableOpacity
             style={styles.addNewFarmButton}
             onPress={handleAddFarm}
           >
-            <Text style={styles.addNewFarmTitle}>+ Add New Farm</Text>
+            <View style={styles.addNewFarmContent}>
+              <Image source={Theme.icons.add} style={styles.addNewFarmIcon} />
+              <Text style={styles.addNewFarmTitle}>Add New Farm</Text>
+            </View>
           </TouchableOpacity>
 
           {/* FARM CARDS */}
           {farms.map((farm, index) => (
             <FarmCard
               key={index}
-              image={Theme.icons.farm}
+              image={Theme.icons.icon}
               title={farm.title}
               location={farm.location}
               users={farm.users}
@@ -298,7 +332,7 @@ const DashboardScreen = () => {
               }}
               onPressTitle={() => {
                 if (farm.businessUnitId) {
-                  setBusinessUnitId(farm.businessUnitId); 
+                  setBusinessUnitId(farm.businessUnitId);
                   navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN);
                 }
               }}
@@ -307,12 +341,18 @@ const DashboardScreen = () => {
         </ScrollView>
 
         <ConfirmationModal
+          type="logout"
+          visible={showLogoutModal}
+          title="Are you sure you want to logout?"
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={() => {}}
+        />
+        <ConfirmationModal
           type="delete"
           visible={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
           onConfirm={handleConfirmDelete}
         />
-
         <BusinessUnitModal
           visible={showBusinessModal}
           onClose={() => setShowBusinessModal(false)}
@@ -357,6 +397,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Theme.colors.textPrimary,
   },
+
   noDataContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -370,23 +411,103 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     marginBottom: 20,
   },
+  dotsOverlayContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 999,
+  },
+
+  dotsOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'transparent',
+  },
+
+  dotsMenu: {
+    position: 'absolute',
+    top: 60, // adjust according to your header height
+    right: 13,
+    width: 130,
+    backgroundColor: Theme.colors.white,
+    borderRadius: 8,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 5,
+  },
+
+  menuItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  menuItemIcon: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    marginRight: 10,
+  },
+
+  dotsMenuItem: {
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+  },
+
+  dotsMenuText: {
+    fontSize: 16,
+    color: Theme.colors.textPrimary,
+  },
+
+  dotsIconContainer: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dotsIcon: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
+  },
+
   logoutIcon: { width: 28, height: 28 },
   addNewFarmButton: {
-    backgroundColor: Theme.colors.lightGrey,
+    backgroundColor: Theme.colors.dashboard,
     borderWidth: 2,
     borderColor: Theme.colors.secondaryYellow,
     borderStyle: 'dashed',
-    marginHorizontal: 16,
-    marginTop: 10,
-    borderRadius: 25,
-    paddingVertical: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'center', // centers the button horizontally
+    marginTop: 7,
+    borderRadius: 30,
+    paddingVertical: 18,
+    paddingHorizontal: 70, // less wide than full width
     elevation: 2,
   },
+
+  addNewFarmContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  addNewFarmIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    marginRight: 6,
+  },
+
   addNewFarmTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Theme.colors.textPrimary,
+    fontSize: 20, // slightly bigger
+    fontWeight: '800', // thicker text
+    color: Theme.colors.secondaryYellow,
   },
 });

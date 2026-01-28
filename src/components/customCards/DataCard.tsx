@@ -659,10 +659,18 @@ const DataCard: React.FC<Props> = ({
         (!isHeader ? (
           <View style={styles.cellActions}>
             <TouchableOpacity onPress={onEdit}>
+              <View style={styles.editIconWrapper}>
               <Image source={Theme.icons.edit} style={styles.icon} />
+              </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={onDelete}>
-              <Image source={Theme.icons.delete} style={styles.delicon} />
+<View style={styles.delIconWrapper}>
+  <Image
+    source={Theme.icons.delete}
+    style={styles.delicon}
+    resizeMode="contain"
+  />
+</View>
             </TouchableOpacity>
           </View>
         ) : (
@@ -741,13 +749,32 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     marginHorizontal: 6,
-    tintColor: Theme.colors.primaryYellow,
+    tintColor: Theme.colors.black,
   },
-  delicon: {
-    width: 18,
-    height: 18,
-    marginHorizontal: 6,
-  },
+ delIconWrapper: {
+  width: 32,
+  height: 32,
+  backgroundColor: '#FFEAEA', // light red bg (change as needed)
+  borderRadius: 8,            // rounded corners
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginHorizontal: 6,
+},
+
+delicon: {
+  width: 18,
+  height: 18,
+},
+editIconWrapper: {
+  width: 32,
+  height: 32,
+  backgroundColor: '#e1fbfd', 
+  borderRadius: 8,           
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginHorizontal: 6,
+},
+
   // Flock & Flock Sale Table Cell
   cell: { width: 140, textAlign: 'center', fontSize: 12, fontWeight: '600' },
 });

@@ -32,7 +32,7 @@ const colors = {
   eggYellow: '#FFD60A',
   chickenBrown: '#8D5524',
   feedGreen: '#4CAF50',
-
+dashboard:'#fafafa',
   /* ===== Buttons ===== */
   buttonPrimary: '#F9C74F',
   buttonSecondary: '#FFFFFF',
@@ -75,6 +75,7 @@ dots:require('../resources/images/dots.png'),
   nodata: require('../resources/images/nodata.png'),
   date: require('../resources/images/date.png'),
   information: require('../resources/images/information.png'),
+  icon: require('../resources/images/icon.png'),
 
   hospital: require('../resources/images/hospital.png'),
 

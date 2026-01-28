@@ -23,6 +23,7 @@ import {
 } from '../services/PartyService';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
+import ProfileModal from '../components/customPopups/ProfileModal';
 
 type User = {
   id: string;
@@ -43,6 +44,7 @@ const SupplierScreen = () => {
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   // All suppliers fetched from API
   const [users, setUsers] = useState<User[]>([]);
@@ -62,7 +64,7 @@ const SupplierScreen = () => {
         searchKey: null,
         isActive: null,
         pageNumber: 1,
-        pageSize: 100, // fetch enough to filter locally
+        pageSize: 100, 
         partyTypeId: 1,
       };
 
@@ -76,7 +78,7 @@ const SupplierScreen = () => {
           phone: item.phone || '---',
           address: item.address || '---',
           isActive: item.isActive ?? true,
-          businessUnitId: item.businessUnitId || '', 
+          businessUnitId: item.businessUnitId || '',
         }));
 
         setUsers(mappedUsers);
@@ -158,29 +160,31 @@ const SupplierScreen = () => {
   };
 
   // ================= TOGGLE STATUS =================
- const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
-  try {
-    setLoading(true);
-    await updatePartyIsActive(userId, !currentStatus);
+  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      setLoading(true);
+      await updatePartyIsActive(userId, !currentStatus);
 
-    setUsers(prev =>
-      prev.map(u =>
-        u.id === userId ? { ...u, isActive: !currentStatus } : u,
-      ),
-    );
+      setUsers(prev =>
+        prev.map(u =>
+          u.id === userId ? { ...u, isActive: !currentStatus } : u,
+        ),
+      );
 
-    // Show success toast
-    showSuccessToast(
-      'Success',
-      `Supplier has been ${!currentStatus ? 'activated' : 'deactivated'} successfully`
-    );
-  } catch (error: any) {
-    console.error('Error updating status:', error);
-    showErrorToast('Error', 'Failed to update supplier status');
-  } finally {
-    setLoading(false);
-  }
-};
+      // Show success toast
+      showSuccessToast(
+        'Success',
+        `Supplier has been ${
+          !currentStatus ? 'activated' : 'deactivated'
+        } successfully`,
+      );
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      showErrorToast('Error', 'Failed to update supplier status');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ================= RESET FILTERS =================
   const resetFilters = () => {
@@ -208,7 +212,6 @@ const SupplierScreen = () => {
         );
       }
 
-      // Remove from local state
       setUsers(prev => prev.filter(u => u.id !== selectedPartyId));
       showSuccessToast(
         'Success',
@@ -262,6 +265,10 @@ const SupplierScreen = () => {
                   handleToggleStatus(item.id, item.isActive)
                 }
                 onDelete={() => handleDeletePress(item.id)}
+                onEdit={() => {
+                  console.log('EDIT CLICKED');
+                  setOpen(true);
+                }}
               />
             )}
           />
@@ -299,6 +306,7 @@ const SupplierScreen = () => {
         onConfirm={handleConfirmDelete}
         title="Are you sure you want to delete this supplier?"
       />
+      <ProfileModal visible={open} onClose={() => setOpen(false)} />
 
       <LoadingOverlay visible={loading} />
     </View>
