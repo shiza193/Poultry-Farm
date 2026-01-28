@@ -12,7 +12,7 @@ import SidebarWrapper from "../../components/customButtons/SidebarWrapper";
 import { CustomConstants } from "../../constants/CustomConstants";
 import DataCard from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
-import { getVaccinations, Vaccination, getSuppliers, getVaccines, addVaccination, updateVaccination,deleteVaccination } from "../../services/VaccinationService";
+import { getVaccinations, Vaccination, getSuppliers, getVaccines, addVaccination, updateVaccination, deleteVaccination } from "../../services/VaccinationService";
 import DropDownPicker from "react-native-dropdown-picker";
 import { TextInput } from "react-native";
 import styles from "./style";
@@ -20,6 +20,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import AddModal from "../../components/customPopups/AddModal";
 import { showErrorToast, showSuccessToast, } from "../../utils/AppToast";
 import ConfirmationModal from "../../components/customPopups/ConfirmationModal";
+import ScreenTipCard from "../../components/customCards/ScreenTipCard";
 const VaccinationsScreen = () => {
     const activeScreen = CustomConstants.VACCINATIONS_SCREEN;
     const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
@@ -178,6 +179,9 @@ const VaccinationsScreen = () => {
                     >
                         <Image source={Theme.icons.dots} style={styles.friendIcon} />
                     </TouchableOpacity>
+                </View>
+                <View style={styles.tipCardContainer}>
+                    <ScreenTipCard screen={CustomConstants.VACCINATIONS_SCREEN} />
                 </View>
                 {/* ===== SEARCH + SUPPLIER FILTER ROW ===== */}
                 <View style={styles.filterRow}>
@@ -351,7 +355,6 @@ const VaccinationsScreen = () => {
                         }
                     }}
                 />
-
             </View>
         </SidebarWrapper>
     );

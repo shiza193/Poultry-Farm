@@ -2,7 +2,6 @@ import React from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-
 import AuthStackNavigation from './src/navigation/AuthStackNavigation';
 import { navigationRef } from './src/navigation/NavigationService';
 import Theme from './src/theme/Theme';
@@ -20,7 +19,6 @@ function App() {
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={Theme.colors.white}
         />
-
         <NavigationContainer ref={navigationRef}>
           <AuthStackNavigation />
         </NavigationContainer>

@@ -16,6 +16,7 @@ const colors = {
   background: '#FFFFFF',
   screenBackground: '#fcfcfc',
   cardBackground: '#FFFFFF',
+  borderColor: "#ccc",
 
   /* ===== Status Colors ===== */
   success: '#16A34A',
@@ -47,8 +48,8 @@ const colors = {
 
   motalitycolor: '#f5bebe',
   feedcolor: '#d1f3d2',
-  toast:'#fceac3',
-    sold: '#b8bdec',
+  toast: '#fceac3',
+  sold: '#b8bdec',
 
 };
 
@@ -63,7 +64,7 @@ const icons = {
   logo2: require('../resources/images/logo2.png'),
   location1: require('../resources/images/location1.png'),
   close1: require('../resources/images/close1.png'),
-dots:require('../resources/images/dots.png'),
+  dots: require('../resources/images/dots.png'),
   add: require('../resources/images/add.png'),
   close: require('../resources/images/close.png'),
   customer: require('../resources/images/customer.png'),
@@ -119,7 +120,7 @@ dots:require('../resources/images/dots.png'),
   receivables: require('../resources/images/receivables.png'),
   payable: require('../resources/images/payable.png'),
   star: require('../resources/images/star.png'),
-download: require('../resources/images/download.png'),
+  download: require('../resources/images/download.png'),
   ledger: require('../resources/images/ledger.png'),
 
   voucture: require('../resources/images/voucture.png'),
@@ -137,8 +138,8 @@ download: require('../resources/images/download.png'),
 
 
 
-    happy: require('../resources/images/happy.png'),
-    anger: require('../resources/images/anger.png'),
+  happy: require('../resources/images/happy.png'),
+  anger: require('../resources/images/anger.png'),
 
 };
 

@@ -20,7 +20,7 @@ import EggSaleScreen from "../screens/eggs/EggSaleScreen";
 import EggStockScreen from "../screens/eggs/EggStockScreen";
 import AboutUsScreen from "../screens/AboutUsScreen";
 import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
-import VaccinationStockScreen from "../screens/vaccinations/VaccineScheduleScreen";
+import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
 import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import EmployeeScreen from "../screens/EmployeeScreen";
 import SupplierScreen from "../screens/SupplierScreen";

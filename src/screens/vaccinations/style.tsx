@@ -5,6 +5,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Theme.colors.white,
     },
+    tipCardContainer: { marginTop: 20 },
     topRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: Theme.colors.borderLight,
+        borderColor: Theme.colors.borderColor,
         overflow: "hidden",
     },
     friendIcon: { width: 30, height: 30, resizeMode: "contain" },
@@ -79,7 +80,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: 16,
-        marginBottom: 10,
+        marginBottom: 12,
+        marginTop: 6,
         gap: 10,
     },
 
@@ -89,7 +91,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: Theme.colors.borderLight,
+        borderColor: Theme.colors.borderColor,
         borderRadius: 10,
         paddingHorizontal: 10,
         backgroundColor: Theme.colors.white,
@@ -114,7 +116,7 @@ const styles = StyleSheet.create({
         width: 120,
     },
     dropdown: {
-        borderColor: Theme.colors.borderLight,
+        borderColor: Theme.colors.borderColor,
         borderRadius: 10,
         height: 45,
         minHeight: 45,
@@ -122,9 +124,8 @@ const styles = StyleSheet.create({
         paddingVertical: 0,
     },
     dropdownContainer: {
-        borderColor: Theme.colors.borderLight,
+        borderColor: Theme.colors.borderColor,
         borderRadius: 10,
-
     },
     dropdownText: {
         fontSize: 14,
@@ -137,15 +138,14 @@ export const vsstyles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Theme.colors.white,
-        padding: 16,
     },
-
+    tipCardContainer: { marginTop: 30 },
     // ===== TOP ROW =====
     topRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 10,
+        marginTop: 20,
     },
     sidebarIcon: { width: 24, height: 24, tintColor: Theme.colors.black },
     topRowTitle: {
@@ -153,26 +153,27 @@ export const vsstyles = StyleSheet.create({
         textAlign: "center",
         fontSize: 20,
         fontWeight: "bold",
-        color: Theme.colors.black
+        color: Theme.colors.black,
     },
     dotsIcon: {
-        width: 22, height: 22, tintColor: Theme.colors.black, borderColor: Theme.colors.borderLight,
+        width: 22, height: 22, tintColor: Theme.colors.black,
+        borderColor: Theme.colors.borderColor,
+        marginRight: 20
     },
-
     // ===== SEARCH + DROPDOWN ROW =====
     filterRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 10,
-        marginTop: 10
+        padding: 18,
+        paddingVertical: 8,     
     },
     searchContainer: {
         flex: 1,
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: Theme.colors.borderLight,
+        borderColor: Theme.colors.borderColor,
         borderRadius: 8,
         paddingHorizontal: 10,
         height: 40,
@@ -184,10 +185,10 @@ export const vsstyles = StyleSheet.create({
 
     dropdownWrapper: { width: 140, zIndex: 2000 },
     dropdown: {
-        borderColor: Theme.colors.borderLight, height: 40,
+        borderColor: Theme.colors.borderColor, height: 40,
         minHeight: 40,
     },
-    dropdownContainer: { borderColor: Theme.colors.borderLight },
+    dropdownContainer: { borderColor: Theme.colors.borderColor },
     dropdownText: { color: Theme.colors.black },
 
     // ===== DOTS MENU =====
@@ -204,9 +205,9 @@ export const vsstyles = StyleSheet.create({
         top: 0,
         right: 0,
         width: 160,
-        backgroundColor: "#fff",
+        backgroundColor: Theme.colors.white,
         borderRadius: 6,
-        shadowColor: "#000",
+        shadowColor: Theme.colors.black,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -214,7 +215,7 @@ export const vsstyles = StyleSheet.create({
         paddingVertical: 6,
         zIndex: 3000,
     },
-     circleIcon: {
+    circleIcon: {
         width: 35,
         height: 35,
         borderRadius: 18,
@@ -239,5 +240,83 @@ export const vsstyles = StyleSheet.create({
 
 });
 
+export const stockstyles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Theme.colors.background,
+    },
+    topRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 20,
+        justifyContent: "center",
+        position: "relative",
+    },
+    tipCardContainer: { marginTop: 30 },
 
+    title: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: Theme.colors.black,
+        textAlign: "center",
+    },
+    dotsIconContainer: {
+        position: "absolute",
+        right: 0,
+        padding: 8,
+    },
+    dotsIcon: {
+        width: 24,
+        height: 24,
+        resizeMode: "contain",
+    },
+    dotsOverlay: {
+        position: "absolute",
+        top: 60,
+        right: 20,
+        width: "100%",
+        height: "100%",
+        zIndex: 10,
+    },
+    dotsMenu: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        width: 160,
+        backgroundColor: Theme.colors.white,
+        borderRadius: 8,
+        paddingVertical: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 6,
+        elevation: 5,
+    },
+    dotsMenuItem: {
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+    },
+    menuRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    circleIcon: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 10,
+    },
+    menuIcon: {
+        width: 18,
+        height: 18,
+        resizeMode: "contain",
+    },
+    menuText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: Theme.colors.textPrimary,
+    },
+});
 

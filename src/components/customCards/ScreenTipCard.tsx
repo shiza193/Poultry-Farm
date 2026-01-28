@@ -28,10 +28,16 @@ const tipsMap: Partial<Record<ScreenType, { title: string; tip: string }>> = {
     title: 'Hospitality Tip',
     tip: 'Isolate sick birds immediately 🏥',
   },
-   [CustomConstants.DASHBOARD_DETAIL_SCREEN]: {
+  [CustomConstants.DASHBOARD_DETAIL_SCREEN]: {
     title: 'Dashboard Tip',
     tip: 'Track your poultry performance at a glance ',
   },
+  [CustomConstants.VACCINATIONS_SCREEN]:
+    { title: 'Vaccination Tip', tip: 'Ensure timely vaccination to prevent disease outbreaks ', },
+  [CustomConstants.VACCINE_SCHEDULE_SCREEN]: 
+  { title: 'Vaccination Tip', tip: 'Follow vaccination dates strictly to prevent disease outbreaks ', },
+   [CustomConstants.VACCINATION_STOCK_SCREEEN]: 
+   { title: 'Vaccine Stock Tip', tip: 'Always check vaccine expiry and maintain minimum stock ', },
 };
 
 const images = [

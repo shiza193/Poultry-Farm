@@ -18,6 +18,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import { getVaccinationSchedule, VaccinationSchedule, VaccinationSchedulePayload } from "../../services/VaccinationService";
 import { vsstyles } from "./style";
 import { getFlocks, } from "../../services/FlockService";
+import ScreenTipCard from "../../components/customCards/ScreenTipCard";
 interface Flock {
     flockId: string;
     flockRef: string;
@@ -97,7 +98,9 @@ const VaccineScheduleScreen = () => {
                         <Image source={Theme.icons.dots} style={vsstyles.dotsIcon} />
                     </TouchableOpacity>
                 </View>
-
+                <View style={vsstyles.tipCardContainer}>
+                    <ScreenTipCard screen={CustomConstants.VACCINE_SCHEDULE_SCREEN} />
+                </View>
                 {/* ===== SEARCH + FLOCK DROPDOWN ===== */}
                 <View style={vsstyles.filterRow}>
                     <View style={vsstyles.searchContainer}>
@@ -148,7 +151,7 @@ const VaccineScheduleScreen = () => {
                     </TouchableOpacity>
                 )}
                 {/* ===== DATA TABLE WITH HORIZONTAL SCROLL ===== */}
-                <ScrollView horizontal showsHorizontalScrollIndicator>
+                <ScrollView style={{ width: "100%", paddingHorizontal: 18 }}>
                     <ScrollView style={{ flex: 1, marginTop: 10 }}>
                         <DataCard isHeader labels={headerLabels} showVaccinationSchedule={true} />
                         {schedules.map((item) => (
@@ -167,7 +170,6 @@ const VaccineScheduleScreen = () => {
                 </ScrollView>
             </View>
         </SidebarWrapper>
-
     );
 };
 

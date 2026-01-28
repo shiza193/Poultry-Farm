@@ -207,3 +207,44 @@ export const  getVaccinationSchedule = async (
   );
   return response.data;
 };
+
+export interface VaccinationStock {
+  vaccineId: number;
+  vaccine: string;
+  totalPurchased: number;
+  totalSchedule: number;
+  availableStock: number;
+}
+
+export interface VaccinationStockResponse {
+  status: string;
+  message: string;
+  data: VaccinationStock[];
+}
+
+export const getVaccinationStock = async (
+  businessUnitId: string
+): Promise<VaccinationStock[]> => {
+  try {
+    const response = await api.get<VaccinationStockResponse>(
+      'api/Vaccination/get-vaccination-stock',
+      {
+        params: { businessUnitId },
+      }
+    );
+    console.log('🔹 Vaccination Stock API Response:', response.data);
+
+    if (response.data.status === 'Success') {
+      return response.data.data;
+    } else {
+      console.warn('Vaccination Stock API returned:', response.data.message);
+      return [];
+    }
+  } catch (error: any) {
+    console.error(
+      '❌ Error fetching vaccination stock:',
+      error.response?.data || error.message
+    );
+    return [];
+  }
+};
