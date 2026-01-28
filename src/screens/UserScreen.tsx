@@ -43,6 +43,7 @@ const UserScreen = () => {
     { label: string; value: string }[]
   >([]);
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  // Kis business unit ke users dikhane hain  for filter 
   const [selectedBU, setSelectedBU] = useState<string | null>(
     routeBusinessUnitId || null,
   );
@@ -91,7 +92,7 @@ const UserScreen = () => {
         email: u.email,
         isActive: u.isActive,
         role: u.userRole || '',
-        image: u.imageLink || '', 
+        image: u.imageLink || '',
         businessUnitId: u.businessUnitId || '',
       }));
 
@@ -103,7 +104,7 @@ const UserScreen = () => {
       setLoading(false);
     }
   };
-
+// users dobara fetch ho jate hain (like jb serach ya status.. vagra change ho to ....)
   useEffect(() => {
     fetchUsers();
   }, [search, status, selectedBU]);
@@ -151,7 +152,7 @@ const UserScreen = () => {
       const res = await addUser(payload);
       if (res.error) return showErrorToast(res.error);
 
-      //   ider ya is vaja sa add kia ha like jb user add ho to 
+      //   ider ya is vaja sa add kia ha like jb user add ho to
       //  full screen refresh ho jy or card per image set ho jy api vali
 
       await fetchUsers();

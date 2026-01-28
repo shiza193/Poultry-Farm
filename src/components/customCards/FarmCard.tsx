@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Theme from '../../theme/Theme';
 
@@ -8,10 +8,8 @@ interface FarmCardProps {
   location: string;
   users: number;
   employees: number;
-
   onUserCountPress?: () => void;
   onEmployeeCountPress?: () => void;
-
   onAddUser?: () => void;
   onAddEmployee?: () => void;
 
@@ -26,22 +24,24 @@ const FarmCard: React.FC<FarmCardProps> = ({
   location,
   users,
   employees,
-  onUserCountPress,
-  onEmployeeCountPress,
   onAddUser,
   onAddEmployee,
+  onUserCountPress,
+  onEmployeeCountPress,
   onPressTitle,
   onEdit,
   onDelete,
 }) => {
+  const [menuVisible, setMenuVisible] = useState(false);
+
   return (
     <View style={styles.card}>
-      {/* LEFT IMAGE */}
+      {/* IMAGE */}
       <Image source={image} style={styles.image} />
 
-      {/* RIGHT DETAILS */}
+      {/* DETAILS */}
       <View style={styles.details}>
-        {/* HEADER: TITLE + ACTION ICONS */}
+        {/* HEADER */}
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={onPressTitle} style={{ flex: 1 }}>
             <Text style={styles.title} numberOfLines={1}>
@@ -49,30 +49,45 @@ const FarmCard: React.FC<FarmCardProps> = ({
             </Text>
           </TouchableOpacity>
 
-          <View style={styles.actionIcons}>
-            {/* EDIT ICON */}
+          {/* 3 DOT MENU */}
+
+          <View style={{ position: 'relative' }}>
             <TouchableOpacity
-              style={[styles.iconWrapper, { backgroundColor: '#E5F8FF' }]}
-              onPress={onEdit}
-              activeOpacity={0.7}
+              onPress={() => setMenuVisible(prev => !prev)}
+              style={styles.dotsWrapper}
             >
-              <Image
-                source={Theme.icons.edit}
-                style={[styles.actionImage, { tintColor: Theme.colors.textPrimary }]}
-              />
+              <Image source={Theme.icons.dots} style={styles.dotsIcon} />
             </TouchableOpacity>
 
-            {/* DELETE ICON */}
-            <TouchableOpacity
-              style={[styles.iconWrapper, { backgroundColor: '#FDE2E2' }]}
-              onPress={onDelete}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={Theme.icons.bin}
-                style={[styles.actionImage, { tintColor: '#DC2626' }]}
-              />
-            </TouchableOpacity>
+            {menuVisible && (
+              <TouchableOpacity
+                style={styles.menuOverlay}
+                activeOpacity={1}
+                onPress={() => setMenuVisible(false)}
+              >
+                <View style={styles.menu}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setMenuVisible(false);
+                      onEdit && onEdit();
+                    }}
+                  >
+                    <Text style={styles.menuText}>Edit</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.menuItem, styles.deleteItem]}
+                    onPress={() => {
+                      setMenuVisible(false);
+                      onDelete();
+                    }}
+                  >
+                    <Text style={styles.deleteText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -82,50 +97,71 @@ const FarmCard: React.FC<FarmCardProps> = ({
           <Text style={styles.location}>{location}</Text>
         </View>
 
-        {/* STATS */}
+        {/* COUNTS */}
         <View style={styles.statsRow}>
-          {/* TOTAL USERS */}
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={onUserCountPress}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.statLabel}>TOTAL USERS</Text>
-            <View style={styles.statRow}>
-              <View style={styles.iconCircleGreen}>
+          {/* USERS */}
+          <View style={styles.statBox}>
+            {/* LABEL — TOUCHABLE */}
+            <TouchableOpacity onPress={onUserCountPress} activeOpacity={0.7}>
+              <Text style={styles.statLabel}>TOTAL USERS</Text>
+            </TouchableOpacity>
+
+            {/* ICON + COUNT — TOUCHABLE */}
+            <TouchableOpacity
+              style={styles.statContent}
+              onPress={onUserCountPress}
+              activeOpacity={0.7}
+            >
+              <View style={styles.greenCircle}>
                 <Image source={Theme.icons.user} style={styles.statIcon} />
               </View>
               <Text style={styles.statValue}>{users}</Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            {/* ADD BUTTON — SAME */}
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={onAddUser}
+              activeOpacity={0.7}
+            >
+              <View style={styles.addContent}>
+                <Image source={Theme.icons.add} style={styles.addIcon} />
+                <Text style={styles.addText}>Add</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
 
           {/* EMPLOYEES */}
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={onEmployeeCountPress}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.statLabel}>EMPLOYEES</Text>
-            <View style={styles.statRow}>
-              <View style={styles.iconCircleOrange}>
+          <View style={styles.statBox}>
+            <TouchableOpacity
+              onPress={onEmployeeCountPress}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.statLabel}>TOTAL EMPLOYEES</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.statContent}
+              onPress={onEmployeeCountPress}
+              activeOpacity={0.7}
+            >
+              <View style={styles.orangeCircle}>
                 <Image source={Theme.icons.employee} style={styles.statIcon} />
               </View>
               <Text style={styles.statValue}>{employees}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
 
-        {/* BUTTONS */}
-        <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.button} onPress={onAddUser}>
-            <Text style={styles.plus}>＋</Text>
-            <Text style={styles.buttonText}>Add User</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.button} onPress={onAddEmployee}>
-            <Text style={styles.plus}>＋</Text>
-            <Text style={styles.buttonText}>Add Employee</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={onAddEmployee}
+              activeOpacity={0.7}
+            >
+              <View style={styles.addContent}>
+                <Image source={Theme.icons.add} style={styles.addIcon} />
+                <Text style={styles.addText}>Add</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -137,33 +173,25 @@ export default FarmCard;
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: Theme.colors.cardBackground,
+    backgroundColor: '#fff',
     borderRadius: 18,
-    marginVertical: 12,
-    marginHorizontal: 16,
+    margin: 16,
     overflow: 'hidden',
     elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
   },
 
   image: {
     width: 120,
     height: '100%',
-    resizeMode: 'cover',
   },
 
   details: {
     flex: 1,
     padding: 14,
-    justifyContent: 'space-between',
   },
 
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
 
@@ -173,126 +201,154 @@ const styles = StyleSheet.create({
     color: Theme.colors.textPrimary,
   },
 
-  actionIcons: {
-    flexDirection: 'row',
+  dotsWrapper: {
+    padding: 6,
   },
 
-  iconWrapper: {
-    padding: 8,
-    borderRadius: 8,
-    marginLeft: 6,
-  },
-
-  actionImage: {
+  dotsIcon: {
     width: 22,
     height: 22,
+    tintColor: Theme.colors.textPrimary,
+  },
+  menuOverlay: {
+  position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 999,
+  },
+
+  menu: {
+    position: 'absolute',
+    top: 28,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    elevation: 6,
+    width: 80,
+    zIndex: 100,
+  },
+
+  menuItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 9,
+  },
+
+  menuText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Theme.colors.textPrimary,
+  },
+
+  deleteItem: {
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+
+  deleteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#DC2626',
   },
 
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
 
   locationIcon: {
-    width: 16,
-    height: 16,
+    width: 14,
+    height: 14,
     tintColor: Theme.colors.primaryYellow,
-    marginRight: 6,
+    marginRight: 4,
   },
 
   location: {
     fontSize: 13,
     color: Theme.colors.textSecondary,
-    fontWeight: '500',
   },
 
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 14,
+    marginTop: 12,
   },
 
-  statItem: {
+  statBox: {
     width: '48%',
-    borderRadius: 10,
-    padding: 6,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#e9e9e9',
+    borderRadius: 12,
+    padding: 4,
   },
 
   statLabel: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: Theme.colors.black,
+    fontWeight: '700',
     marginBottom: 4,
   },
 
-  statRow: {
+  statContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
 
   statValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: Theme.colors.textPrimary,
     marginLeft: 8,
   },
 
-  iconCircleGreen: {
+  greenCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#E7F8EF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
   },
 
-  iconCircleOrange: {
+  orangeCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FFF2E6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
   },
 
   statIcon: {
     width: 14,
     height: 14,
-    tintColor: Theme.colors.textSecondary,
+    tintColor: Theme.colors.buttonPrimary,
   },
 
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
+  addButton: {
+    marginTop: 7,
+    alignSelf: 'flex-end',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    marginBottom: 2,
+    backgroundColor: Theme.colors.secondaryYellow,
 
-  button: {
+    borderWidth: 2,
+    borderColor: Theme.colors.secondaryYellow,
+  },
+  addContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Theme.colors.secondaryYellow,
-    borderRadius: 22,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    width: '48%',
-    justifyContent: 'center',
   },
 
-  plus: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Theme.colors.secondaryYellow,
+  addIcon: {
+    width: 14,
+    height: 14,
+    tintColor: Theme.colors.white,
     marginRight: 6,
   },
 
-  buttonText: {
-    fontSize: 12,
+  addText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: Theme.colors.textPrimary,
+    color: Theme.colors.white,
   },
 });
