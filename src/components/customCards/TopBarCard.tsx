@@ -12,10 +12,9 @@ import Theme from '../../theme/Theme';
 import { getBusinessUnits } from '../../services/BusinessUnit';
 
 interface Props {
-  onAddPress?: () => void;
-  value?: string | null; // Business Unit
   searchValue?: string;
   onSearchChange?: (text: string) => void;
+  value?: string | null; // Business Unit
   status?: 'all' | 'active' | 'inactive';
   onStatusChange?: (status: 'all' | 'active' | 'inactive') => void;
   onReset?: () => void;
@@ -23,64 +22,54 @@ interface Props {
 }
 
 const TopBarCard: React.FC<Props> = ({
-  onAddPress,
   searchValue,
   onSearchChange,
+  value: selectedBU,
   status = 'all',
   onStatusChange,
   onReset,
   onBusinessUnitChange,
-  value: selectedBU,
 }) => {
-  // ===== Business Unit Dropdown =====
+  // ===== Business Unit =====
   const [buOpen, setBUOpen] = useState(false);
   const [buValue, setBUValue] = useState<string | null>(selectedBU ?? null);
   const [items, setItems] = useState<{ label: string; value: string }[]>([]);
 
-  // ===== Status Dropdown =====
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [statusValue, setStatusValue] = useState<'active' | 'inactive' | null>(
-    status === 'all' ? null : status,
+  // ===== Active Filter =====
+  const [activeState, setActiveState] = useState<boolean | null>(
+    status === 'all' ? null : status === 'active'
   );
-
-  const statusItems = [
-    { label: 'Active', value: 'active' },
-    { label: 'Inactive', value: 'inactive' },
-  ];
 
   // Fetch Business Units
   useEffect(() => {
-    const fetchBusinessUnits = async () => {
-      try {
-        const units = await getBusinessUnits();
-        if (units && Array.isArray(units)) {
-          setItems(
-            units.map(u => ({ label: u.name, value: u.businessUnitId })),
-          );
-        }
-      } catch (error) {
-        console.warn('Failed to fetch business units', error);
-      }
-    };
-    fetchBusinessUnits();
+    (async () => {
+      const units = await getBusinessUnits();
+      setItems(
+        units.map((u: any) => ({
+          label: u.name,
+          value: u.businessUnitId,
+        }))
+      );
+    })();
   }, []);
 
-  // Update BU state when parent changes
+  // Sync from parent
   useEffect(() => {
     setBUValue(selectedBU ?? null);
   }, [selectedBU]);
 
-  // Update status state when parent changes
   useEffect(() => {
-    setStatusValue(status === 'all' ? null : status);
+    setActiveState(status === 'all' ? null : status === 'active');
   }, [status]);
+
+  const isFilterApplied = buValue !== null || activeState !== null || !!searchValue;
 
   return (
     <View style={styles.container}>
-      {/* ROW 1: SEARCH + ADD */}
+      {/* ===== TOP ROW: Search + BU + Active ===== */}
       <View style={styles.row}>
+        {/* SEARCH */}
         <View style={styles.searchBox}>
-          <Image source={Theme.icons.search} style={styles.searchIcon} />
           <TextInput
             placeholder="Search"
             placeholderTextColor={Theme.colors.grey}
@@ -88,16 +77,17 @@ const TopBarCard: React.FC<Props> = ({
             value={searchValue}
             onChangeText={onSearchChange}
           />
+
+          {searchValue?.length ? (
+            <TouchableOpacity onPress={() => onSearchChange?.('')}>
+              <Image source={Theme.icons.close1} style={styles.clearIcon} />
+            </TouchableOpacity>
+          ) : null}
+
+          <Image source={Theme.icons.search} style={styles.searchIcon} />
         </View>
 
-        <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
-          <Text style={styles.addText}>+ Add New</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ROW 2: BUSINESS UNIT + STATUS + RESET */}
-      <View style={styles.row2}>
-        {/* Business Unit Dropdown */}
+        {/* BUSINESS UNIT */}
         <View style={styles.businessDropdown}>
           <DropDownPicker
             open={buOpen}
@@ -110,79 +100,69 @@ const TopBarCard: React.FC<Props> = ({
               onBusinessUnitChange?.(selected);
             }}
             setItems={setItems}
-            listMode="SCROLLVIEW"
             placeholder="Poultry Farm"
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownContainer}
             textStyle={styles.dropdownText}
-            ArrowDownIconComponent={() => (
-              <Image
-                source={Theme.icons.dropdown}
-                style={styles.dropdownIcon}
-              />
-            )}
-            ArrowUpIconComponent={() => (
-              <Image
-                source={Theme.icons.dropdown}
-                style={[
-                  styles.dropdownIcon,
-                  { transform: [{ rotate: '180deg' }] },
-                ]}
-              />
-            )}
           />
         </View>
 
-        {/* Status Dropdown */}
-        <View style={styles.statusDropdown}>
-          <DropDownPicker
-            open={statusOpen}
-            value={statusValue}
-            items={statusItems}
-            setOpen={setStatusOpen}
-            setValue={val => {
-              const selected = val as unknown as 'active' | 'inactive' | null;
-              setStatusValue(selected);
-              if (selected === null) onStatusChange?.('all');
-              else onStatusChange?.(selected);
-            }}
-            listMode="SCROLLVIEW"
-            placeholder="Status"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            textStyle={styles.dropdownText}
-            ArrowDownIconComponent={() => (
-              <Image
-                source={Theme.icons.dropdown}
-                style={styles.dropdownIcon}
-              />
-            )}
-            ArrowUpIconComponent={() => (
-              <Image
-                source={Theme.icons.dropdown}
-                style={[
-                  styles.dropdownIcon,
-                  { transform: [{ rotate: '180deg' }] },
-                ]}
-              />
-            )}
-          />
-        </View>
+        {/* ACTIVE / INACTIVE TOGGLE */}
+        <TouchableOpacity
+          style={styles.activeCheckboxWrapper}
+          onPress={() => {
+            setActiveState(prev => {
+              const next =
+                prev === null ? true : prev === true ? false : null;
 
-        {/* Reset Button */}
-        {(statusValue !== null || buValue !== null) && (
+              if (next === null) onStatusChange?.('all');
+              else onStatusChange?.(next ? 'active' : 'inactive');
+
+              return next;
+            });
+          }}
+        >
+          <View
+            style={[
+              styles.checkboxBox,
+              activeState !== null && styles.checkboxActive,
+            ]}
+          >
+            {activeState !== null && (
+              <Text style={styles.checkboxTick}>
+                {activeState ? '✓' : '✕'}
+              </Text>
+            )}
+          </View>
+
+          <Text style={styles.activeText}>
+            {activeState === null
+              ? 'All'
+              : activeState
+              ? 'Active'
+              : 'Inactive'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ===== SECOND ROW: RESET BUTTON ===== */}
+      {isFilterApplied && (
+        <View style={styles.row2}>
           <TouchableOpacity
             style={styles.resetButton}
             onPress={() => {
-              onReset?.();
               setBUValue(null);
-              setStatusValue(null);
+              setActiveState(null);
+              onReset?.();
+              onStatusChange?.('all');
+              onBusinessUnitChange?.(null);
+              onSearchChange?.('');
             }}
           >
-            <Text style={styles.resetText}>Reset Filter</Text>
+            <Text style={styles.resetText}>Reset</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -192,57 +172,79 @@ export default TopBarCard;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Theme.colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    padding: 12,
   },
+
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
     gap: 10,
   },
-  row2: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+
+  row2: {
+    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+
   searchBox: {
     flex: 1,
     flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: Theme.colors.borderLight,
-    borderRadius: 8,
-    paddingHorizontal: 10,
     alignItems: 'center',
-    height: 40,
-  },
-  searchIcon: {
-    width: 16,
-    height: 16,
-    tintColor: Theme.colors.grey,
-    marginRight: 6,
-  },
-  searchInput: { flex: 1, fontSize: 14, color: Theme.colors.textPrimary },
-  addButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: Theme.colors.primaryYellow,
+    borderWidth: 1,
+    borderColor: Theme.colors.success,
     borderRadius: 8,
-    justifyContent: 'center',
+    paddingHorizontal: 8,
+    height: 36,
   },
-  addText: { fontSize: 14, fontWeight: '700', color: Theme.colors.white },
-  businessDropdown: { width: 140, zIndex: 2000 },
-  statusDropdown: { width: 120, zIndex: 1500, marginLeft: 20 },
+  searchInput: { flex: 1, fontSize: 13 },
+  searchIcon: { width: 16, height: 16, tintColor: Theme.colors.success },
+  clearIcon: { width: 14, height: 14, marginRight: 4, tintColor: Theme.colors.success },
+
+  businessDropdown: { width: 130, zIndex: 2000 },
+
   dropdown: {
     borderWidth: 1,
-    borderColor: Theme.colors.borderLight,
+    borderColor: Theme.colors.success,
     borderRadius: 8,
-    minHeight: 40,
+    minHeight: 36,
   },
-  dropdownContainer: { borderColor: Theme.colors.borderLight, borderRadius: 8 },
-  dropdownText: { fontSize: 13, color: Theme.colors.textSecondary },
-  dropdownIcon: { width: 12, height: 12, tintColor: Theme.colors.grey },
-  resetButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  dropdownContainer: { borderRadius: 8 },
+  dropdownText: { fontSize: 13,  },
+
+  activeCheckboxWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  checkboxBox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1,
+    borderColor: Theme.colors.success,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 'auto',
+    borderRadius: 4,
   },
-  resetText: { fontSize: 15, fontWeight: '600', color: Theme.colors.error },
+  checkboxActive: {
+    backgroundColor: Theme.colors.success,
+  },
+  checkboxTick: {
+    color: Theme.colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
+  activeText: {
+    fontSize: 13,
+    color: Theme.colors.textPrimary,
+  },
+
+  resetButton: {},
+  resetText: {
+    color: Theme.colors.error,
+    fontWeight: '600',
+    fontSize: 13,
+  },
 });

@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Image } from 'react-native';
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 
+import Header from '../components/common/Header';
 import TopBarCard from '../components/customCards/TopBarCard';
+
 import {
   addUser,
   getUserRoles,
@@ -43,13 +52,16 @@ const UserScreen = () => {
     { label: string; value: string }[]
   >([]);
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  // Kis business unit ke users dikhane hain  for filter 
   const [selectedBU, setSelectedBU] = useState<string | null>(
-    routeBusinessUnitId || null,
+    routeBusinessUnitId,
   );
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDotsMenu, setShowDotsMenu] = useState(false);
+
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const pageSize = 50;
 
@@ -59,11 +71,13 @@ const UserScreen = () => {
       try {
         const roles = await getUserRoles();
         setRoleItems(
-          roles.map((r: any) => ({ label: r.value, value: r.key.toString() })),
+          roles.map((r: any) => ({
+            label: r.value,
+            value: r.key.toString(),
+          })),
         );
-      } catch (error) {
+      } catch {
         showErrorToast('Failed to fetch roles');
-        console.log('Failed to fetch roles', error);
       }
     };
     fetchRoles();
@@ -76,40 +90,39 @@ const UserScreen = () => {
 
       const payload: any = {
         searchKey: search || null,
-        businessTypeId: null,
-        isActive: null,
+        isActive: status === 'all' ? null : status === 'active',
         pageNumber: 1,
         pageSize,
       };
+
       if (selectedBU) payload.businessUnitId = selectedBU;
 
       const response = await getUsers(payload);
-      const dataList = response.list || [];
+      const list = response?.list || [];
 
-      const mappedUsers: User[] = dataList.map((u: any) => ({
-        id: u.userId,
-        name: u.fullName,
-        email: u.email,
-        isActive: u.isActive,
-        role: u.userRole || '',
-        image: u.imageLink || '',
-        businessUnitId: u.businessUnitId || '',
-      }));
-
-      setUsers(mappedUsers);
-    } catch (error) {
+      setUsers(
+        list.map((u: any) => ({
+          id: u.userId,
+          name: u.fullName,
+          email: u.email,
+          isActive: u.isActive,
+          role: u.userRole || '',
+          image: u.imageLink || '',
+          businessUnitId: u.businessUnitId || '',
+        })),
+      );
+    } catch {
       showErrorToast('Failed to fetch users');
-      console.error('Fetch users failed', error);
     } finally {
       setLoading(false);
     }
   };
-// users dobara fetch ho jate hain (like jb serach ya status.. vagra change ho to ....)
+
   useEffect(() => {
     fetchUsers();
   }, [search, status, selectedBU]);
 
-  // ================= FILTER USERS =================
+  // ================= FILTER =================
   const filteredUsers = users.filter(user => {
     if (status === 'active' && !user.isActive) return false;
     if (status === 'inactive' && user.isActive) return false;
@@ -129,87 +142,58 @@ const UserScreen = () => {
   });
 
   // ================= HANDLERS =================
-  const handleAddUser = () => setShowAddModal(true);
-
-  const handleSaveUser = async (data: {
-    name: string;
-    role: string;
-    email: string;
-    password: string;
-  }) => {
+  const handleSaveUser = async (data: any) => {
     try {
       const roleObj = roleItems.find(r => r.value === data.role);
-      if (!roleObj) return showErrorToast('Invalid role selected');
+      if (!roleObj) return;
 
-      const payload = {
+      await addUser({
         fullName: data.name,
         email: data.email,
         password: data.password,
         userRoleId: Number(roleObj.value),
-        businessUnitId: contextBU,
-      };
-
-      const res = await addUser(payload);
-      if (res.error) return showErrorToast(res.error);
-
-      //   ider ya is vaja sa add kia ha like jb user add ho to
-      //  full screen refresh ho jy or card per image set ho jy api vali
+      });
 
       await fetchUsers();
-
-      showSuccessToast(res.message || 'User added successfully');
-    } catch (error) {
+      showSuccessToast('User added successfully');
+    } catch {
       showErrorToast('Failed to add user');
-      console.error('Add user failed', error);
     } finally {
       setShowAddModal(false);
+      setShowDotsMenu(false);
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+  const handleToggleStatus = async (user: User) => {
     try {
-      const res = await changeUserStatus({
-        userId: id,
-        isActive: !currentStatus,
+      await changeUserStatus({
+        userId: user.id,
+        isActive: !user.isActive,
       });
-      if (res.error) return showErrorToast(res.error);
 
       setUsers(prev =>
-        prev.map(u => (u.id === id ? { ...u, isActive: !currentStatus } : u)),
+        prev.map(u =>
+          u.id === user.id ? { ...u, isActive: !u.isActive } : u,
+        ),
       );
+
       showSuccessToast(
-        res.message ||
-          `User status updated to ${!currentStatus ? 'Active' : 'Inactive'}`,
+        `User ${!user.isActive ? 'Activated' : 'Deactivated'} successfully`,
       );
-    } catch (error) {
+    } catch {
       showErrorToast('Failed to update user status');
     }
-  };
-
-  const handleDeletePress = (id: string) => {
-    setSelectedUserId(id);
-    setDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!selectedUserId) return;
 
     try {
-      const res = await deleteUser(selectedUserId);
-      if (res.error || res.success === false) {
-        const msg = res.error || res.message || 'Failed to delete user';
-        return showErrorToast(msg);
-      }
-
+      await deleteUser(selectedUserId);
       setUsers(prev => prev.filter(u => u.id !== selectedUserId));
-      showSuccessToast(res.message || 'User deleted successfully');
-    } catch (error: any) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to delete user';
-      showErrorToast(msg);
-      console.error('Delete user failed', error);
+      showSuccessToast('User deleted successfully');
+    } catch {
+      showErrorToast('Failed to delete user');
     } finally {
       setDeleteModalVisible(false);
       setSelectedUserId(null);
@@ -222,10 +206,31 @@ const UserScreen = () => {
     setSelectedBU(null);
   };
 
+  // ================= UI =================
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* ===== HEADER ===== */}
+      <Header
+        title="Users"
+        onPressDots={() => setShowDotsMenu(prev => !prev)}
+      />
+
+      {/* ===== DOT MENU ===== */}
+      {showDotsMenu && (
+        <View style={styles.dotsMenu}>
+          <TouchableOpacity
+            onPress={() => {
+              setShowAddModal(true);
+              setShowDotsMenu(false);
+            }}
+          >
+            <Text style={styles.menuText}>+ Add New</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ===== TOP BAR ===== */}
       <TopBarCard
-        onAddPress={handleAddUser}
         searchValue={search}
         onSearchChange={setSearch}
         status={status}
@@ -235,35 +240,31 @@ const UserScreen = () => {
         onReset={resetFilters}
       />
 
+      {/* ===== LIST ===== */}
       {filteredUsers.length > 0 ? (
         <FlatList
           data={filteredUsers}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <UserCard
               user={item}
-              onPressName={() => showSuccessToast(item.name)}
-              onToggleStatus={() => handleToggleStatus(item.id, item.isActive)}
-              onPressDelete={() => handleDeletePress(item.id)}
-              onResetPassword={() =>
-                showSuccessToast(`Reset password for ${item.name}`)
-              }
+              onToggleStatus={() => handleToggleStatus(item)}
+              onPressDelete={() => {
+                setSelectedUserId(item.id);
+                setDeleteModalVisible(true);
+              }}
             />
           )}
         />
       ) : (
         !loading && (
           <View style={styles.noDataContainer}>
-            <Image
-              source={Theme.icons.nodata}
-              style={styles.noDataImage}
-              resizeMode="contain"
-            />
+            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
           </View>
         )
       )}
 
+      {/* ===== MODALS ===== */}
       <AddModal
         visible={showAddModal}
         type="user"
@@ -272,6 +273,7 @@ const UserScreen = () => {
         onClose={() => setShowAddModal(false)}
         onSave={handleSaveUser}
       />
+
       <ConfirmationModal
         type="delete"
         visible={deleteModalVisible}
@@ -288,8 +290,36 @@ const UserScreen = () => {
 export default UserScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.white },
-  listContent: { paddingBottom: 20 },
-  noDataContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  noDataImage: { width: 300, height: 360, marginBottom: 90 },
+  container: {
+    flex: 1,
+    backgroundColor: Theme.colors.white,
+  },
+
+  dotsMenu: {
+    position: 'absolute',
+    top: 90,
+    right: 20,
+    backgroundColor: Theme.colors.white,
+    padding: 12,
+    borderRadius: 8,
+    elevation: 6,
+    zIndex: 999,
+  },
+
+  menuText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Theme.colors.textPrimary,
+  },
+
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  noDataImage: {
+    width: 300,
+    height: 360,
+  },
 });
