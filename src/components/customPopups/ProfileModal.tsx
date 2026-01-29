@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
-
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,126 +7,240 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  InputAccessoryView,
+  useWindowDimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
+import { getBusinessUnits } from '../../services/BusinessUnit';
 
-const ProfileModal = ({ visible, onClose }: any) => {
+export type ProfileData = {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  isActive?: boolean;
+  businessUnitId?: string | null;
+};
+
+type ProfileModalProps = {
+  visible: boolean;
+  onClose: () => void;
+  data: ProfileData;
+  type?: 'user' | 'customer' | 'employee';
+  onSave?: (updatedData: ProfileData) => void;
+};
+
+const ProfileModal: React.FC<ProfileModalProps> = ({
+  visible,
+  onClose,
+  data,
+  type = 'user',
+  onSave,
+}) => {
+  const { width } = useWindowDimensions();
+  const fieldWidth = width < 380 ? '100%' : '48%';
+
   const [editMode, setEditMode] = useState(false);
+  const [formData, setFormData] = useState<ProfileData>({ ...data });
 
-  const Info = ({ label, value }: any) => (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
-    </View>
+  const [nameDraft, setNameDraft] = useState('');
+  const [phoneDraft, setPhoneDraft] = useState('');
+  const [addressDraft, setAddressDraft] = useState('');
+  const [emailDraft, setEmailDraft] = useState('');
+
+  const [buOpen, setBUOpen] = useState(false);
+  const [buItems, setBUItems] = useState<{ label: string; value: string }[]>(
+    [],
   );
 
-  const Input = ({ label, placeholder }: any) => (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput placeholder={placeholder} style={styles.input} />
-    </View>
-  );
+  const nameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const addressRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
 
   useEffect(() => {
-  if (!visible) {
-    setEditMode(false);
-  }
-}, [visible]);
+    if (visible) {
+      setFormData({ ...data });
+      setNameDraft(data.name ?? '');
+      setPhoneDraft(data.phone ?? '');
+      setAddressDraft(data.address ?? '');
+      setEmailDraft(data.email ?? '');
+      setEditMode(false);
+    }
+  }, [visible, data]);
+
+  useEffect(() => {
+    (async () => {
+      const units = await getBusinessUnits();
+      setBUItems(
+        units.map((u: any) => ({
+          label: u.name,
+          value: u.businessUnitId,
+        })),
+      );
+    })();
+  }, []);
+
+  const handleSave = () => {
+    const updated = {
+      ...formData,
+      name: nameDraft,
+      phone: phoneDraft,
+      address: addressDraft,
+      email: emailDraft,
+    };
+    onSave?.(updated);
+    onClose();
+  };
+
+  const renderField = (
+    label: string,
+    value: string,
+    setter: any,
+    editable: boolean,
+    showLabel = true,
+  ) => (
+    <View style={[styles.field, { width: fieldWidth }]}>
+      {showLabel && <Text style={styles.label}>{label}</Text>}
+      {editable ? (
+        <TextInput
+          value={value}
+          editable={editable}
+          onChangeText={setter}
+          style={[
+            styles.input,
+            label === 'Email' && { backgroundColor: '#f2f2f2' },
+          ]}
+          placeholder={label}
+        />
+      ) : (
+        <Text style={styles.value}>{value || 'N/A'}</Text>
+      )}
+    </View>
+  );
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          {/* TOP SECTION */}
-          <View style={styles.topRow}>
+    <Modal visible={visible} transparent animationType="fade">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.card}>
+            {/* HEADER */}
             <View style={styles.profileRow}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>S</Text>
+                <Text style={styles.avatarText}>{nameDraft?.[0] ?? '?'}</Text>
               </View>
+              <View style={{ flex: 1 }}>
+                {/* Name field without label */}
+                {editMode ? (
+                  <TextInput
+                    value={nameDraft}
+                    editable
+                    onChangeText={setNameDraft}
+                    style={styles.input}
+                    placeholder="Name"
+                  />
+                ) : (
+                  <Text style={[styles.value, { fontSize: 16 }]}>
+                    {nameDraft || 'N/A'}
+                  </Text>
+                )}
 
-              <View>
-                <Text style={styles.name}>shiza</Text>
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeText}>ACTIVE</Text>
-                </View>
+                {formData.isActive !== undefined && (
+                  <View
+                    style={[
+                      styles.activeBadge,
+                      {
+                        backgroundColor: formData.isActive
+                          ? Theme.colors.success
+                          : Theme.colors.error,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.activeText}>
+                      {formData.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
-            {!editMode && (
-              <TouchableOpacity
-                style={styles.editBtn}
-                onPress={() => setEditMode(true)}
-              >
-                <Text style={styles.editText}>Edit Profile</Text>
+            <View style={styles.divider} />
+
+            {/* CONTENT */}
+            <ScrollView
+              style={{ maxHeight: '70%' }}
+              contentContainerStyle={styles.grid}
+              keyboardShouldPersistTaps="handled"
+            >
+              {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
+              {renderField('Email', emailDraft, setEmailDraft, editMode)}
+              
+              {(type === 'customer' || type === 'employee') && (
+                <View
+                  style={{ zIndex: 3000, width: fieldWidth, marginBottom: 10 }}
+                >
+                  <Text style={styles.label}>
+                    {type === 'customer' ? 'Poultry Farm' : 'Department'}
+                  </Text>
+                  {editMode ? (
+                    <DropDownPicker
+                      listMode="SCROLLVIEW"
+                      open={buOpen}
+                      value={formData.businessUnitId ?? null}
+                      items={buItems}
+                      setOpen={setBUOpen}
+                      setValue={cb =>
+                        setFormData(prev => ({
+                          ...prev,
+                          businessUnitId: cb(prev.businessUnitId),
+                        }))
+                      }
+                      setItems={setBUItems}
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                    />
+                  ) : (
+                    <Text style={styles.value}>
+                      {buItems.find(i => i.value === formData.businessUnitId)
+                        ?.label || 'N/A'}
+                    </Text>
+                  )}
+                </View>
+              )}
+              {renderField('Address', addressDraft, setAddressDraft, editMode)}
+
+            </ScrollView>
+
+            {/* ACTIONS */}
+            <View style={styles.actions}>
+              <TouchableOpacity style={styles.discardBtn} onPress={onClose}>
+                <Text style={styles.discardText}>Discard</Text>
               </TouchableOpacity>
-            )}
+
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={editMode ? handleSave : () => setEditMode(true)}
+              >
+                <Text style={styles.saveText}>
+                  {editMode ? 'Save Changes' : 'Edit Profile'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          {/* GREEN LINE */}
-          <View style={styles.divider} />
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {!editMode && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Supplier Information</Text>
-
-                <View style={styles.grid}>
-                  <Info label="Phone Number" value="N/A" />
-                  <Info label="Email Address" value="N/A" />
-                  <Info label="Address" value="N/A" />
-                </View>
-
-                <Info label="Poultry Farm" value="My poultry" />
-              </View>
-            )}
-
-            {/* EDIT MODE */}
-            {editMode && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Supplier Information</Text>
-
-                <View style={styles.grid}>
-                  <Input label="Phone Number" placeholder="03XX-XXXXXXX" />
-                  <Input
-                    label="Email Address"
-                    placeholder="example@gmail.com"
-                  />
-                  <Input label="Address" placeholder="Enter address" />
-                </View>
-
-                <Input label="Poultry Farm" placeholder="My poultry" />
-
-                <View style={styles.actions}>
-                  <TouchableOpacity
-                    style={styles.discardBtn}
-                    onPress={() => {
-                      setEditMode(false);
-                      onClose();
-                    }}
-                  >
-                    <Text style={styles.discardText}>Discard</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.saveBtn}>
-                    <Text style={styles.saveText}>Save Changes</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
 export default ProfileModal;
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -136,26 +248,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 16,
   },
-
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: Theme.colors.white,
     borderRadius: 14,
     padding: 16,
     maxHeight: '90%',
   },
-
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {
     width: 48,
     height: 48,
@@ -164,94 +263,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  avatarText: {
-    fontWeight: 'bold',
-    color: Theme.colors.black,
-    fontSize: 18,
-  },
-
-  name: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-
+  avatarText: { fontWeight: 'bold', color: Theme.colors.black, fontSize: 18 },
   activeBadge: {
-    backgroundColor: Theme.colors.buttonPrimary,
-    borderRadius: 20,
+    borderRadius: 12,
     paddingHorizontal: 10,
-    marginTop: 4,
+    paddingVertical: 2,
     alignSelf: 'flex-start',
+    marginTop: 4,
   },
-
-  activeText: {
-    color: '#fff',
-    fontSize: 11,
-  },
-
-  editBtn: {
-    backgroundColor: Theme.colors.buttonPrimary,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-
-  editText: {
-    color: '#fff',
-    fontSize: 13,
-  },
-
+  activeText: { color: '#fff', fontSize: 10, fontWeight: '600' },
   divider: {
     height: 2,
     backgroundColor: Theme.colors.buttonPrimary,
     marginVertical: 12,
   },
-
-  section: {
-    marginBottom: 20,
-  },
-
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-
-  label: {
-    fontSize: 12,
-    color: Theme.colors.black,
-  },
-
-  value: {
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 10 },
+  field: { marginBottom: 8 },
+  label: { fontSize: 12, color: Theme.colors.dark, marginBottom: 2 },
+  value: { fontWeight: '600', fontSize: 14 },
   input: {
     borderWidth: 1,
     borderColor: '#a5a4a4',
     borderRadius: 6,
     padding: 8,
-    marginTop: 4,
   },
-
-  field: {
-    width: '48%',
-    marginBottom: 14,
-  },
-
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 20,
+    marginTop: 10,
     gap: 10,
   },
-
   discardBtn: {
     borderWidth: 2,
     borderColor: Theme.colors.buttonPrimary,
@@ -259,19 +300,23 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-
-  discardText: {
-    color: Theme.colors.black,
-  },
-
+  discardText: { color: Theme.colors.dark },
   saveBtn: {
     backgroundColor: Theme.colors.buttonPrimary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
-
-  saveText: {
-    color: '#fff',
+  saveText: { color: Theme.colors.black },
+  dropdown: {
+    borderColor: '#a5a4a4',
+    borderRadius: 6,
+    backgroundColor: Theme.colors.white,
+    minHeight: 36,
+  },
+  dropdownContainer: {
+    borderRadius: 6,
+    backgroundColor: Theme.colors.white,
+    borderColor: Theme.colors.borderColor,
   },
 });

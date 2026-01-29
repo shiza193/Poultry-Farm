@@ -370,8 +370,8 @@ const UserScreen = () => {
       <TopBarCard
         searchValue={search}
         onSearchChange={setSearch}
-        status={status}
-        onStatusChange={setStatus}
+        status={status === 'all' ? null : status}
+        onStatusChange={s => setStatus(s ?? 'all')}
         value={selectedBU}
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
@@ -451,7 +451,7 @@ const UserScreen = () => {
 
           try {
             const payload = Object.keys(data).map((farmId) => ({
-              businessUnitId: farmId,          
+              businessUnitId: farmId,
               userRoleId: data[farmId]?.roleId ?? null,
               isChecked: data[farmId]?.checked ?? false,
             }));

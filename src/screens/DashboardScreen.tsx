@@ -60,6 +60,9 @@ const DashboardScreen = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
+  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<
+    string | null
+  >(null);
 
   const [roleItems, setRoleItems] = useState<
     { label: string; value: string }[]
@@ -69,29 +72,29 @@ const DashboardScreen = () => {
   const [farms, setFarms] = useState<FarmData[]>([]);
 
   // ===== LOAD FARMS =====
+  const fetchFarms = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllBusinessUnits();
+
+      const mappedFarms = data.map((item: any) => ({
+        id: item.businessUnitId,
+        businessUnitId: item.businessUnitId,
+        title: item.name,
+        location: item.location,
+        users: item.totalUser,
+        employees: item.totalEmployee,
+      }));
+
+      setFarms(mappedFarms);
+    } catch (error) {
+      console.log('Failed to fetch farms', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFarms = async () => {
-      try {
-        setLoading(true);
-        const data = await getAllBusinessUnits();
-
-        const mappedFarms = data.map((item: any) => ({
-          id: item.businessUnitId,
-          businessUnitId: item.businessUnitId,
-          title: item.name,
-          location: item.location,
-          users: item.totalUser,
-          employees: item.totalEmployee,
-        }));
-
-        setFarms(mappedFarms);
-      } catch (error) {
-        console.log('Failed to fetch farms', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFarms();
   }, []);
 
@@ -219,31 +222,23 @@ const DashboardScreen = () => {
         email: data.email,
         password: data.password,
         userRoleId: Number(roleObj.value),
+        businessUnitId: selectedBusinessUnitId,
       };
 
-      const res = await addUser(payload);
+      await addUser(payload);
 
-      if (res.error) {
-        showErrorToast(res.error);
-        return;
-      }
+      await fetchFarms();
 
-      const newUser: User = {
-        id: res.data?.id || (users.length + 1).toString(),
-        name: data.name,
-        email: data.email,
-        isActive: true,
-        role: roleObj.label,
-        image: res.data?.imageLink || '',
-      };
-
-      setUsers(prev => [...prev, newUser]);
-      showSuccessToast(res.message || 'User added successfully');
-    } catch (error) {
-      showErrorToast('Failed to add user');
-      console.error('Add user failed', error);
+      showSuccessToast('User added successfully');
+    } catch (error: any) {
+      console.error(error?.response?.data);
+      showErrorToast(
+        'Error',
+        error?.response?.data?.message || 'Failed to add user',
+      );
     } finally {
-      setShowAddModal(false);
+      setShowAddUserModal(false);
+      setSelectedBusinessUnitId(null);
     }
   };
 
@@ -264,7 +259,6 @@ const DashboardScreen = () => {
 
           {isDotsMenuVisible && (
             <View style={styles.dotsOverlayContainer}>
-              {/* Transparent overlay to detect outside clicks */}
               <TouchableOpacity
                 style={styles.dotsOverlay}
                 activeOpacity={1}
@@ -323,7 +317,10 @@ const DashboardScreen = () => {
                   businessUnitId: farm.businessUnitId,
                 })
               }
-              onAddUser={() => setShowAddUserModal(true)}
+              onAddUser={() => {
+                setSelectedBusinessUnitId(farm.businessUnitId!);
+                setShowAddUserModal(true);
+              }}
               onAddEmployee={() => console.log('Add employee for', farm.title)}
               onEdit={() => handleEditFarm(farm)}
               onDelete={() => {
@@ -333,7 +330,9 @@ const DashboardScreen = () => {
               onPressTitle={() => {
                 if (farm.businessUnitId) {
                   setBusinessUnitId(farm.businessUnitId);
-                  navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN);
+                  navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN, {
+                    farmName: farm.title, // Pass farm name
+                  });
                 }
               }}
             />

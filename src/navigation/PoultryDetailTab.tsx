@@ -1,16 +1,18 @@
-// BootomTabNavigation.tsx
+// NewBottomTabNavigation.tsx
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Theme from '../theme/Theme';
-
-import DashboardScreen from '../screens/DashboardScreen';
-import UserScreen from '../screens/UserScreen';
-import CustomerScreen from '../screens/CustomerScreen';
-import SupplierScreen from '../screens/SupplierScreen';
-import EmployeeScreen from '../screens/EmployeeScreen';
+import DashboardDetailScreen from '../screens/DashboardDetailScreen';
 
 const Tab = createBottomTabNavigator();
+
+// Empty screen placeholder
+const EmptyScreen = ({ name }: { name: string }) => (
+  <View style={styles.screen}>
+    <Text style={styles.screenText}>{name} Screen</Text>
+  </View>
+);
 
 const renderIcon = (icon: any, focused: boolean) => {
   return (
@@ -21,15 +23,15 @@ const renderIcon = (icon: any, focused: boolean) => {
         styles.icon,
         {
           tintColor: focused
-            ? Theme.colors.primaryYellow 
-            : Theme.colors.blue,       
+            ? Theme.colors.primaryYellow
+            : Theme.colors.blue,
         },
       ]}
     />
   );
 };
 
-const BootomTabNavigation = () => (
+const PoultryDetailTab = () => (
   <Tab.Navigator
     screenOptions={{
       headerShown: false,
@@ -38,122 +40,98 @@ const BootomTabNavigation = () => (
   >
     <Tab.Screen
       name="Home"
-      component={DashboardScreen}
+     component={DashboardDetailScreen}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
             style={[
               styles.label,
-              {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
-              },
+              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
             ]}
           >
             Home
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.home, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.home, focused),
       }}
     />
 
     <Tab.Screen
-      name="User"
-      component={UserScreen}
+      name="Flock"
+      children={() => <EmptyScreen name="Flock" />}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
             style={[
               styles.label,
-              {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
-              },
+              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
             ]}
           >
-            User
+            Flock
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.user, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.hen, focused),
       }}
     />
 
+   
+
     <Tab.Screen
-      name="Customer"
-      component={CustomerScreen}
+      name="Eggs"
+      children={() => <EmptyScreen name="Eggs" />}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
             style={[
               styles.label,
-              {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
-              },
+              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
             ]}
           >
-            Customer
+            Eggs
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.customer, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.egg, focused),
       }}
     />
 
     <Tab.Screen
-      name="Supplier"
-      component={SupplierScreen}
+      name="Vaccination"
+      children={() => <EmptyScreen name="Vaccination" />}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
             style={[
               styles.label,
-              {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
-              },
+              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
             ]}
           >
-            Supplier
+            Vaccine
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.supplier, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.injection, focused),
       }}
     />
-
-    <Tab.Screen
-      name="Employee"
-      component={EmployeeScreen}
+     <Tab.Screen
+      name="More"
+      children={() => <EmptyScreen name="More" />}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
             style={[
               styles.label,
-              {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
-              },
+              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
             ]}
           >
-            Employee
+            More
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.employee, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.more, focused),
       }}
     />
   </Tab.Navigator>
 );
 
-export default BootomTabNavigation;
+export default PoultryDetailTab;
 
 const styles = StyleSheet.create({
   tabBar: {
@@ -171,5 +149,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
     fontWeight: '600',
+  },
+  screen: {
+    flex: 1,
+    backgroundColor: Theme.colors.screenBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  screenText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Theme.colors.textPrimary,
   },
 });

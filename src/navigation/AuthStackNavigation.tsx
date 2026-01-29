@@ -24,6 +24,7 @@ import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScre
 import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import EmployeeScreen from "../screens/EmployeeScreen";
 import SupplierScreen from "../screens/SupplierScreen";
+import PoultryDetailTab from "./PoultryDetailTab";
 
 const Stack = createNativeStackNavigator();
 
@@ -63,8 +64,12 @@ const AuthStackNavigation = () => {
       />
         <Stack.Screen
         name={CustomConstants.DASHBOARD_DETAIL_SCREEN}
-        component={DashboardDetailScreen}
+        component={PoultryDetailTab}
       />
+        {/* <Stack.Screen
+        name={CustomConstants.DASHBOARD_DETAIL_SCREEN}
+        component={DashboardDetailScreen}
+      /> */}
         <Stack.Screen
         name={CustomConstants.FLOCKS_SCREEN}
         component={FlocksScreen}
