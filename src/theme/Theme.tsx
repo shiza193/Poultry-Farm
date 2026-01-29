@@ -41,7 +41,7 @@ dashboard:'#fafafa',
 
   /* ===== Icons ===== */
   iconPrimary: '#F9C74F',
-  iconSecondary: '#6B7280',
+  iconSecondary: '#EFEDE7',
   dropdowncolor: '#ccc',
   paginationcolor: '#f5c75d',
   login: '#d49a13',
@@ -51,6 +51,8 @@ dashboard:'#fafafa',
   toast: '#fceac3',
   sold: '#b8bdec',
 dark:'#000000',
+blue:'#0A285A',
+sky:'#cfdffc',
 };
 
 const icons = {
@@ -77,11 +79,16 @@ const icons = {
   date: require('../resources/images/date.png'),
   information: require('../resources/images/information.png'),
   icon: require('../resources/images/icon.png'),
+  trend: require('../resources/images/trend.png'),
+  dash1: require('../resources/images/dash1.png'),
+  game: require('../resources/images/game.png'),
+  health: require('../resources/images/health.png'),
 
   hospital: require('../resources/images/hospital.png'),
 
   injection: require('../resources/images/injection.png'),
   pdf: require('../resources/images/pdf.png'),
+  more: require('../resources/images/more.png'),
 
   management: require('../resources/images/management.png'),
 

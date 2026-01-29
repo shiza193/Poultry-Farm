@@ -41,55 +41,61 @@ const FarmCard: React.FC<FarmCardProps> = ({
       {/* DETAILS */}
       <View style={styles.details}>
         {/* HEADER */}
-   <View style={styles.headerRow}>
-  {/* Make only the Text itself touchable, no flex */}
-  <TouchableOpacity onPress={onPressTitle}>
-    <Text style={styles.title} numberOfLines={1}>
-      {title}
-    </Text>
-  </TouchableOpacity>
-
-  {/* 3 DOT MENU stays independent */}
-  <View style={{ position: 'relative', marginLeft: 8 }}>
-    <TouchableOpacity
-      onPress={() => setMenuVisible(prev => !prev)}
-      style={styles.dotsWrapper}
-    >
-      <Image source={Theme.icons.dots} style={styles.dotsIcon} />
-    </TouchableOpacity>
-
-    {menuVisible && (
-      <TouchableOpacity
-        style={styles.menuOverlay}
-        activeOpacity={1}
-        onPress={() => setMenuVisible(false)}
-      >
-        <View style={styles.menu}>
+        <View style={styles.headerRow}>
           <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              setMenuVisible(false);
-              onEdit && onEdit();
-            }}
+            onPress={onPressTitle}
+            style={styles.titleWrapper}
+            activeOpacity={0.7}
           >
-            <Text style={styles.menuText}>Edit</Text>
+            <Text
+              style={styles.title}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {title}
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.menuItem, styles.deleteItem]}
-            onPress={() => {
-              setMenuVisible(false);
-              onDelete();
-            }}
-          >
-            <Text style={styles.deleteText}>Delete</Text>
-          </TouchableOpacity>
+          {/* DOTS MENU */}
+          <View style={styles.dotsContainer}>
+            <TouchableOpacity
+              onPress={() => setMenuVisible(prev => !prev)}
+              style={styles.dotsWrapper}
+            >
+              <Image source={Theme.icons.dots} style={styles.dotsIcon} />
+            </TouchableOpacity>
+
+            {menuVisible && (
+              <TouchableOpacity
+                style={styles.menuOverlay}
+                activeOpacity={1}
+                onPress={() => setMenuVisible(false)}
+              >
+                <View style={styles.menu}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setMenuVisible(false);
+                      onEdit && onEdit();
+                    }}
+                  >
+                    <Text style={styles.menuText}>Edit</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.menuItem, styles.deleteItem]}
+                    onPress={() => {
+                      setMenuVisible(false);
+                      onDelete();
+                    }}
+                  >
+                    <Text style={styles.deleteText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </TouchableOpacity>
-    )}
-  </View>
-</View>
-
 
         {/* LOCATION */}
         <View style={styles.locationRow}>
@@ -101,12 +107,10 @@ const FarmCard: React.FC<FarmCardProps> = ({
         <View style={styles.statsRow}>
           {/* USERS */}
           <View style={styles.statBox}>
-            {/* LABEL — TOUCHABLE */}
             <TouchableOpacity onPress={onUserCountPress} activeOpacity={0.7}>
-              <Text style={styles.statLabel}> USERS</Text>
+              <Text style={styles.statLabel}>USERS</Text>
             </TouchableOpacity>
 
-            {/* ICON + COUNT — TOUCHABLE */}
             <TouchableOpacity
               style={styles.statContent}
               onPress={onUserCountPress}
@@ -118,7 +122,6 @@ const FarmCard: React.FC<FarmCardProps> = ({
               <Text style={styles.statValue}>{users}</Text>
             </TouchableOpacity>
 
-            {/* ADD BUTTON — SAME */}
             <TouchableOpacity
               style={styles.addButton}
               onPress={onAddUser}
@@ -137,7 +140,7 @@ const FarmCard: React.FC<FarmCardProps> = ({
               onPress={onEmployeeCountPress}
               activeOpacity={0.7}
             >
-              <Text style={styles.statLabel}> EMPLOYEES</Text>
+              <Text style={styles.statLabel}>EMPLOYEES</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -173,53 +176,51 @@ export default FarmCard;
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor:Theme.colors.white,
     borderRadius: 18,
     margin: 16,
     overflow: 'hidden',
     elevation: 5,
   },
-
   image: {
     width: 120,
     height: '100%',
   },
-
   details: {
     flex: 1,
     padding: 14,
   },
-
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-
+  titleWrapper: {
+    flex: 1, 
+  },
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: Theme.colors.textPrimary,
+    color: Theme.colors.blue,
   },
-
+  dotsContainer: {
+    marginLeft: 8,
+  },
   dotsWrapper: {
     padding: 6,
   },
-
   dotsIcon: {
     width: 24,
     height: 24,
-    marginLeft:117,
     tintColor: Theme.colors.textPrimary,
   },
   menuOverlay: {
-  position: 'absolute',
+    position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
     zIndex: 999,
   },
-
   menu: {
     position: 'absolute',
     top: 28,
@@ -230,77 +231,65 @@ const styles = StyleSheet.create({
     width: 80,
     zIndex: 100,
   },
-
   menuItem: {
     paddingVertical: 8,
     paddingHorizontal: 9,
   },
-
   menuText: {
     fontSize: 14,
     fontWeight: '600',
     color: Theme.colors.textPrimary,
   },
-
   deleteItem: {
     borderTopWidth: 1,
     borderTopColor: '#eee',
   },
-
   deleteText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#DC2626',
   },
-
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 6,
   },
-
   locationIcon: {
     width: 14,
     height: 14,
     tintColor: Theme.colors.primaryYellow,
     marginRight: 4,
   },
-
   location: {
     fontSize: 13,
     color: Theme.colors.textSecondary,
   },
-
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 12,
   },
-
   statBox: {
     width: '48%',
-    backgroundColor: '#e9e9e9',
+    backgroundColor: Theme.colors.iconSecondary,
     borderRadius: 12,
     padding: 4,
   },
-
   statLabel: {
     fontSize: 11,
     fontWeight: '700',
     marginBottom: 4,
   },
-
   statContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   statValue: {
     fontSize: 18,
     fontWeight: '700',
     marginLeft: 8,
+    color: Theme.colors.blue,
   },
-
   greenCircle: {
     width: 28,
     height: 28,
@@ -308,7 +297,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   orangeCircle: {
     width: 28,
     height: 28,
@@ -316,13 +304,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   statIcon: {
     width: 14,
     height: 14,
     tintColor: Theme.colors.buttonPrimary,
   },
-
   addButton: {
     marginTop: 7,
     alignSelf: 'flex-end',
@@ -331,7 +317,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 2,
     backgroundColor: Theme.colors.secondaryYellow,
-
     borderWidth: 2,
     borderColor: Theme.colors.secondaryYellow,
   },
@@ -339,14 +324,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   addIcon: {
     width: 14,
     height: 14,
     tintColor: Theme.colors.white,
     marginRight: 6,
   },
-
   addText: {
     fontSize: 13,
     fontWeight: '600',

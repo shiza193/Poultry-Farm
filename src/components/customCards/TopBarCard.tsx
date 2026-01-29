@@ -14,9 +14,9 @@ import { getBusinessUnits } from '../../services/BusinessUnit';
 interface Props {
   searchValue?: string;
   onSearchChange?: (text: string) => void;
-  value?: string | null; // Business Unit
-  status?: 'all' | 'active' | 'inactive';
-  onStatusChange?: (status: 'all' | 'active' | 'inactive') => void;
+  value?: string | null;
+status?: 'active' | 'inactive' | null;
+  onStatusChange?: (status: 'active' | 'inactive' | null) => void;
   onReset?: () => void;
   onBusinessUnitChange?: (businessUnitId: string | null) => void;
 }
@@ -25,23 +25,27 @@ const TopBarCard: React.FC<Props> = ({
   searchValue,
   onSearchChange,
   value: selectedBU,
-  status = 'all',
+  status = null,
   onStatusChange,
   onReset,
   onBusinessUnitChange,
 }) => {
-  // ===== Business Unit =====
+  /* ================= Business Unit ================= */
   const [buOpen, setBUOpen] = useState(false);
   const [buValue, setBUValue] = useState<string | null>(selectedBU ?? null);
   const [items, setItems] = useState<{ label: string; value: string }[]>([]);
   const [tempSearch, setTempSearch] = useState(searchValue ?? '');
 
-  // ===== Active Filter =====
-  const [activeState, setActiveState] = useState<boolean | null>(
-    status === 'all' ? null : status === 'active',
+  /* ================= Status Logic =================
+     null      → sirf "Active" text (not selected)
+     'active'  → Active selected
+     'inactive'→ Inactive selected
+  */
+  const [statusState, setStatusState] = useState<'active' | 'inactive' | null>(
+    status,
   );
 
-  // Fetch Business Units
+  /* ================= Fetch BUs ================= */
   useEffect(() => {
     (async () => {
       const units = await getBusinessUnits();
@@ -54,23 +58,32 @@ const TopBarCard: React.FC<Props> = ({
     })();
   }, []);
 
-  // Sync from parent
   useEffect(() => {
     setBUValue(selectedBU ?? null);
   }, [selectedBU]);
 
-  useEffect(() => {
-    setActiveState(status === 'all' ? null : status === 'active');
-  }, [status]);
-
   const isFilterApplied =
-    buValue !== null || activeState !== null || !!searchValue;
+    !!tempSearch || buValue !== null || statusState !== null;
+
+  /* ================= Status Toggle ================= */
+  const handleStatusPress = () => {
+    setStatusState(prev => {
+      let next: 'active' | 'inactive';
+
+      if (prev === null) next = 'active';
+      else if (prev === 'active') next = 'inactive';
+      else next = 'active';
+
+      onStatusChange?.(next);
+      return next;
+    });
+  };
 
   return (
     <View style={styles.container}>
-      {/* ===== TOP ROW: Search + BU + Active ===== */}
+      {/* ===== TOP ROW ===== */}
       <View style={styles.row}>
-        {/* SEARCH */}
+        {/* SEARCH (LONGER) */}
         <View style={styles.searchBox}>
           <TextInput
             placeholder="Search"
@@ -80,8 +93,7 @@ const TopBarCard: React.FC<Props> = ({
             onChangeText={setTempSearch}
           />
 
-          {/* Clear button */}
-          {tempSearch?.length ? (
+          {tempSearch.length > 0 && (
             <TouchableOpacity
               onPress={() => {
                 setTempSearch('');
@@ -90,19 +102,16 @@ const TopBarCard: React.FC<Props> = ({
             >
               <Image source={Theme.icons.close1} style={styles.clearIcon} />
             </TouchableOpacity>
-          ) : null}
+          )}
 
-          {/* Search icon */}
           <TouchableOpacity
-            onPress={() => {
-              onSearchChange?.(tempSearch); // trigger search only on icon press
-            }}
+            onPress={() => onSearchChange?.(tempSearch)}
           >
             <Image source={Theme.icons.search} style={styles.searchIcon} />
           </TouchableOpacity>
         </View>
 
-        {/* BUSINESS UNIT */}
+        {/* BUSINESS UNIT (SMALLER) */}
         <View style={styles.businessDropdown}>
           <DropDownPicker
             open={buOpen}
@@ -122,52 +131,45 @@ const TopBarCard: React.FC<Props> = ({
           />
         </View>
 
-        {/* ACTIVE / INACTIVE TOGGLE */}
+        {/* STATUS */}
         <TouchableOpacity
-          style={styles.activeCheckboxWrapper}
-          onPress={() => {
-            setActiveState(prev => {
-              const next = prev === null ? true : prev === true ? false : null;
-
-              if (next === null) onStatusChange?.('all');
-              else onStatusChange?.(next ? 'active' : 'inactive');
-
-              return next;
-            });
-          }}
+          style={styles.statusWrapper}
+          onPress={handleStatusPress}
         >
           <View
             style={[
               styles.checkboxBox,
-              activeState !== null && styles.checkboxActive,
+              statusState && styles.checkboxActive,
             ]}
           >
-            {activeState !== null && (
-              <Text style={styles.checkboxTick}>{activeState ? '✓' : '✕'}</Text>
+            {statusState && (
+              <Text style={styles.checkboxTick}>
+                {statusState === 'active' ? '✓' : '✕'}
+              </Text>
             )}
           </View>
 
           <Text style={styles.activeText}>
-            {activeState === null ? 'All' : activeState ? 'Active' : 'Inactive'}
+            {statusState ?? 'Active'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* ===== SECOND ROW: RESET BUTTON ===== */}
+      {/* ===== RESET ===== */}
       {isFilterApplied && (
         <View style={styles.row2}>
           <TouchableOpacity
-            style={styles.resetButton}
             onPress={() => {
+              setTempSearch('');
               setBUValue(null);
-              setActiveState(null);
+              setStatusState(null);
               onReset?.();
-              onStatusChange?.('all');
-              onBusinessUnitChange?.(null);
               onSearchChange?.('');
+              onBusinessUnitChange?.(null);
+              onStatusChange?.(null);
             }}
           >
-            <Text style={styles.resetText}>Reset</Text>
+            <Text style={styles.resetText}>Reset Filters</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
 
   row2: {
@@ -195,46 +197,45 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
 
+  /* SEARCH */
   searchBox: {
-    flex: 1,
+    flex: 2, // increased from 1.4 → makes search bar wider
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Theme.colors.success,
     borderRadius: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     height: 42,
   },
   searchInput: { flex: 1, fontSize: 15 },
-  searchIcon: { width: 24, height: 24, tintColor: Theme.colors.success },
+  searchIcon: { width: 22, height: 22, tintColor: Theme.colors.success },
   clearIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 5,
+    width: 18,
+    height: 18,
+    marginRight: 6,
     tintColor: Theme.colors.success,
   },
 
-  businessDropdown: { width: 130, zIndex: 2000 },
-
+  /* DROPDOWN */
+  businessDropdown: { width: 90, zIndex: 2000 }, // decreased from 110 → smaller dropdown
   dropdown: {
     borderColor: Theme.colors.success,
     borderRadius: 8,
     minHeight: 42,
-    backgroundColor: Theme.colors.white,
   },
   dropdownContainer: {
     borderRadius: 8,
-    backgroundColor: Theme.colors.white,
     borderColor: Theme.colors.success,
   },
-  dropdownText: { fontSize: 13, color: Theme.colors.success },
+  dropdownText: { fontSize: 12 },
 
-  activeCheckboxWrapper: {
+  /* STATUS */
+  statusWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
-
   checkboxBox: {
     width: 20,
     height: 20,
@@ -252,16 +253,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-
   activeText: {
     fontSize: 13,
     color: Theme.colors.textPrimary,
   },
 
-  resetButton: {},
+  /* RESET */
   resetText: {
     color: Theme.colors.error,
     fontWeight: '600',
     fontSize: 13,
   },
 });
+

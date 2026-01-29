@@ -296,7 +296,6 @@ const CustomerScreen = () => {
         <View
           style={{
             position: 'absolute',
-
             top: 225,
             marginLeft: 23,
             backgroundColor: Theme.colors.white,
@@ -329,15 +328,13 @@ const CustomerScreen = () => {
             try {
               setLoading(true);
 
-              // map ProfileData to API payload
               const payload = {
                 name: updatedData.name.trim(),
                 email: updatedData.email?.trim() || null,
                 phone: updatedData.phone?.trim() || null,
                 address: updatedData.address?.trim() || '',
-                partyTypeId: 0, // since it's a customer
+                partyTypeId: 0, 
                 businessUnitId: updatedData.businessUnitId || contextBU || '',
-                // optional fields can be added here, e.g., accountHeadId
               };
 
               const response = await updateParty(updatedData.id, payload);
@@ -345,7 +342,7 @@ const CustomerScreen = () => {
               if (response) {
                 showSuccessToast('Success', 'Customer updated successfully');
                 setShowProfileModal(false);
-                fetchCustomers(); // refresh the table after update
+                fetchCustomers(); 
               }
             } catch (error: any) {
               console.error('Update customer error:', error);
@@ -362,8 +359,8 @@ const CustomerScreen = () => {
       <TopBarCard
         searchValue={search}
         onSearchChange={text => setSearch(text)}
-        status={status}
-        onStatusChange={setStatus}
+  status={status === 'all' ? null : status}
+  onStatusChange={s => setStatus(s ?? 'all')}
         value={selectedBU}
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
@@ -425,6 +422,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.success,
   },
-  noDataContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  noDataImage: { width: 300, height: 360 },
-});
+  noDataContainer: {  justifyContent: 'center', alignItems: 'center' },
+noDataImage: {
+  width: 290,
+  height: 290,
+  resizeMode: 'contain',
+},});

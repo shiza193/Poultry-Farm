@@ -13,9 +13,9 @@ import InputField from '../../components/customInputs/Input';
 import PrimaryButton from '../../components/customButtons/customButtom';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { isValidEmail, isValidPassword } from '../../utils/validation';
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { loginUser } from "../../services/AuthService";
+import { loginUser } from '../../services/AuthService';
 
 import styles from './style';
 import Theme from '../../theme/Theme';
@@ -29,60 +29,52 @@ const LoginScreen = ({ navigation }: any) => {
 
   // Email validation
   const handleEmailBlur = () => {
-  if (!isValidEmail(email)) {
-    setEmailError('Enter a valid email address');
-  } else {
-    setEmailError('');
-  }
-};
-
-
-AsyncStorage.getItem("token").then(t =>
-  console.log("🔑 STORED TOKEN:", t)
-);
-const isFormValid =
-  isValidEmail(email) && isValidPassword(password);
-
-const handleLogin = async () => {
-  Keyboard.dismiss();
-  console.log("🟡 Login button clicked with email:", email);
-
-  if (!email || !password) {
-    console.log("⚠️ Email or password missing");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    // 🔐 Call API
-    const res = await loginUser({ email, password });
-    console.log("🟢 Login success, response:", res);
-
-    const token = res?.token;
-    const userId = res?.userId;
-
-    if (token) {
-      // ✅ Save to AsyncStorage
-      await AsyncStorage.setItem("token", token);
-      await AsyncStorage.setItem("userId", userId?.toString() || "");
-      console.log("🔑 Token & UserId saved");
-
-      // ✅ Navigate to dashboard
-      navigation.replace(CustomConstants.DASHBOARD_TABS);
+    if (!isValidEmail(email)) {
+      setEmailError('Enter a valid email address');
     } else {
-      console.log("❌ Token missing in response");
+      setEmailError('');
     }
-  } catch (error) {
-    console.log("🚨 Login failed on screen level", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
+  AsyncStorage.getItem('token').then(t => console.log(' STORED TOKEN:', t));
+  const isFormValid = isValidEmail(email) && isValidPassword(password);
 
+  const handleLogin = async () => {
+    Keyboard.dismiss();
+    console.log(' Login button clicked with email:', email);
 
+    if (!email || !password) {
+      console.log(' Email or password missing');
+      return;
+    }
 
+    try {
+      setLoading(true);
+
+      //  Call API
+      const res = await loginUser({ email, password });
+      console.log(' Login success, response:', res);
+
+      const token = res?.token;
+      const userId = res?.userId;
+
+      if (token) {
+        //  Save to AsyncStorage
+        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('userId', userId?.toString() || '');
+        console.log(' Token & UserId saved');
+
+        //  Navigate to dashboard
+        navigation.replace(CustomConstants.DASHBOARD_TABS);
+      } else {
+        console.log(' Token missing in response');
+      }
+    } catch (error) {
+      console.log('Login failed on screen level', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

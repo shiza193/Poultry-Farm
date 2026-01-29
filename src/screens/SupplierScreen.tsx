@@ -9,7 +9,12 @@ import {
   Text,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { deleteParty, getPartyBySearchAndFilter, addParty, updatePartyIsActive } from '../services/PartyService';
+import {
+  deleteParty,
+  getPartyBySearchAndFilter,
+  addParty,
+  updatePartyIsActive,
+} from '../services/PartyService';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import TopBarCard from '../components/customCards/TopBarCard';
 import Theme from '../theme/Theme';
@@ -99,9 +104,16 @@ const SupplierScreen = () => {
   useEffect(() => {
     let updated = [...users];
 
-    if (selectedBU) updated = updated.filter(u => u.businessUnitId === selectedBU);
-    if (status !== 'all') updated = updated.filter(u => (status === 'active' ? u.isActive : !u.isActive));
-    if (search) updated = updated.filter(u => u.name.toLowerCase().includes(search.toLowerCase()));
+    if (selectedBU)
+      updated = updated.filter(u => u.businessUnitId === selectedBU);
+    if (status !== 'all')
+      updated = updated.filter(u =>
+        status === 'active' ? u.isActive : !u.isActive,
+      );
+    if (search)
+      updated = updated.filter(u =>
+        u.name.toLowerCase().includes(search.toLowerCase()),
+      );
 
     setFilteredUsers(updated);
   }, [selectedBU, status, search, users]);
@@ -148,12 +160,16 @@ const SupplierScreen = () => {
       await updatePartyIsActive(userId, !currentStatus);
 
       setUsers(prev =>
-        prev.map(u => (u.id === userId ? { ...u, isActive: !currentStatus } : u)),
+        prev.map(u =>
+          u.id === userId ? { ...u, isActive: !currentStatus } : u,
+        ),
       );
 
       showSuccessToast(
         'Success',
-        `Supplier has been ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
+        `Supplier has been ${
+          !currentStatus ? 'activated' : 'deactivated'
+        } successfully`,
       );
     } catch (error: any) {
       console.error('Error updating status:', error);
@@ -183,13 +199,22 @@ const SupplierScreen = () => {
       const res = await deleteParty(selectedPartyId);
 
       if (res.error || res.success === false) {
-        return showErrorToast('Error', res.error || res.message || 'Failed to delete supplier');
+        return showErrorToast(
+          'Error',
+          res.error || res.message || 'Failed to delete supplier',
+        );
       }
 
       setUsers(prev => prev.filter(u => u.id !== selectedPartyId));
-      showSuccessToast('Success', res.message || 'Supplier deleted successfully');
+      showSuccessToast(
+        'Success',
+        res.message || 'Supplier deleted successfully',
+      );
     } catch (error: any) {
-      const msg = error?.response?.data?.message || error?.message || 'Failed to delete supplier';
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to delete supplier';
       showErrorToast('Error', msg);
       console.error('Delete supplier failed', error);
     } finally {
@@ -224,20 +249,28 @@ const SupplierScreen = () => {
       <TopBarCard
         searchValue={search}
         onSearchChange={setSearch}
-        status={status}
-        onStatusChange={setStatus}
+        status={status === 'all' ? null : status}
+        onStatusChange={s => setStatus(s ?? 'all')}
         value={selectedBU}
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
       />
 
       {/* ===== DATA TABLE ===== */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+      >
         <View style={{ flex: 1 }}>
-         
-
           {!loading && filteredUsers.length === 0 && (
-            <View style={{ justifyContent: 'flex-start', alignItems: 'flex-start', marginTop: 50 }}>
+            <View
+              style={{
+                justifyContent: 'flex-start',
+                alignItems: 'flex-start',
+                marginTop: 50,
+              }}
+            >
               <Image
                 source={Theme.icons.nodata}
                 style={{ width: 300, height: 360, marginBottom: 30 }}

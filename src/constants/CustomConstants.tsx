@@ -22,6 +22,7 @@ export const CustomConstants = {
   EGG_SALE_SCREEN: 'EggSaleScreen',
   MAIN_LAYOUT: 'MainLayout',
   EGG_TABS: 'EggTabs',
+  POULTRY_DETAIL_TAB: 'PoultryDetailTab',
 
   EMPLOYEE_SCREEN: 'EmployeeScreen',
 
@@ -29,6 +30,7 @@ export const CustomConstants = {
   VACCINATIONS_SCREEN: "VaccinationsScreen",
   VACCINE_SCHEDULE_SCREEN: "VaccineScheduleScreen",
   VACCINATION_STOCK_SCREEEN: "VaccinationStockScreen",
+
 } as const;
 
 // ScreenType only includes tabs that MainLayout handles

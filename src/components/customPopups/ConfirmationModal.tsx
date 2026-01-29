@@ -61,14 +61,13 @@ const ConfirmationModal = ({
 
           {/* ===== BUTTONS ===== */}
           <View style={styles.row}>
+             {/* CANCEL BUTTON */}
+            <TouchableOpacity onPress={onClose} style={cancelBtnStyle}>
+              <Text style={cancelTextStyle}>Cancel</Text>
+            </TouchableOpacity>
             {/* CONFIRM BUTTON */}
             <TouchableOpacity onPress={onConfirm} style={confirmBtnStyle}>
               <Text style={confirmTextStyle}>{confirmText}</Text>
-            </TouchableOpacity>
-
-            {/* CANCEL BUTTON */}
-            <TouchableOpacity onPress={onClose} style={cancelBtnStyle}>
-              <Text style={cancelTextStyle}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
