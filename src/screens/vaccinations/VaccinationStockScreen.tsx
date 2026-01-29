@@ -3,12 +3,11 @@ import {
     View,
     Text,
     ScrollView,
-    StyleSheet,
-    Image,
     TouchableOpacity,
+    Image,
 } from "react-native";
 import SidebarWrapper from "../../components/customButtons/SidebarWrapper";
-import DataCard from "../../components/customCards/DataCard";
+import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
 import { CustomConstants } from "../../constants/CustomConstants";
 import {
@@ -18,25 +17,17 @@ import {
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ScreenTipCard from "../../components/customCards/ScreenTipCard";
 import { stockstyles } from "./style";
+import { useBusinessUnit } from "../../context/BusinessContext"
 
 const VaccinationStockScreen: React.FC = () => {
     const activeScreen = CustomConstants.VACCINATION_STOCK_SCREEEN;
+    const { businessUnitId } = useBusinessUnit();
 
     const [data, setData] = useState<VaccinationStock[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
-
-    const businessUnitId = "157cc479-dc81-4845-826c-5fb991bd3d47";
-
-    // 🔹 Header labels (table header)
-    const headerLabels = {
-        stockvaccineName: "VACCINE NAME",
-        totalvaccinePurchased: "TOTAL PURCHASED",
-        totalSchedule: "TOTAL SCHEDULED",
-        availablevaccineStock: "AVAILABLE STOCK",
-    };
-
     const fetchData = async () => {
+        if (!businessUnitId) return;
         try {
             setLoading(true);
             const result = await getVaccinationStock(businessUnitId);
@@ -47,12 +38,30 @@ const VaccinationStockScreen: React.FC = () => {
     };
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [businessUnitId]);
+
+    // ===== DATA CARD COLUMNS =====
+    const columns: TableColumn[] = [
+        { key: "vaccine", title: " NAME", isTitle: true },
+        { key: "totalPurchased", title: " PURCHASED" },
+        { key: "totalSchedule", title: " SCHEDULED" },
+        { key: "availableStock", title: "AVAILABLE", width: 90 },
+    ];
+
+    // ===== MAP DATA TO MATCH COLUMN KEYS =====
+    const tableData = data.map(item => ({
+        vaccine: item.vaccine,
+        totalPurchased: item.totalPurchased,
+        totalSchedule: item.totalSchedule,
+        availableStock: item.availableStock,
+    }));
+
     return (
         <SidebarWrapper activeScreen={activeScreen} setActiveScreen={() => { }}>
             <View style={stockstyles.container}>
                 <LoadingOverlay visible={loading} text="Loading..." />
-                {/* ===== TOP ROW: TITLE + DOTS MENU ===== */}
+
+                {/* ===== TOP ROW ===== */}
                 <View style={stockstyles.topRow}>
                     <Text style={stockstyles.title}>Vaccination Stock</Text>
                     <TouchableOpacity
@@ -62,6 +71,7 @@ const VaccinationStockScreen: React.FC = () => {
                         <Image source={Theme.icons.dots} style={stockstyles.dotsIcon} />
                     </TouchableOpacity>
                 </View>
+
                 {/* ===== DOTS MENU ===== */}
                 {isDotsMenuVisible && (
                     <TouchableOpacity
@@ -73,7 +83,6 @@ const VaccinationStockScreen: React.FC = () => {
                             <TouchableOpacity
                                 style={stockstyles.dotsMenuItem}
                                 onPress={() => {
-                                    // TODO: Export logic
                                     console.log("Export Data clicked");
                                     setIsDotsMenuVisible(false);
                                 }}
@@ -88,45 +97,21 @@ const VaccinationStockScreen: React.FC = () => {
                         </View>
                     </TouchableOpacity>
                 )}
+
                 <View style={stockstyles.tipCardContainer}>
                     <ScreenTipCard screen={CustomConstants.VACCINATION_STOCK_SCREEEN} />
                 </View>
-                {/* ===== TABLE ===== */}
-                <ScrollView style={{ width: "100%", paddingHorizontal: 18 }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <View style={{ flex: 1,marginTop:10 }}>
-                            {/* Header Row */}
-                            <DataCard
-                                isHeader
-                                labels={headerLabels}
-                                showVaccinationStock={true}
-                            />
-                            {!loading && data.length === 0 ? (
-                                <View style={{ marginTop: 40, alignItems: "center" }}>
-                                    <Image
-                                        source={Theme.icons.nodata}
-                                        style={{ width: 200, height: 200, resizeMode: "contain" }}
-                                    />
-                                </View>
-                            ) : (
-                                data.map((item) => (
-                                    <DataCard
-                                        key={item.vaccineId}
-                                        showVaccinationStock={true}
-                                        stockvaccineName={item.vaccine}
-                                        totalvaccinePurchased={item.totalPurchased}
-                                        totalSchedule={item.totalSchedule}
-                                        availablevaccineStock={item.availableStock}
-                                    />
-                                ))
-                            )}
-                        </View>
-                    </ScrollView>
-                </ScrollView>
+
+                {/* ===== DATA CARD TABLE ===== */}
+                <View style={{ flex: 1, marginTop: 10, paddingHorizontal: 18 }}>
+                    <DataCard
+                        columns={columns}
+                        data={tableData}
+                    />
+                </View>
             </View>
         </SidebarWrapper>
     );
 };
+
 export default VaccinationStockScreen;
-
-

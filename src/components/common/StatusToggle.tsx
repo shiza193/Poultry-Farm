@@ -8,82 +8,79 @@ interface StatusToggleProps {
 }
 
 const StatusToggle: React.FC<StatusToggleProps> = ({ isActive, onToggle }) => {
+  const activeColor = isActive
+    ? Theme.colors.success
+    : Theme.colors.error;
+
   return (
-    <View style={styles.container}>
-      {/* Left Label */}
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onToggle}
+      style={[
+        styles.container,
+        { borderColor: activeColor },
+      ]}
+    >
+      {/* Tick Circle */}
       <View
         style={[
-          styles.labelBox,
+          styles.tickCircle,
           {
-            borderColor: isActive
-              ? Theme.colors.success
-              : Theme.colors.error,
+            backgroundColor: activeColor,
+            left: isActive ? 6 : undefined,
+            right: !isActive ? 6 : undefined,
           },
         ]}
-      >
-        <Text
-          style={[
-            styles.labelText,
-            {
-              color: isActive
-                ? Theme.colors.success
-                : Theme.colors.error,
-            },
-          ]}
-        >
-          {isActive ? "Active" : "Inactive"}
-        </Text>
-      </View>
-
-      {/* Tick Button */}
-      <TouchableOpacity
-        onPress={onToggle}
-        style={[
-          styles.tickBox,
-          {
-            backgroundColor: isActive
-              ? Theme.colors.success
-              : Theme.colors.error,
-          },
-        ]}
-        activeOpacity={0.8}
       >
         <Text style={styles.tick}>✓</Text>
-      </TouchableOpacity>
-    </View>
+      </View>
+      {/* Label */}
+      <Text
+        style={[
+          styles.label,
+          {
+            color: activeColor,
+            marginLeft: isActive ? 28 : 0,
+            marginRight: !isActive ? 28 : 0,
+          },
+        ]}
+      >
+        {isActive ? "Active" : "Inactive"}
+      </Text>
+    </TouchableOpacity>
   );
 };
 
 export default StatusToggle;
-
 const styles = StyleSheet.create({
   container: {
+    height: 34,
+    minWidth: 90,
+    borderWidth: 1.5,
+    borderRadius: 10,
     flexDirection: "row",
     alignItems: "center",
-  },
-  labelBox: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
+    justifyContent: "center",
     backgroundColor: Theme.colors.white,
+    paddingHorizontal: 12,
+    position: "relative",
   },
-  labelText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  tickBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  tickCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 5,
+    position: "absolute",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: -6,
   },
   tick: {
     color: Theme.colors.white,
     fontSize: 14,
     fontWeight: "bold",
+    marginTop: -1,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

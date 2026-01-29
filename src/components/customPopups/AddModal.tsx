@@ -18,7 +18,7 @@ import DateTimePicker, {
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 
-type ModalType = 'user' | 'customer' | 'employee' | 'vaccination';
+type ModalType = 'user' | 'customer' | 'employee' | 'vaccination' | 'vaccination Schedule';
 
 interface AddModalProps {
   visible: boolean;
@@ -29,6 +29,7 @@ interface AddModalProps {
   roleItems?: { label: string; value: string }[];
   vaccineItems?: { label: string; value: number }[];
   supplierItems?: { label: string; value: string }[];
+  flockItems?: { label: string; value: string }[];
   // ✅ ADD THESE
   isEdit?: boolean;
   initialData?: any;
@@ -42,6 +43,7 @@ const AddModal: React.FC<AddModalProps> = ({
   onSave,
   roleItems,
   vaccineItems,
+  flockItems,
   supplierItems,
   isEdit = false,
   initialData = null,
@@ -77,12 +79,11 @@ const AddModal: React.FC<AddModalProps> = ({
   const [endDate, setEndDate] = useState<Date | null>(null);
 
   const [typeOpen, setTypeOpen] = useState(false);
+  const [selectedEmployeeTypeId, setSelectedEmployeeTypeId] = useState<number | null>(null);
 
-  const [employeeType, setEmployeeType] = useState<string | null>(null);
   const [typeItems, setTypeItems] = useState<
-    { label: string; value: string }[]
+    { label: string; value: number }[]
   >([]);
-
   const [showJoiningPicker, setShowJoiningPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   /* ===== VACCINATION ===== */
@@ -97,6 +98,8 @@ const AddModal: React.FC<AddModalProps> = ({
   const [note, setNote] = useState('');
   /* ===== VACCINATION PAYMENT STATUS ===== */
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
+  const [flockOpen, setFlockOpen] = useState(false);
+  const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
   /* ===== 🟢 EDIT MODE PREFILL USEEFFECT (YAHAN) ===== */
   useEffect(() => {
     if (type === 'vaccination' && isEdit && initialData) {
@@ -145,10 +148,10 @@ const AddModal: React.FC<AddModalProps> = ({
     if (type === 'employee') {
       const isValid =
         name.trim().length > 0 &&
-        employeeType !== null &&
+        selectedEmployeeTypeId !== null &&
         businessUnit !== null &&
         salary.trim().length > 0 &&
-        joiningDate !== null; // REQUIRED
+        joiningDate !== null;
 
       setIsSaveEnabled(isValid);
       return;
@@ -178,10 +181,20 @@ const AddModal: React.FC<AddModalProps> = ({
     if (type === 'customer') {
       setIsSaveEnabled(name.trim().length > 0 && businessUnit !== null);
     }
+    // ADD THIS FOR VACCINATION SCHEDULE
+    if (type === 'vaccination Schedule') {
+      const isValid =
+        vaccine !== null &&
+        selectedFlock !== null &&
+        vaccinationDate !== null &&
+        quantity.trim().length > 0;
+
+      setIsSaveEnabled(isValid);
+    }
   }, [
     type,
     name,
-    employeeType,
+    selectedEmployeeTypeId,
     businessUnit,
     salary,
     joiningDate,
@@ -230,14 +243,18 @@ const AddModal: React.FC<AddModalProps> = ({
   /* ===== SAVE ===== */
   const handleSave = () => {
     if (type === 'employee') {
+      if (!selectedEmployeeTypeId) {
+        return;
+      }
       onSave({
         name,
-        employeeType,
+        type: selectedEmployeeTypeId,
         poultryFarm: businessUnit,
-        salary,
+        salary: Number(salary),
         joiningDate,
         endDate,
       });
+
     } else if (type === 'user') {
       onSave({ name, role, email, password });
     } else if (type === 'customer') {
@@ -253,6 +270,14 @@ const AddModal: React.FC<AddModalProps> = ({
         paymentStatus,
       });
     }
+    else if (type === 'vaccination Schedule') {
+      onSave({
+        flockId: selectedFlock,
+        vaccineId: vaccine,
+        scheduledDate: vaccinationDate,
+        quantity,
+      });
+    }
     reset();
     onClose();
   };
@@ -266,18 +291,17 @@ const AddModal: React.FC<AddModalProps> = ({
           </Text>
 
           {/* NAME */}
-          {type !== 'vaccination' && (
-            <>
-              <Text style={styles.label}>
-                Name<Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter name..."
-                value={name}
-                onChangeText={setName}
-              />
-            </>
+          {type !== 'vaccination' && type !== 'vaccination Schedule' && (<>
+            <Text style={styles.label}>
+              Name<Text style={styles.required}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter name..."
+              value={name}
+              onChangeText={setName}
+            />
+          </>
           )}
 
           {/* USER */}
@@ -289,7 +313,7 @@ const AddModal: React.FC<AddModalProps> = ({
               <DropDownPicker
                 open={roleOpen}
                 value={role}
-                items={roleItems || []} // use prop from screen
+                items={roleItems || []}
                 setOpen={setRoleOpen}
                 setValue={setRole}
                 // setItems={setRoleItems} // you can remove this if screen manages the state
@@ -430,10 +454,10 @@ const AddModal: React.FC<AddModalProps> = ({
               </Text>
               <DropDownPicker
                 open={typeOpen}
-                value={employeeType}
-                items={typeItems}
+                value={selectedEmployeeTypeId}          // ✅ ID
+                items={typeItems}                       // value = employeeTypeId
                 setOpen={setTypeOpen}
-                setValue={setEmployeeType}
+                setValue={setSelectedEmployeeTypeId}    // ✅ ID set hogi
                 placeholder="Select type..."
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
@@ -630,6 +654,74 @@ const AddModal: React.FC<AddModalProps> = ({
               )}
             </>
           )}
+
+          {type === 'vaccination Schedule' && (
+            <>
+              {/* VACCINE */}
+              <Text style={styles.label}>Vaccine Name</Text>
+              <DropDownPicker
+                open={vaccineOpen}
+                value={vaccine}
+                items={vaccineItems || []}
+                setOpen={setVaccineOpen}
+                setValue={setVaccine}
+                placeholder="Select vaccine..."
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
+              {/* DATE */}
+              <Text style={styles.label}>Schedule Date</Text>
+              <TouchableOpacity
+                style={styles.inputWithIcon}
+                onPress={() => setShowVaccinationPicker(true)}
+              >
+                <Text style={{ flex: 1 }}>
+                  {vaccinationDate
+                    ? vaccinationDate.toLocaleDateString()
+                    : 'mm/dd/yyyy'}
+                </Text>
+                <Image source={Theme.icons.date} style={styles.dateIcon} />
+              </TouchableOpacity>
+
+              {showVaccinationPicker && (
+                <DateTimePicker
+                  value={vaccinationDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    if (event.type === 'set' && date) {
+                      setVaccinationDate(date);
+                    }
+                    setShowVaccinationPicker(false);
+                  }}
+                />
+              )}
+              {/* FLOCK */}
+              <Text style={styles.label}>
+                Flock<Text style={styles.required}>*</Text>
+              </Text>
+              <DropDownPicker
+                open={flockOpen}
+                value={selectedFlock}
+                items={flockItems || []}
+                setOpen={setFlockOpen}
+                setValue={setSelectedFlock}
+                placeholder="Select flock..."
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
+              {/* QUANTITY */}
+              <Text style={styles.label}>Quantity</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter quantity..."
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+              />
+            </>
+          )}
+
 
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>

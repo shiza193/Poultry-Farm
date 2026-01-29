@@ -4,13 +4,14 @@ import {
   FlatList,
   StyleSheet,
   Alert,
-  ScrollView,
   Image,
+  TouchableOpacity, Text
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { deleteParty } from '../services/PartyService';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
-
+import StatusToggle from '../components/common/StatusToggle';
+import { TableColumn } from '../components/customCards/DataCard';
 import TopBarCard from '../components/customCards/TopBarCard';
 import Theme from '../theme/Theme';
 import DataCard from '../components/customCards/DataCard';
@@ -24,6 +25,7 @@ import {
 import { useBusinessUnit } from '../context/BusinessContext';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 import ProfileModal from '../components/customPopups/ProfileModal';
+import Header from '../components/common/Header';
 
 type User = {
   id: string;
@@ -45,7 +47,7 @@ const SupplierScreen = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-
+  const [showDotsMenu, setShowDotsMenu] = useState(false);
   // All suppliers fetched from API
   const [users, setUsers] = useState<User[]>([]);
   // Filtered suppliers for UI
@@ -64,7 +66,7 @@ const SupplierScreen = () => {
         searchKey: null,
         isActive: null,
         pageNumber: 1,
-        pageSize: 100, 
+        pageSize: 100,
         partyTypeId: 1,
       };
 
@@ -132,7 +134,6 @@ const SupplierScreen = () => {
     address?: string;
   }) => {
     try {
-      setLoading(true);
 
       const payload = {
         name: formData.name.trim(),
@@ -155,7 +156,6 @@ const SupplierScreen = () => {
       const errMsg = error?.response?.data?.message || 'Failed to add supplier';
       showErrorToast('Error', errMsg);
     } finally {
-      setLoading(false);
     }
   };
 
@@ -174,8 +174,7 @@ const SupplierScreen = () => {
       // Show success toast
       showSuccessToast(
         'Success',
-        `Supplier has been ${
-          !currentStatus ? 'activated' : 'deactivated'
+        `Supplier has been ${!currentStatus ? 'activated' : 'deactivated'
         } successfully`,
       );
     } catch (error: any) {
@@ -191,12 +190,6 @@ const SupplierScreen = () => {
     setSelectedBU(null);
     setStatus('all');
     setSearch('');
-  };
-
-  // ================= DELETE SUPPLIER =================
-  const handleDeletePress = (partyId: string) => {
-    setSelectedPartyId(partyId);
-    setDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = async () => {
@@ -229,11 +222,58 @@ const SupplierScreen = () => {
       setSelectedPartyId(null);
     }
   };
-
+  const tableData = filteredUsers.map(u => ({
+    ...u,
+    status: u.isActive ? 'Active' : 'Inactive',
+    raw: u,
+  }));
+  const columns: TableColumn[] = [
+    {
+      key: 'name',
+      title: 'Name',
+      width: 150,
+      isTitle: true,
+      showDots: true,
+      onDotsPress: (row) => {
+        setSelectedPartyId(row.id);
+        setDeleteModalVisible(true);
+      },
+    },
+    { key: 'email', title: 'Email', width: 200 },
+    { key: 'phone', title: 'Phone', width: 140 },
+    { key: 'address', title: 'Address', width: 220 },
+    {
+      key: 'status',
+      title: 'Status',
+      width: 120,
+      render: (_value, row) => (
+        <StatusToggle
+          isActive={row.isActive}
+          onToggle={() => handleToggleStatus(row.id, row.isActive)}
+        />
+      ),
+    },
+  ];
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <Header title="Suppliers"
+        onPressDots={() => setShowDotsMenu(prev => !prev)}
+      />
+
+      {/* ===== DOT MENU ===== */}
+      {showDotsMenu && (
+        <View style={styles.dotsMenu}>
+          <TouchableOpacity
+            onPress={() => {
+              setShowAddModal(true);
+              setShowDotsMenu(false);
+            }}
+          >
+            <Text style={styles.menuText}>+ Add New</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <TopBarCard
-        onAddPress={() => setShowAddModal(true)}
         searchValue={search}
         onSearchChange={setSearch}
         status={status}
@@ -242,54 +282,21 @@ const SupplierScreen = () => {
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
       />
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-      >
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={filteredUsers}
-            keyExtractor={item => item.id}
-            ListHeaderComponent={() => <DataCard isHeader />}
-            contentContainerStyle={{ paddingBottom: 20 }}
-            renderItem={({ item }) => (
-              <DataCard
-                name={item.name}
-                email={item.email ?? '-----'}
-                phone={item.phone ?? '-----'}
-                address={item.address || '-----'}
-                status={item.isActive ? 'Active' : 'Inactive'}
-                onToggleStatus={() =>
-                  handleToggleStatus(item.id, item.isActive)
-                }
-                onDelete={() => handleDeletePress(item.id)}
-                onEdit={() => {
-                  console.log('EDIT CLICKED');
-                  setOpen(true);
-                }}
-              />
-            )}
+      {tableData.length > 0 ? (
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={5}
           />
-
-          {!loading && filteredUsers.length === 0 && (
-            <View
-              style={{
-                justifyContent: 'flex-start',
-                alignItems: 'flex-start',
-                marginTop: 50,
-              }}
-            >
-              <Image
-                source={Theme.icons.nodata}
-                style={{ width: 300, height: 360, marginBottom: 30 }}
-                resizeMode="contain"
-              />
-            </View>
-          )}
         </View>
-      </ScrollView>
+      ) : (
+        !loading && (
+          <View style={styles.noDataContainer}>
+            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+          </View>
+        )
+      )}
 
       <AddModal
         visible={showAddModal}
@@ -319,5 +326,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.white,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dotsMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    backgroundColor: Theme.colors.white,
+    padding: 12,
+    borderRadius: 8,
+    elevation: 6,
+    zIndex: 999,
+  },
+  menuText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Theme.colors.success,
+  },
+  noDataImage: {
+    width: 300,
+    height: 360,
   },
 });

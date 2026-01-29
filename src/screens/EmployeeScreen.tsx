@@ -156,7 +156,7 @@ const EmployeeScreen = () => {
     try {
       const payload = {
         name: data.name,
-        employeeTypeId: Number(data.type), 
+        employeeTypeId: data.type, 
         joiningDate: formatDate(data.joiningDate),
         salary: Number(data.salary),
         endDate: data.endDate ? formatDate(data.endDate) : null,
@@ -171,11 +171,6 @@ const EmployeeScreen = () => {
       console.error('Add employee error:', error);
       showErrorToast('Failed to add employee');
     }
-  };
-
-  const handleDeletePress = (employeeId: string) => {
-    setSelectedEmployeeId(employeeId);
-    setDeleteModalVisible(true);
   };
 
   const handleConfirmDelete = async () => {
@@ -245,7 +240,6 @@ const EmployeeScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-
 
       {/* ===== TOP BAR ===== */}
       <TopBarCard
