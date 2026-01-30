@@ -11,7 +11,6 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Circle } from 'react-native-progress';
-
 import Theme from '../theme/Theme';
 import Header from '../components/common/Header';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
@@ -20,8 +19,7 @@ import { useBusinessUnit } from '../context/BusinessContext';
 import { CustomConstants } from '../constants/CustomConstants';
 
 const DashboardDetailScreen = ({ navigation, route }: any) => {
-  const { businessUnitId } = useBusinessUnit();
-  const { farmName } = route.params || {};
+const { businessUnitId, farmName } = useBusinessUnit();
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
@@ -56,6 +54,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
         </View>
 
         {/* Show as 1 / 35 style */}
+        {/* Agar total diya ho to value / total format me dikhata hai. */}
         <Text style={styles.inlineValue}>
           {total ? `${value} / ${total}` : value ?? 0}
         </Text>
@@ -81,137 +80,110 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
     </View>
   );
 
-  const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
-    const isZero = productionPercentage === 0 || !productionPercentage;
+const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
+  const isZero = !productionPercentage || productionPercentage <= 0;
 
-    const progress = isZero
-      ? 1
-      : Math.min(Math.max(productionPercentage, 0), 100) / 100;
+  // Circle progress
+  const progress = isZero
+    ? 1 // full circle if 0%
+    : Math.min(productionPercentage / 100, 1); // clamp to max 100%
 
-    const circleColor = Theme.colors.blue; // 🔵 blue graph
+  // Conditional color: blue if 0%, green otherwise
+  const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
 
-    return (
-      <View style={styles.eggsProductionCard}>
-        {/* LEFT : GRAPH WITH TEXT INSIDE */}
-        <View style={styles.leftBlock}>
-          <View style={styles.circleWrapper}>
-            <Circle
-              size={95}
-              progress={progress}
-              thickness={6}
-              showsText={false}
-              color={circleColor}
-              borderWidth={0}
-            />
-
-            {/* 🔥 TEXT INSIDE CIRCLE */}
-            <View style={styles.circleCenterContent}>
-              <Text style={styles.productionLabel}>Production</Text>
-              <Text style={styles.productionValue}>
-                {productionPercentage ?? 0}%
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* CENTER : EGG ICON */}
-        {/* CENTER : SEPARATOR + ICON */}
-        <View style={styles.centerWrapper}>
-          <View style={styles.verticalSeparator} />
-
-          <View style={styles.centerBlock}>
-            <Image source={Theme.icons.dash1} style={styles.eggIcon} />
-          </View>
-        </View>
-
-        {/* RIGHT : TOTAL EGGS */}
-        <View style={styles.rightBlock}>
-          <Text style={styles.eggsLabel}>Total Eggs</Text>
-          <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  const ProgressCircleCard = ({
-    title,
-    value,
-    total,
-    icon,
-    innerLabel,
-    innerValue,
-  }: any) => {
-    const progress = total ? Math.min(Math.max(innerValue / total, 0), 1) : 1;
-
-    return (
-      <View style={styles.eggsProductionCard}>
-        {/* LEFT : CIRCLE GRAPH */}
-        <View style={styles.leftBlock}>
-          <View style={styles.circleWrapper}>
-            <Circle
-              size={95}
-              progress={progress}
-              thickness={6}
-              showsText={false}
-              color={Theme.colors.success} // green
-              borderWidth={0}
-            />
-            <View style={styles.circleCenterContent}>
-              <Text style={styles.productionLabel}>{innerLabel}</Text>
-              <Text style={styles.productionValue}>{innerValue ?? 0}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* CENTER : ICON */}
-        <View style={styles.centerWrapper}>
-          <View style={styles.verticalSeparator} />
-          <View style={styles.centerBlock}>
-            <Image source={icon} style={styles.eggIcon} />
-          </View>
-        </View>
-
-        {/* RIGHT : TOTAL VALUE */}
-        <View style={styles.rightBlock}>
-          <Text style={styles.eggsLabel}>{title}</Text>
-          <Text style={styles.eggsValue}>{value ?? 0}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  const BigCard = ({ title, value, total, icon }: any) => {
-    const progress = total ? value / total : 0;
-
-    return (
-      <View style={styles.bigCard}>
-        <View style={styles.bigCardLeft}>
-          {total ? (
-            <Circle
-              size={50}
-              progress={progress}
-              showsText
-              thickness={5}
-              color={Theme.colors.success}
-              borderWidth={0}
-              formatText={() => `${Math.round(progress * 100)}%`}
-            />
-          ) : (
-            <Image source={icon} style={styles.bigCardIcon} />
-          )}
-        </View>
-        <View style={styles.bigCardRight}>
-          <Text style={styles.bigCardTitle}>{title}</Text>
-          <Text style={styles.bigCardValue}>{value ?? 0}</Text>
-          {total && (
-            <Text style={styles.bigCardSub}>
-              {value} / {total}
+  return (
+    <View style={styles.eggsProductionCard}>
+      <View style={styles.leftBlock}>
+        <View style={styles.circleWrapper}>
+          <Circle
+            size={95}
+            progress={progress}
+            thickness={6}
+            showsText={false}
+            color={circleColor}
+            borderWidth={0}
+          />
+          <View style={styles.circleCenterContent}>
+            <Text style={styles.productionLabel}>Production</Text>
+            <Text style={[styles.productionValue, { color: circleColor }]}>
+              {productionPercentage ?? 0}%
             </Text>
-          )}
+          </View>
         </View>
       </View>
-    );
-  };
+
+      <View style={styles.centerWrapper}>
+        <View style={styles.verticalSeparator} />
+        <View style={styles.centerBlock}>
+          <Image source={Theme.icons.dash1} style={styles.eggIcon} />
+        </View>
+      </View>
+
+      <View style={styles.rightBlock}>
+        <Text style={styles.eggsLabel}>Total Eggs</Text>
+        <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
+      </View>
+    </View>
+  );
+};
+
+
+const ProgressCircleCard = ({
+  title,
+  value,       // Right side: available
+  total,       // Max value for % calculation
+  icon,
+  innerLabel,  // Graph label inside circle
+  innerValue,  // Graph value inside circle
+}: any) => {
+  // Determine color based on innerValue
+  const isZero = !innerValue || innerValue <= 0;
+  const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
+
+  // Progress clamped between 0 and 1
+  const progress = total ? Math.min(Math.max(innerValue / total, 0), 1) : 1;
+
+  return (
+    <View style={styles.eggsProductionCard}>
+      {/* LEFT : CIRCLE GRAPH */}
+      <View style={styles.leftBlock}>
+        <View style={styles.circleWrapper}>
+          <Circle
+            size={95}
+            progress={progress}
+            thickness={6}
+            showsText={false}
+            color={circleColor} // ✅ Conditional color
+            borderWidth={0}
+          />
+          {/* 🔥 TEXT INSIDE CIRCLE */}
+          <View style={styles.circleCenterContent}>
+            <Text style={styles.productionLabel}>{innerLabel}</Text>
+            <Text style={[styles.productionValue, { color: circleColor }]}>
+              {innerValue} / {total}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* CENTER : ICON */}
+      <View style={styles.centerWrapper}>
+        <View style={styles.verticalSeparator} />
+        <View style={styles.centerBlock}>
+          <Image source={icon} style={styles.eggIcon} />
+        </View>
+      </View>
+
+      {/* RIGHT : TOTAL VALUE */}
+      <View style={styles.rightBlock}>
+        <Text style={styles.eggsLabel}>{title}</Text>
+        <Text style={styles.eggsValue}>{value ?? 0}</Text>
+      </View>
+    </View>
+  );
+};
+
+
 
   const SectionDivider = ({ title }: { title: string }) => (
     <View style={styles.dividerRow}>
@@ -395,14 +367,15 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
               icon={Theme.icons.game} // Feed icon
             />
 
-            <ProgressCircleCard
-              title="Available Vaccine"
-              value={data.totalAvailableVaccine} // Right side
-              total={data.totalVaccineSchedule} // Max for % calculation
-              innerLabel="Schedule" // Graph label
-              innerValue={data.totalVaccineSchedule} // Graph value
-              icon={Theme.icons.health} // Vaccine icon
-            />
+          <ProgressCircleCard
+  title="Available Vaccine"
+  value={data.totalAvailableVaccine}        // Right side
+  total={data.totalPurchasedVaccine}       // Max for % calculation
+  innerLabel="Schedule"                     // Text inside circle
+  innerValue={data.totalVaccineSchedule}   // Number inside circle
+  icon={Theme.icons.health}                // Vaccine icon
+/>
+
           </View>
         )}
       </ScrollView>

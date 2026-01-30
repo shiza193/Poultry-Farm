@@ -4,6 +4,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Theme from '../theme/Theme';
 import DashboardDetailScreen from '../screens/DashboardDetailScreen';
+import MenuListScreen from '../screens/more/MenuListScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -113,7 +114,7 @@ const PoultryDetailTab = () => (
     />
      <Tab.Screen
       name="More"
-      children={() => <EmptyScreen name="More" />}
+     component={MenuListScreen}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text

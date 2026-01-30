@@ -28,6 +28,7 @@ interface Employee {
   type: string;
   salary: number;
   poultryFarm: string;
+  businessUnitId: string;    
   joiningDate: string;
   endDate: string;
   status: EmployeeStatus;
@@ -64,6 +65,7 @@ const EmployeeScreen = () => {
         name: emp.name,
         type: emp.employeeType,
         salary: emp.salary,
+        businessUnitId: emp.businessUnitId,
         poultryFarm: emp.businessUnit,
         joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
         endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
@@ -95,7 +97,7 @@ const EmployeeScreen = () => {
       )
         return false;
     }
-    if (selectedBU && emp.poultryFarm !== selectedBU) return false;
+if (selectedBU && emp.businessUnitId !== selectedBU) return false;
     return true;
   });
 

@@ -1,22 +1,35 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getBusinessUnits } from "../services/BusinessUnit"; 
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getBusinessUnits } from '../services/BusinessUnit';
 
 type BusinessUnitContextType = {
   businessUnitId: string;
+  farmName: string;
   setBusinessUnitId: (id: string) => void;
+  setFarmName: (name: string) => void;
 };
 
-const BusinessUnitContext = createContext<BusinessUnitContextType | undefined>(undefined);
+const BusinessUnitContext = createContext<BusinessUnitContextType | undefined>(
+  undefined,
+);
 
-export const BusinessUnitProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [businessUnitId, setBusinessUnitId] = useState<string>("");
+export const BusinessUnitProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [businessUnitId, setBusinessUnitId] = useState<string>('');
+  const [farmName, setFarmName] = useState<string>('');
 
   useEffect(() => {
     const loadBusinessUnit = async () => {
       try {
         // 1️⃣ Check AsyncStorage first
-        const savedId = await AsyncStorage.getItem("businessUnitId");
+        const savedId = await AsyncStorage.getItem('businessUnitId');
         if (savedId) {
           setBusinessUnitId(savedId);
           return;
@@ -29,10 +42,13 @@ export const BusinessUnitProvider: React.FC<{ children: ReactNode }> = ({ childr
           setBusinessUnitId(defaultBU.businessUnitId);
 
           // Save for next launch
-          await AsyncStorage.setItem("businessUnitId", defaultBU.businessUnitId);
+          await AsyncStorage.setItem(
+            'businessUnitId',
+            defaultBU.businessUnitId,
+          );
         }
       } catch (error) {
-        console.warn("Failed to load business unit ID", error);
+        console.warn('Failed to load business unit ID', error);
       }
     };
 
@@ -40,7 +56,14 @@ export const BusinessUnitProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   return (
-    <BusinessUnitContext.Provider value={{ businessUnitId, setBusinessUnitId }}>
+    <BusinessUnitContext.Provider
+      value={{
+        businessUnitId,
+        farmName,
+        setBusinessUnitId,
+        setFarmName,
+      }}
+    >
       {children}
     </BusinessUnitContext.Provider>
   );
@@ -49,7 +72,7 @@ export const BusinessUnitProvider: React.FC<{ children: ReactNode }> = ({ childr
 export const useBusinessUnit = () => {
   const context = useContext(BusinessUnitContext);
   if (!context) {
-    throw new Error("useBusinessUnit must be used within BusinessUnitProvider");
+    throw new Error('useBusinessUnit must be used within BusinessUnitProvider');
   }
   return context;
 };

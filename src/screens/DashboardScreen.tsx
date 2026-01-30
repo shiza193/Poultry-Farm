@@ -18,6 +18,7 @@ import {
   getAllBusinessUnits,
   updateBusinessUnit,
 } from '../services/BusinessUnit';
+import { addEmployee } from '../services/EmployeeService';
 
 import Theme from '../theme/Theme';
 import FarmCard from '../components/customCards/FarmCard';
@@ -49,8 +50,13 @@ type User = {
 };
 
 const DashboardScreen = () => {
+
+  const { setBusinessUnitId, setFarmName } = useBusinessUnit();
+
   const navigation = useNavigation<any>();
-  const { setBusinessUnitId } = useBusinessUnit();
+  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
+  const [selectedBusinessUnitForEmployee, setSelectedBusinessUnitForEmployee] =
+    useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -117,6 +123,40 @@ const DashboardScreen = () => {
     }
   };
 
+  const formatDate = (date: Date) => {
+    const d = new Date(date);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleAddEmployeeFromDashboard = async (data: any) => {
+    try {
+      const payload = {
+        name: data.name,
+        employeeTypeId: data.type,
+        joiningDate: formatDate(data.joiningDate),
+        salary: Number(data.salary),
+        endDate: data.endDate ? formatDate(data.endDate) : null,
+        businessUnitId: data.poultryFarm,
+      };
+
+      await addEmployee(payload);
+
+      showSuccessToast('Employee added successfully');
+
+      await fetchFarms();
+    } catch (error: any) {
+      showErrorToast(
+        'Error',
+        error?.response?.data?.message || 'Failed to add employee',
+      );
+    } finally {
+      setShowAddEmployeeModal(false);
+      setSelectedBusinessUnitForEmployee(null);
+    }
+  };
   // ===== ADD / EDIT FARM =====
   const handleAddFarm = () => {
     setEditingFarm(null);
@@ -321,20 +361,22 @@ const DashboardScreen = () => {
                 setSelectedBusinessUnitId(farm.businessUnitId!);
                 setShowAddUserModal(true);
               }}
-              onAddEmployee={() => console.log('Add employee for', farm.title)}
+              onAddEmployee={() => {
+                setSelectedBusinessUnitForEmployee(farm.businessUnitId!);
+                setShowAddEmployeeModal(true);
+              }}
               onEdit={() => handleEditFarm(farm)}
               onDelete={() => {
                 setSelectedFarm(farm);
                 setShowDeleteModal(true);
               }}
-              onPressTitle={() => {
-                if (farm.businessUnitId) {
-                  setBusinessUnitId(farm.businessUnitId);
-                  navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN, {
-                    farmName: farm.title, // Pass farm name
-                  });
-                }
-              }}
+             onPressTitle={() => {
+  if (farm.businessUnitId) {
+    setBusinessUnitId(farm.businessUnitId);
+    setFarmName(farm.title); 
+    navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN);
+  }
+}}
             />
           ))}
         </ScrollView>
@@ -362,6 +404,16 @@ const DashboardScreen = () => {
               ? { name: editingFarm.title, location: editingFarm.location }
               : undefined
           }
+        />
+
+        <AddModal
+          type="employee"
+          title="Add Employee"
+          visible={showAddEmployeeModal}
+          hidePoultryFarm={true}
+          defaultBusinessUnitId={selectedBusinessUnitForEmployee}
+          onClose={() => setShowAddEmployeeModal(false)}
+          onSave={handleAddEmployeeFromDashboard}
         />
 
         <AddModal

@@ -89,6 +89,7 @@ const icons = {
   injection: require('../resources/images/injection.png'),
   pdf: require('../resources/images/pdf.png'),
   more: require('../resources/images/more.png'),
+  greater: require('../resources/images/greater.png'),
 
   management: require('../resources/images/management.png'),
 

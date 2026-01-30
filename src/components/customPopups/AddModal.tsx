@@ -18,7 +18,12 @@ import DateTimePicker, {
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 
-type ModalType = 'user' | 'customer' | 'employee' | 'vaccination' | 'vaccination Schedule';
+type ModalType =
+  | 'user'
+  | 'customer'
+  | 'employee'
+  | 'vaccination'
+  | 'vaccination Schedule';
 
 interface AddModalProps {
   visible: boolean;
@@ -30,9 +35,11 @@ interface AddModalProps {
   vaccineItems?: { label: string; value: number }[];
   supplierItems?: { label: string; value: string }[];
   flockItems?: { label: string; value: string }[];
-  // ✅ ADD THESE
+
   isEdit?: boolean;
   initialData?: any;
+  hidePoultryFarm?: boolean;
+  defaultBusinessUnitId?: string | null;
 }
 
 const AddModal: React.FC<AddModalProps> = ({
@@ -47,6 +54,8 @@ const AddModal: React.FC<AddModalProps> = ({
   supplierItems,
   isEdit = false,
   initialData = null,
+  hidePoultryFarm = false,
+  defaultBusinessUnitId = null,
 }) => {
   /* ===== COMMON ===== */
   const [name, setName] = useState('');
@@ -79,7 +88,9 @@ const AddModal: React.FC<AddModalProps> = ({
   const [endDate, setEndDate] = useState<Date | null>(null);
 
   const [typeOpen, setTypeOpen] = useState(false);
-  const [selectedEmployeeTypeId, setSelectedEmployeeTypeId] = useState<number | null>(null);
+  const [selectedEmployeeTypeId, setSelectedEmployeeTypeId] = useState<
+    number | null
+  >(null);
 
   const [typeItems, setTypeItems] = useState<
     { label: string; value: number }[]
@@ -145,14 +156,19 @@ const AddModal: React.FC<AddModalProps> = ({
   }, [type]);
 
   useEffect(() => {
+    if (type === 'employee' && hidePoultryFarm && defaultBusinessUnitId) {
+      setBusinessUnit(defaultBusinessUnitId);
+    }
+  }, [type, hidePoultryFarm, defaultBusinessUnitId, visible]);
+
+  useEffect(() => {
     if (type === 'employee') {
       const isValid =
         name.trim().length > 0 &&
         selectedEmployeeTypeId !== null &&
-        businessUnit !== null &&
         salary.trim().length > 0 &&
-        joiningDate !== null;
-
+        joiningDate !== null &&
+        (hidePoultryFarm ? true : businessUnit !== null);
       setIsSaveEnabled(isValid);
       return;
     }
@@ -249,12 +265,11 @@ const AddModal: React.FC<AddModalProps> = ({
       onSave({
         name,
         type: selectedEmployeeTypeId,
-        poultryFarm: businessUnit,
+        poultryFarm: hidePoultryFarm ? defaultBusinessUnitId : businessUnit,
         salary: Number(salary),
         joiningDate,
         endDate,
       });
-
     } else if (type === 'user') {
       onSave({ name, role, email, password });
     } else if (type === 'customer') {
@@ -269,8 +284,7 @@ const AddModal: React.FC<AddModalProps> = ({
         note,
         paymentStatus,
       });
-    }
-    else if (type === 'vaccination Schedule') {
+    } else if (type === 'vaccination Schedule') {
       onSave({
         flockId: selectedFlock,
         vaccineId: vaccine,
@@ -291,17 +305,18 @@ const AddModal: React.FC<AddModalProps> = ({
           </Text>
 
           {/* NAME */}
-          {type !== 'vaccination' && type !== 'vaccination Schedule' && (<>
-            <Text style={styles.label}>
-              Name<Text style={styles.required}>*</Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter name..."
-              value={name}
-              onChangeText={setName}
-            />
-          </>
+          {type !== 'vaccination' && type !== 'vaccination Schedule' && (
+            <>
+              <Text style={styles.label}>
+                Name<Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter name..."
+                value={name}
+                onChangeText={setName}
+              />
+            </>
           )}
 
           {/* USER */}
@@ -454,10 +469,10 @@ const AddModal: React.FC<AddModalProps> = ({
               </Text>
               <DropDownPicker
                 open={typeOpen}
-                value={selectedEmployeeTypeId}          // ✅ ID
-                items={typeItems}                       // value = employeeTypeId
+                value={selectedEmployeeTypeId} // ✅ ID
+                items={typeItems} // value = employeeTypeId
                 setOpen={setTypeOpen}
-                setValue={setSelectedEmployeeTypeId}    // ✅ ID set hogi
+                setValue={setSelectedEmployeeTypeId} // ✅ ID set hogi
                 placeholder="Select type..."
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
@@ -473,20 +488,25 @@ const AddModal: React.FC<AddModalProps> = ({
                 onChangeText={setSalary}
                 keyboardType="numeric"
               />
-              <Text style={styles.label}>
-                Poultry Farm<Text style={styles.required}>*</Text>
-              </Text>
-              <DropDownPicker
-                open={buOpen}
-                value={businessUnit}
-                items={buItems}
-                setOpen={setBuOpen}
-                setValue={setBusinessUnit}
-                setItems={setBuItems}
-                placeholder="Select Poultry Farm..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
+              {!hidePoultryFarm && (
+                <>
+                  <Text style={styles.label}>
+                    Poultry Farm<Text style={styles.required}>*</Text>
+                  </Text>
+                  <DropDownPicker
+                    open={buOpen}
+                    value={businessUnit}
+                    items={buItems}
+                    setOpen={setBuOpen}
+                    setValue={setBusinessUnit}
+                    setItems={setBuItems}
+                    placeholder="Select Poultry Farm..."
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownContainer}
+                  />
+                </>
+              )}
+
               {/* ===== EMPLOYEE DATES ===== */}
               <Text style={styles.label}>
                 Joining Date<Text style={styles.required}>*</Text>
@@ -721,7 +741,6 @@ const AddModal: React.FC<AddModalProps> = ({
               />
             </>
           )}
-
 
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>

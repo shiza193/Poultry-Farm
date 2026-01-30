@@ -23,6 +23,8 @@ export const CustomConstants = {
   MAIN_LAYOUT: 'MainLayout',
   EGG_TABS: 'EggTabs',
   POULTRY_DETAIL_TAB: 'PoultryDetailTab',
+  MENU_LIST_SCREEN: 'MenuListScreen',
+  SETTINGS_SCREEN: 'SettingsScreen',
 
   EMPLOYEE_SCREEN: 'EmployeeScreen',
 

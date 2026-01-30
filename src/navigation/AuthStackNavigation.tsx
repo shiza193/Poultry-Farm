@@ -25,6 +25,7 @@ import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen
 import EmployeeScreen from "../screens/EmployeeScreen";
 import SupplierScreen from "../screens/SupplierScreen";
 import PoultryDetailTab from "./PoultryDetailTab";
+import SettingsScreen from "../screens/more/SettingsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -127,6 +128,10 @@ const AuthStackNavigation = () => {
         component={EmployeeScreen}
       />
       
+       <Stack.Screen
+        name={CustomConstants.SETTINGS_SCREEN}
+        component={SettingsScreen}
+      />
     </Stack.Navigator>
   );
 };
