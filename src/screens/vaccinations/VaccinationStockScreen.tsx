@@ -20,7 +20,6 @@ import { stockstyles } from "./style";
 import { useBusinessUnit } from "../../context/BusinessContext"
 
 const VaccinationStockScreen: React.FC = () => {
-    const activeScreen = CustomConstants.VACCINATION_STOCK_SCREEEN;
     const { businessUnitId } = useBusinessUnit();
 
     const [data, setData] = useState<VaccinationStock[]>([]);
@@ -57,12 +56,11 @@ const VaccinationStockScreen: React.FC = () => {
     }));
 
     return (
-        <SidebarWrapper activeScreen={activeScreen} setActiveScreen={() => { }}>
             <View style={stockstyles.container}>
                 <LoadingOverlay visible={loading} text="Loading..." />
 
                 {/* ===== TOP ROW ===== */}
-                <View style={stockstyles.topRow}>
+                {/* <View style={stockstyles.topRow}>
                     <Text style={stockstyles.title}>Vaccination Stock</Text>
                     <TouchableOpacity
                         style={stockstyles.dotsIconContainer}
@@ -70,7 +68,7 @@ const VaccinationStockScreen: React.FC = () => {
                     >
                         <Image source={Theme.icons.dots} style={stockstyles.dotsIcon} />
                     </TouchableOpacity>
-                </View>
+                </View> */}
 
                 {/* ===== DOTS MENU ===== */}
                 {isDotsMenuVisible && (
@@ -97,11 +95,6 @@ const VaccinationStockScreen: React.FC = () => {
                         </View>
                     </TouchableOpacity>
                 )}
-
-                <View style={stockstyles.tipCardContainer}>
-                    <ScreenTipCard screen={CustomConstants.VACCINATION_STOCK_SCREEEN} />
-                </View>
-
                 {/* ===== DATA CARD TABLE ===== */}
                 <View style={{ flex: 1, marginTop: 10, paddingHorizontal: 18 }}>
                     <DataCard
@@ -110,7 +103,6 @@ const VaccinationStockScreen: React.FC = () => {
                     />
                 </View>
             </View>
-        </SidebarWrapper>
     );
 };
 

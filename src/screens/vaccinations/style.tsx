@@ -87,28 +87,29 @@ const styles = StyleSheet.create({
 
     /* ===== SEARCH ===== */
     searchContainer: {
-        flex: 1,
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: Theme.colors.borderColor,
-        borderRadius: 10,
-        paddingHorizontal: 10,
-        backgroundColor: Theme.colors.white,
-        height: 45,
-        position: "relative",
-        zIndex: 10,
-    },
-    searchIcon: {
-        width: 18,
-        height: 18,
-        resizeMode: "contain",
-        marginRight: 8,
+        borderColor: Theme.colors.success,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        height: 42,
+        flex: 1,
     },
     searchInput: {
         flex: 1,
-        fontSize: 14,
-        color: Theme.colors.textPrimary,
+        fontSize: 15,
+    },
+    searchIcon: {
+        width: 22,
+        height: 22,
+        tintColor: Theme.colors.success,
+    },
+    clearIcon: {
+        width: 18,
+        height: 18,
+        marginRight: 6,
+        tintColor: Theme.colors.success,
     },
 
     /* ===== DROPDOWN ===== */
@@ -116,10 +117,10 @@ const styles = StyleSheet.create({
         width: 120,
     },
     dropdown: {
-        borderColor: Theme.colors.borderColor,
+        borderColor: Theme.colors.success,
         borderRadius: 10,
-        height: 45,
-        minHeight: 45,
+        height: 42,
+        minHeight: 42,
         justifyContent: "center",
         paddingVertical: 0,
     },
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     },
     dropdownText: {
         fontSize: 14,
-        color: Theme.colors.textPrimary,
+        color: Theme.colors.success,
     },
 });
 export default styles
@@ -166,29 +167,34 @@ export const vsstyles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         padding: 18,
-        paddingVertical: 8,     
+        paddingVertical: 8,
     },
     searchContainer: {
         flex: 1,
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1,
-        borderColor: Theme.colors.borderColor,
+        borderColor: Theme.colors.success,
         borderRadius: 8,
         paddingHorizontal: 10,
         height: 40,
         marginRight: 10,
         backgroundColor: Theme.colors.white,
     },
-    searchIcon: { width: 18, height: 18, tintColor: Theme.colors.textSecondary, marginRight: 6 },
+    searchIcon: { width: 18, height: 18, tintColor: Theme.colors.success, marginRight: 6 },
     searchInput: { flex: 1, fontSize: 14, color: Theme.colors.black },
-
-    dropdownWrapper: { width: 140, zIndex: 2000 },
+    clearIcon: {
+        width: 18,
+        height: 18,
+        marginRight: 6,
+        tintColor: Theme.colors.success,
+    },
+    dropdownWrapper: { width: 120, zIndex: 2000 },
     dropdown: {
-        borderColor: Theme.colors.borderColor, height: 40,
+        borderColor: Theme.colors.success, height: 40,
         minHeight: 40,
     },
-    dropdownContainer: { borderColor: Theme.colors.borderColor },
+    dropdownContainer: { borderColor: Theme.colors.success },
     dropdownText: { color: Theme.colors.black },
 
     // ===== DOTS MENU =====

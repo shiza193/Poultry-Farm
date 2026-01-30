@@ -4,6 +4,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Theme from '../theme/Theme';
 import DashboardDetailScreen from '../screens/DashboardDetailScreen';
+import VaccinationMainScreen from './VaccinationTabs';
 import MenuListScreen from '../screens/more/MenuListScreen';
 
 const Tab = createBottomTabNavigator();
@@ -41,7 +42,7 @@ const PoultryDetailTab = () => (
   >
     <Tab.Screen
       name="Home"
-     component={DashboardDetailScreen}
+      component={DashboardDetailScreen}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
@@ -75,7 +76,7 @@ const PoultryDetailTab = () => (
       }}
     />
 
-   
+
 
     <Tab.Screen
       name="Eggs"
@@ -97,22 +98,27 @@ const PoultryDetailTab = () => (
 
     <Tab.Screen
       name="Vaccination"
-      children={() => <EmptyScreen name="Vaccination" />}
+      children={() => <VaccinationMainScreen />}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
             style={[
               styles.label,
-              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
+              {
+                color: focused
+                  ? Theme.colors.primaryYellow
+                  : Theme.colors.blue,
+              },
             ]}
           >
             Vaccine
           </Text>
         ),
-        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.injection, focused),
+        tabBarIcon: ({ focused }) =>
+          renderIcon(Theme.icons.injection, focused),
       }}
     />
-     <Tab.Screen
+    <Tab.Screen
       name="More"
      component={MenuListScreen}
       options={{

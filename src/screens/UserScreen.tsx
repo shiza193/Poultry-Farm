@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
 
   dotsMenu: {
     position: 'absolute',
-    top: 40,
+    top: 50,
     right: 20,
     backgroundColor: Theme.colors.white,
     padding: 12,

@@ -235,7 +235,7 @@ if (selectedBU && emp.businessUnitId !== selectedBU) return false;
             onPress={() => {
               setSelectedEmployeeId(openRowDotsId);
               setDeleteModalVisible(true);
-              setOpenRowDotsId(null); // close menu after pressing
+              setOpenRowDotsId(null); 
             }}
           >
             <Text style={{ color: 'red', fontWeight: '600' }}>Delete Emp</Text>
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   },
   dotsMenu: {
     position: 'absolute',
-    top: 40,
+    top: 50,
     right: 20,
     backgroundColor: Theme.colors.white,
     padding: 12,
