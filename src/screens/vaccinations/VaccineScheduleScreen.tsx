@@ -17,7 +17,7 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import {
     getVaccinationSchedule, VaccinationSchedule,
     VaccinationSchedulePayload, updateVaccinationStatus, getVaccines,
-     addVaccinationSchedule,deleteVaccinationSchedule
+    addVaccinationSchedule, deleteVaccinationSchedule
 } from "../../services/VaccinationService";
 import { vsstyles } from "./style";
 import { getFlocks } from "../../services/FlockService";
@@ -35,13 +35,11 @@ interface Flock {
 }
 
 const VaccineScheduleScreen = () => {
-    const activeScreen = CustomConstants.VACCINE_SCHEDULE_SCREEN;
     const { businessUnitId } = useBusinessUnit();
-
     const [loading, setLoading] = useState<boolean>(true);
     const [schedules, setSchedules] = useState<VaccinationSchedule[]>([]);
     const [searchText, setSearchText] = useState<string>("");
-    const [flockOpen, setFlockOpen] = useState<boolean>(false);
+    const [tempSearch, setTempSearch] = useState<string>(""); const [flockOpen, setFlockOpen] = useState<boolean>(false);
     const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
     const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
     const [showModal, setShowModal] = useState(false);
@@ -232,34 +230,53 @@ const VaccineScheduleScreen = () => {
     }));
 
     return (
-        <SidebarWrapper activeScreen={activeScreen} setActiveScreen={() => { }}>
+        <View style={vsstyles.container}>
             <View style={vsstyles.container}>
                 <LoadingOverlay visible={loading} text="Loading schedules..." />
 
                 {/* ===== TOP ROW ===== */}
-                <View style={vsstyles.topRow}>
+                {/* <View style={vsstyles.topRow}>
                     <Text style={vsstyles.topRowTitle}>Vaccination Schedule</Text>
                     <TouchableOpacity onPress={() => setIsDotsMenuVisible(!isDotsMenuVisible)}>
                         <Image source={Theme.icons.dots} style={vsstyles.dotsIcon} />
                     </TouchableOpacity>
-                </View>
-
-                <View style={vsstyles.tipCardContainer}>
-                    <ScreenTipCard screen={CustomConstants.VACCINE_SCHEDULE_SCREEN} />
-                </View>
-
+                </View> */}
                 {/* ===== SEARCH + FLOCK DROPDOWN ===== */}
                 <View style={vsstyles.filterRow}>
                     <View style={vsstyles.searchContainer}>
-                        <Image source={Theme.icons.search} style={vsstyles.searchIcon} />
                         <TextInput
                             placeholder="Search vaccine..."
-                            value={searchText}
-                            onChangeText={setSearchText}
+                            placeholderTextColor={Theme.colors.textSecondary}
+                            value={tempSearch}
+                            onChangeText={setTempSearch}
                             style={vsstyles.searchInput}
                         />
-                    </View>
 
+                        {/*  CLEAR ICON */}
+                        {tempSearch.length > 0 && (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setTempSearch("");
+                                    setSearchText("");
+                                }}
+                            >
+                                <Image
+                                    source={Theme.icons.close1}
+                                    style={vsstyles.clearIcon}
+                                />
+                            </TouchableOpacity>
+                        )}
+
+                        {/* SEARCH ICON */}
+                        <TouchableOpacity
+                            onPress={() => setSearchText(tempSearch)}
+                        >
+                            <Image
+                                source={Theme.icons.search}
+                                style={vsstyles.searchIcon}
+                            />
+                        </TouchableOpacity>
+                    </View>
                     <View style={vsstyles.dropdownWrapper}>
                         <DropDownPicker
                             open={flockOpen}
@@ -287,7 +304,7 @@ const VaccineScheduleScreen = () => {
                             <TouchableOpacity
                                 style={vsstyles.dotsMenuItem}
                                 onPress={() => setShowModal(true)}                            >
-                               
+
                                 <Text style={vsstyles.dotsMenuText}> + New schedule</Text>
                             </TouchableOpacity>
                         </View>
@@ -333,7 +350,7 @@ const VaccineScheduleScreen = () => {
                     }
                 }}
             />
-        </SidebarWrapper>
+        </View>
     );
 };
 

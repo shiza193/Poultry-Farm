@@ -271,12 +271,6 @@ const SupplierScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-
-      {/* ===== TOP BAR CARD (no add button) ===== */}
-      <Header title="Suppliers"
-        onPressDots={() => setShowDotsMenu(prev => !prev)}
-      />
-
       {/* ===== DOT MENU ===== */}
       {showDotsMenu && (
         <View style={styles.dotsMenu}>
@@ -362,11 +356,13 @@ const SupplierScreen = () => {
 export default SupplierScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.white },
+  container: { flex: 1,
+    backgroundColor: Theme.colors.white,
+    },
 
   dotsMenu: {
     position: 'absolute',
-    top: 90,
+    top: 50,
     right: 16,
     backgroundColor: Theme.colors.white,
     padding: 12,

@@ -33,12 +33,12 @@ const colors = {
   eggYellow: '#FFD60A',
   chickenBrown: '#8D5524',
   feedGreen: '#4CAF50',
-dashboard:'#fafafa',
+  dashboard: '#fafafa',
   /* ===== Buttons ===== */
   buttonPrimary: '#F9C74F',
   buttonSecondary: '#FFFFFF',
   buttonDisabled: '#D1D5DB',
-
+  mainButton: "#7A7A7A",
   /* ===== Icons ===== */
   iconPrimary: '#F9C74F',
   iconSecondary: '#EFEDE7',
@@ -50,9 +50,9 @@ dashboard:'#fafafa',
   feedcolor: '#d1f3d2',
   toast: '#fceac3',
   sold: '#b8bdec',
-dark:'#000000',
-blue:'#0A285A',
-sky:'#cfdffc',
+  dark: '#000000',
+  blue: '#0A285A',
+  sky: '#cfdffc',
 };
 
 const icons = {
