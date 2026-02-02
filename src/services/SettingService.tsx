@@ -146,3 +146,177 @@ export const getVaccinesWithFlag = async (): Promise<VaccineApi[]> => {
     throw error;
   }
 };
+
+
+
+
+
+
+// ================= UPDATE EGG UNIT STATUS =================
+export const updateUnitIsActive = async (
+  unitId: number,
+  isActive: boolean
+): Promise<void> => {
+  try {
+    await api.put(
+      `api/Master/update-unit-isActive/${unitId}`,
+      null,
+      {
+        params: { isActive },
+      }
+    );
+  } catch (error) {
+    console.error('Error updating unit status:', error);
+    throw error;
+  }
+};
+
+
+
+export const deleteEggUnit = async (unitId: number): Promise<void> => {
+  try {
+    const response = await api.delete(
+      `api/Master/delete-unit${unitId}`
+    );
+    console.log(' Delete success:', response.status);
+  } catch (error: any) {
+    console.error(' Delete API error');
+    console.error(' status:', error?.response?.status);
+    console.error(' data:', error?.response?.data);
+    console.error(' message:', error.message);
+    throw error;
+  }
+};
+
+
+
+
+// ================= ADD EGG UNIT =================
+export interface AddUnitPayload {
+  value: string;
+  productTypeId: number; // For Egg, pass 1
+  description?: string | null;
+}
+
+export interface AddUnitResponse {
+  status: string;
+  message: string;
+  data: {
+    unitId: number;
+    value: string;
+    productTypeId: number;
+    productType: string;
+    isActive: boolean;
+  };
+}
+
+export const addEggUnit = async (
+  payload: AddUnitPayload
+): Promise<AddUnitResponse> => {
+  try {
+    const response = await api.post<AddUnitResponse>(
+      'api/Master/add-unit',
+      payload
+    );
+
+    if (response.data.status === 'Success') {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || 'Failed to add unit');
+    }
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error adding Egg unit:', error.message);
+      throw error;
+    } else {
+      console.error('Unknown error adding Egg unit');
+      throw new Error('Unknown error');
+    }
+  }
+};
+
+
+
+
+// Add Feed API
+interface AddFeedPayload {
+  name: string;
+}
+
+interface AddFeedResponse {
+  status: string;
+  message: string;
+  data: {
+    feedId: number;
+    name: string;
+    isActive: boolean;
+    createdAt: string;
+  };
+}
+
+export const addFeed = async (payload: AddFeedPayload): Promise<AddFeedResponse> => {
+  try {
+    const response = await api.post<AddFeedResponse>('api/Master/add-feed', payload);
+    if (response.data.status === 'Success') {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || 'Failed to add feed');
+    }
+  } catch (error: any) {
+    console.error('Error adding feed:', error);
+    throw error;
+  }
+};
+
+
+
+// Delete Feed API
+export const deleteFeed = async (feedId: number): Promise<void> => {
+  try {
+    // Make DELETE request
+    await api.delete(`api/Master/delete-feed${feedId}`);
+    console.log(`Feed with ID ${feedId} deleted successfully`);
+  } catch (error: any) {
+    console.error('Error deleting feed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+
+export interface EmployeeTypePayload {
+  name: string;
+}
+
+export interface EmployeeTypeResponse {
+  employeeTypeId: number;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// ===== ADD EMPLOYEE TYPE =====
+export const addEmployeeType = async (
+  payload: EmployeeTypePayload
+): Promise<{ status: string; message: string; data: EmployeeTypeResponse }> => {
+  try {
+    const response = await api.post(`api/Master/add-employee-type`, payload);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to add employee type:', error.response || error.message);
+    throw error;
+  }
+};
+
+
+
+// ===== DELETE EMPLOYEE TYPE =====
+export const deleteEmployeeType = async (employeeTypeId: number) => {
+  try {
+    const response = await api.delete(`api/Master/delete-employee-type${employeeTypeId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Failed to delete employee type:', error.response || error.message);
+    throw error;
+  }
+};

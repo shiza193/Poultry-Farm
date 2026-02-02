@@ -50,8 +50,7 @@ type User = {
 };
 
 const DashboardScreen = () => {
-
-  const { setBusinessUnitId, setFarmName } = useBusinessUnit();
+  const { setBusinessUnitId, setFarmName, setFarmLocation } = useBusinessUnit();
 
   const navigation = useNavigation<any>();
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
@@ -348,12 +347,12 @@ const DashboardScreen = () => {
               users={farm.users}
               employees={farm.employees}
               onUserCountPress={() =>
-                navigation.navigate(CustomConstants.USER_SCREEN, {
+                navigation.navigate('User', {
                   businessUnitId: farm.businessUnitId,
                 })
               }
               onEmployeeCountPress={() =>
-                navigation.navigate(CustomConstants.EMPLOYEE_SCREEN, {
+                navigation.navigate('Employee', {
                   businessUnitId: farm.businessUnitId,
                 })
               }
@@ -370,13 +369,15 @@ const DashboardScreen = () => {
                 setSelectedFarm(farm);
                 setShowDeleteModal(true);
               }}
-             onPressTitle={() => {
-  if (farm.businessUnitId) {
-    setBusinessUnitId(farm.businessUnitId);
-    setFarmName(farm.title); 
-    navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN);
-  }
-}}
+              onPressTitle={() => {
+                if (farm.businessUnitId) {
+                  console.log('Selected farm location:', farm.location);
+                  setBusinessUnitId(farm.businessUnitId);
+                  setFarmName(farm.title);
+                  setFarmLocation(farm.location || '');
+                  navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN);
+                }
+              }}
             />
           ))}
         </ScrollView>

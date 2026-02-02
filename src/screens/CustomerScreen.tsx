@@ -238,7 +238,7 @@ const CustomerScreen = () => {
   const columns: TableColumn[] = [
     {
       key: 'name',
-      title: 'Name',
+      title: 'NAME',
       width: 110,
       isTitle: true,
       showDots: true,
@@ -255,12 +255,12 @@ const CustomerScreen = () => {
       },
     },
 
-    { key: 'email', title: 'Email', width: 130 },
-    { key: 'phone', title: 'Phone', width: 120 },
-    { key: 'address', title: 'Address', width: 100 },
+    { key: 'email', title: 'EMAIL', width: 130 },
+    { key: 'phone', title: 'PHONE', width: 120 },
+    { key: 'address', title: 'ADDRESS', width: 100 },
     {
       key: 'status',
-      title: 'Status',
+      title: 'STATUS',
       width: 120,
       render: (value, row) => (
         <StatusToggle

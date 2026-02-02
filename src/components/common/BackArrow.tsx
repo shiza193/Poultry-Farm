@@ -14,9 +14,10 @@ import { CustomConstants } from '../../constants/CustomConstants';
 interface HeaderProps {
   title: string;
   showBack?: boolean;
+  onAddNewPress?: () => void; // optional callback for Add New
 }
 
-const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false }) => {
+const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPress }) => {
   const navigation = useNavigation<any>();
   const [showDots, setShowDots] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -25,16 +26,20 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false }) => {
     <>
       {/* ===== TOP BAR ===== */}
       <View style={styles.topHeader}>
-        {showBack ? (
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Image source={Theme.icons.back} style={styles.icons} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.iconPlaceholder} />
-        )}
+        {/* LEFT: BACK + TITLE */}
+        <View style={styles.leftSection}>
+          {showBack ? (
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Image source={Theme.icons.back} style={styles.icons} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.iconPlaceholder} />
+          )}
 
-        <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title}>{title}</Text>
+        </View>
 
+        {/* RIGHT: DOTS */}
         <TouchableOpacity onPress={() => setShowDots(!showDots)}>
           <Image source={Theme.icons.dots} style={styles.icon} />
         </TouchableOpacity>
@@ -73,6 +78,23 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false }) => {
               <Image source={Theme.icons.back} style={styles.menuIcon} />
               <Text style={styles.menuText}>Admin Portal</Text>
             </TouchableOpacity>
+
+            {/* ===== ADD NEW (conditionally) ===== */}
+            {onAddNewPress && (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setShowDots(false);
+                    onAddNewPress();
+                  }}
+                >
+                  <Image source={Theme.icons.add} style={styles.menuIcon} />
+                  <Text style={styles.menuText}>Add New</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </TouchableOpacity>
       )}
@@ -85,39 +107,44 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false }) => {
         onClose={() => setShowLogoutModal(false)}
         onConfirm={() => {
           setShowLogoutModal(false);
-          // logout logic
+          // logout logic here
         }}
       />
     </>
   );
 };
 
+
 export default BackArrow;
-
-
 
 const styles = StyleSheet.create({
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', 
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: Theme.colors.white,
-     borderBottomWidth: 1, 
+    borderBottomWidth: 1,
     borderBottomColor: Theme.colors.sky,
+  },
+
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
   title: {
     fontSize: 22,
     fontWeight: '700',
     color: Theme.colors.textPrimary,
+    marginLeft: 23, 
   },
 
   icons: { width: 25, height: 20, resizeMode: 'contain' },
-    icon: { width: 28, height: 28, resizeMode: 'contain' },
+  icon: { width: 28, height: 28, resizeMode: 'contain' },
 
-  iconPlaceholder: { width: 28 },
+  iconPlaceholder: { width: 25 },
 
   overlay: {
     position: 'absolute',
@@ -130,24 +157,24 @@ const styles = StyleSheet.create({
 
   menu: {
     position: 'absolute',
-    top: 55,
+    top: 67,
     right: 16,
     backgroundColor: Theme.colors.white,
     borderRadius: 8,
-    paddingVertical: 6,
+    paddingVertical: 4,
     elevation: 5,
   },
 
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 9,
     paddingVertical: 8,
   },
 
   menuIcon: {
-    width: 20,
-    height: 20,
+    width: 15,
+    height: 15,
     marginRight: 8,
     resizeMode: 'contain',
   },

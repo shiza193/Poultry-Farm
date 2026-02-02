@@ -19,7 +19,7 @@ import { useBusinessUnit } from '../context/BusinessContext';
 import { CustomConstants } from '../constants/CustomConstants';
 
 const DashboardDetailScreen = ({ navigation, route }: any) => {
-const { businessUnitId, farmName } = useBusinessUnit();
+  const { businessUnitId, farmName, farmLocation } = useBusinessUnit();
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
@@ -53,11 +53,14 @@ const { businessUnitId, farmName } = useBusinessUnit();
           <Text style={styles.inlineLabel}>{label}</Text>
         </View>
 
-        {/* Show as 1 / 35 style */}
-        {/* Agar total diya ho to value / total format me dikhata hai. */}
-        <Text style={styles.inlineValue}>
-          {total ? `${value} / ${total}` : value ?? 0}
-        </Text>
+        {total ? (
+          <Text style={styles.inlineValue}>
+            {/* Swap value aur total */}
+            {value ?? 0} / {total ?? 0}
+          </Text>
+        ) : (
+          <Text style={styles.inlineValue}>{value ?? 0}</Text>
+        )}
       </View>
     );
   };
@@ -80,110 +83,113 @@ const { businessUnitId, farmName } = useBusinessUnit();
     </View>
   );
 
-const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
-  const isZero = !productionPercentage || productionPercentage <= 0;
+  const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
+    //   Agar production 0 ho → isZero = true.
 
-  // Circle progress
-  const progress = isZero
-    ? 1 // full circle if 0%
-    : Math.min(productionPercentage / 100, 1); // clamp to max 100%
+    // Agar production >0 ho → isZero = false.
+    const isZero = !productionPercentage || productionPercentage <= 0;
 
-  // Conditional color: blue if 0%, green otherwise
-  const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
+    // Circle progress
+    const progress = isZero
+      ? 1 // full circle if
+      : Math.min(productionPercentage / 100, 1); // clamp to max 100%
 
-  return (
-    <View style={styles.eggsProductionCard}>
-      <View style={styles.leftBlock}>
-        <View style={styles.circleWrapper}>
-          <Circle
-            size={95}
-            progress={progress}
-            thickness={6}
-            showsText={false}
-            color={circleColor}
-            borderWidth={0}
-          />
-          <View style={styles.circleCenterContent}>
-            <Text style={styles.productionLabel}>Production</Text>
-            <Text style={[styles.productionValue, { color: circleColor }]}>
-              {productionPercentage ?? 0}%
-            </Text>
+    // Conditional color: blue if 0%, green otherwise
+    const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
+
+    return (
+      <View style={styles.eggsProductionCard}>
+        <View style={styles.leftBlock}>
+          <View style={styles.circleWrapper}>
+            <Circle
+              size={95}
+              progress={progress}
+              thickness={6}
+              showsText={false}
+              color={circleColor}
+              unfilledColor={Theme.colors.grey}
+              borderWidth={0}
+            />
+            <View style={styles.circleCenterContent}>
+              <Text style={styles.productionLabel}>Production</Text>
+              <Text style={[styles.productionValue, { color: circleColor }]}>
+                {productionPercentage ?? 0}%
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.centerWrapper}>
-        <View style={styles.verticalSeparator} />
-        <View style={styles.centerBlock}>
-          <Image source={Theme.icons.dash1} style={styles.eggIcon} />
-        </View>
-      </View>
-
-      <View style={styles.rightBlock}>
-        <Text style={styles.eggsLabel}>Total Eggs</Text>
-        <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
-      </View>
-    </View>
-  );
-};
-
-
-const ProgressCircleCard = ({
-  title,
-  value,       // Right side: available
-  total,       // Max value for % calculation
-  icon,
-  innerLabel,  // Graph label inside circle
-  innerValue,  // Graph value inside circle
-}: any) => {
-  // Determine color based on innerValue
-  const isZero = !innerValue || innerValue <= 0;
-  const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
-
-  // Progress clamped between 0 and 1
-  const progress = total ? Math.min(Math.max(innerValue / total, 0), 1) : 1;
-
-  return (
-    <View style={styles.eggsProductionCard}>
-      {/* LEFT : CIRCLE GRAPH */}
-      <View style={styles.leftBlock}>
-        <View style={styles.circleWrapper}>
-          <Circle
-            size={95}
-            progress={progress}
-            thickness={6}
-            showsText={false}
-            color={circleColor} // ✅ Conditional color
-            borderWidth={0}
-          />
-          {/* 🔥 TEXT INSIDE CIRCLE */}
-          <View style={styles.circleCenterContent}>
-            <Text style={styles.productionLabel}>{innerLabel}</Text>
-            <Text style={[styles.productionValue, { color: circleColor }]}>
-              {innerValue} / {total}
-            </Text>
+        <View style={styles.centerWrapper}>
+          <View style={styles.verticalSeparator} />
+          <View style={styles.centerBlock}>
+            <Image source={Theme.icons.dash1} style={styles.eggIcon} />
           </View>
         </View>
-      </View>
 
-      {/* CENTER : ICON */}
-      <View style={styles.centerWrapper}>
-        <View style={styles.verticalSeparator} />
-        <View style={styles.centerBlock}>
-          <Image source={icon} style={styles.eggIcon} />
+        <View style={styles.rightBlock}>
+          <Text style={styles.eggsLabel}>Total Eggs</Text>
+          <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
         </View>
       </View>
+    );
+  };
 
-      {/* RIGHT : TOTAL VALUE */}
-      <View style={styles.rightBlock}>
-        <Text style={styles.eggsLabel}>{title}</Text>
-        <Text style={styles.eggsValue}>{value ?? 0}</Text>
+  const ProgressCircleCard = ({
+    title,
+    value, // Right side: available
+    total, // Max value for % calculation
+    icon,
+    innerLabel, // Graph label inside circle
+    innerValue, // Graph value inside circle
+  }: any) => {
+    // Determine color based on innerValue
+    const isZero = !innerValue || innerValue <= 0;
+    const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
+
+    // Progress clamped between 0 and 1
+    const progress = total ? Math.min(Math.max(innerValue / total, 0), 1) : 1;
+
+    return (
+      <View style={styles.eggsProductionCard}>
+        {/* LEFT : CIRCLE GRAPH */}
+        <View style={styles.leftBlock}>
+          <View style={styles.circleWrapper}>
+            <Circle
+              size={95}
+              progress={progress}
+              thickness={6}
+              showsText={false}
+              color={circleColor} // green or blue part
+              unfilledColor={Theme.colors.grey} // grey background for remaining part
+              borderWidth={0}
+            />
+
+            {/*  TEXT INSIDE CIRCLE */}
+            <View style={styles.circleCenterContent}>
+              <Text style={styles.productionLabel}>{innerLabel}</Text>
+              <Text style={[styles.productionValue, { color: circleColor }]}>
+                {innerValue} / {total}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* CENTER : ICON */}
+        <View style={styles.centerWrapper}>
+          <View style={styles.verticalSeparator} />
+          <View style={styles.centerBlock}>
+            <Image source={icon} style={styles.eggIcon} />
+          </View>
+        </View>
+
+        {/* RIGHT : TOTAL VALUE */}
+        <View style={styles.rightBlock}>
+          <Text style={styles.eggsLabel}>{title}</Text>
+          <Text style={styles.eggsValue}>{value ?? 0}</Text>
+        </View>
       </View>
-    </View>
-  );
-};
-
-
+    );
+  };
 
   const SectionDivider = ({ title }: { title: string }) => (
     <View style={styles.dividerRow}>
@@ -242,72 +248,90 @@ const ProgressCircleCard = ({
             </View>
           </View>
         )}
-<View style={styles.topRow}>
-  {/* From Date */}
-   <View style={[styles.smallFilter, { marginRight: 9 }]}>
-    <Text style={styles.filterLabel}>From</Text>
-    <TouchableOpacity
-      style={styles.smallFilterInputBig} // make input slightly bigger
-      onPress={() => setShowFromPicker(true)}
-    >
-      <Text style={styles.filterText}>
-        {fromDate ? fromDate.toLocaleDateString() : 'mm/dd/yyyy'}
-      </Text>
-      <Image source={Theme.icons.date} style={styles.filterIcon} />
-    </TouchableOpacity>
-    {showFromPicker && (
-      <DateTimePicker
-        value={fromDate || new Date()}
-        mode="date"
-        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-        onChange={(e, d) => {
-          setShowFromPicker(false);
-          if (d) setFromDate(d);
-        }}
-      />
-    )}
-  </View>
+        <View style={styles.dateRow}>
+          {/* LEFT : DATE RANGE */}
+          <View style={styles.dateRangeContainer}>
+            {/* FROM */}
+            <TouchableOpacity
+              style={styles.dateItem}
+              onPress={() => setShowFromPicker(true)}
+            >
+              <Text style={styles.dateLabel}>From</Text>
+              <Text style={styles.dateValue}>
+                {fromDate ? fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+              </Text>
+            </TouchableOpacity>
 
-  {/* To Date */}
-  <View style={styles.smallFilter}>
-    <Text style={styles.filterLabel}>To</Text>
-    <TouchableOpacity
-      style={styles.smallFilterInputBig} // make input slightly bigger
-      onPress={() => setShowToPicker(true)}
-    >
-      <Text style={styles.filterText}>
-        {toDate ? toDate.toLocaleDateString() : 'mm/dd/yyyy'}
-      </Text>
-      <Image source={Theme.icons.date} style={styles.filterIcon} />
-    </TouchableOpacity>
-    {showToPicker && (
-      <DateTimePicker
-        value={toDate || new Date()}
-        mode="date"
-        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-        onChange={(e, d) => {
-          setShowToPicker(false);
-          if (d) setToDate(d);
-        }}
-      />
-    )}
-  </View>
+            <Text style={styles.dateDash}>—</Text>
 
-  {/* Reset Filters: show only if any date is selected */}
-  {(fromDate || toDate) && (
-    <TouchableOpacity
-      style={styles.resetButton}
-      onPress={() => {
-        setFromDate(null);
-        setToDate(null);
-        fetchData(); // refresh API call
-      }}
-    >
-      <Text style={styles.resetButtonText}>Reset Filters</Text>
-    </TouchableOpacity>
-  )}
-</View>
+            {/* TO */}
+            <TouchableOpacity
+              style={styles.dateItem}
+              onPress={() => setShowToPicker(true)}
+            >
+              <Text style={styles.dateLabel}>To</Text>
+              <Text style={styles.dateValue}>
+                {toDate ? toDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
+          {/* RIGHT : RESET */}
+          {(fromDate || toDate) && (
+            <TouchableOpacity
+              style={styles.resetInlineBtn}
+              onPress={() => {
+                setFromDate(null);
+                setToDate(null);
+              }}
+            >
+              <Text style={styles.resetInlineText}>Reset Filters</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Pickers */}
+        {showFromPicker && (
+          <DateTimePicker
+            value={fromDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === 'android') {
+                setShowFromPicker(false);
+                if (event.type === 'set' && selectedDate) {
+                  setFromDate(selectedDate);
+                }
+                // dismissed → kuch bhi mat karo
+              } else {
+                // iOS
+                if (selectedDate) {
+                  setFromDate(selectedDate);
+                }
+              }
+            }}
+          />
+        )}
+
+        {showToPicker && (
+          <DateTimePicker
+            value={toDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === 'android') {
+                setShowToPicker(false);
+                if (event.type === 'set' && selectedDate) {
+                  setToDate(selectedDate);
+                }
+              } else {
+                if (selectedDate) {
+                  setToDate(selectedDate);
+                }
+              }
+            }}
+          />
+        )}
 
         {data && (
           <View style={{ padding: 12 }}>
@@ -317,8 +341,8 @@ const ProgressCircleCard = ({
                 {
                   icon: Theme.icons.hen,
                   label: 'Total Birds',
-                  value: data.totalBirds, // numerator
-                  total: data.totalRemainingBirds, // denominator
+                  value: data.totalRemainingBirds,
+                  total: data.totalBirds,
                 },
                 {
                   icon: Theme.icons.motality,
@@ -367,15 +391,14 @@ const ProgressCircleCard = ({
               icon={Theme.icons.game} // Feed icon
             />
 
-          <ProgressCircleCard
-  title="Available Vaccine"
-  value={data.totalAvailableVaccine}        // Right side
-  total={data.totalPurchasedVaccine}       // Max for % calculation
-  innerLabel="Schedule"                     // Text inside circle
-  innerValue={data.totalVaccineSchedule}   // Number inside circle
-  icon={Theme.icons.health}                // Vaccine icon
-/>
-
+            <ProgressCircleCard
+              title="Available Vaccine"
+              value={data.totalAvailableVaccine} // Right side
+              total={data.totalPurchasedVaccine} // Max for % calculation
+              innerLabel="Schedule" // Text inside circle
+              innerValue={data.totalVaccineSchedule} // Number inside circle
+              icon={Theme.icons.health} // Vaccine icon
+            />
           </View>
         )}
       </ScrollView>
@@ -387,6 +410,55 @@ export default DashboardDetailScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.white },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    marginVertical: 10,
+  },
+
+  dateRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  resetInlineBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 1,
+  },
+
+  resetInlineText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Theme.colors.error,
+  },
+
+  dateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  dateLabel: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    marginRight: 6,
+    fontWeight: '500',
+  },
+
+  dateValue: {
+    fontSize: 16,
+    color: Theme.colors.success,
+    fontWeight: '700',
+  },
+
+  dateDash: {
+    fontSize: 18,
+    color: '#9CA3AF',
+    marginHorizontal: 10,
+    fontWeight: '600',
+  },
+
   eggsProductionCard: {
     flexDirection: 'row',
     backgroundColor: Theme.colors.white,
@@ -414,41 +486,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Theme.colors.black,
   },
-topRow: {
-  flexDirection: 'row',
-  justifyContent: 'flex-start',
-  alignItems: 'center',
-  paddingHorizontal: 12,
-  marginTop: 6,
-  marginBottom: 8,
-},
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginTop: 6,
+    marginBottom: 8,
+  },
 
-smallFilter: { width: '37%' },
-smallFilterInputBig: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  borderWidth: 1,
-  borderColor: Theme.colors.success,
-  marginTop: 4,
-  borderRadius: 12,
-  paddingHorizontal: 14,
-  paddingVertical: 10,
-  backgroundColor: '#FFF',
-},
+  smallFilter: { width: '37%' },
+  smallFilterInputBig: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: Theme.colors.success,
+    marginTop: 4,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#FFF',
+  },
 
-resetButton: {
-  paddingHorizontal: 10,
-  paddingVertical: 8,
-  borderRadius: 8,
-  marginLeft: 8,
-},
+  resetButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
 
-resetButtonText: {
-  fontSize: 15,
-  fontWeight: '800',
-  color: Theme.colors.error,
-},
+  resetButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Theme.colors.error,
+  },
 
   productionValue: {
     fontSize: 16,
@@ -595,7 +667,6 @@ resetButtonText: {
     alignSelf: 'stretch',
   },
 
- 
   filterLabel: { fontSize: 12, fontWeight: '600', color: Theme.colors.blue },
   smallFilterInput: {
     flexDirection: 'row',
@@ -609,8 +680,13 @@ resetButtonText: {
     paddingVertical: 3,
     backgroundColor: Theme.colors.white,
   },
-  filterText: { fontSize: 13,  marginRight:3,color: Theme.colors.success },
-  filterIcon: { width: 18, height: 18, marginRight:2, tintColor: Theme.colors.success },
+  filterText: { fontSize: 13, marginRight: 3, color: Theme.colors.success },
+  filterIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 2,
+    tintColor: Theme.colors.success,
+  },
   dotsOverlayContainer: {
     position: 'absolute',
     top: 0,
@@ -643,8 +719,8 @@ resetButtonText: {
   },
   menuItemRow: { flexDirection: 'row', alignItems: 'center' },
   menuItemIcon: {
-    width: 20,
-    height: 20,
+    width: 15,
+    height: 15,
     resizeMode: 'contain',
     marginRight: 10,
   },

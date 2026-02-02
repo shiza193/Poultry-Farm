@@ -37,7 +37,7 @@ const Section = ({ title, children }: any) => (
 );
 
 const MenuListScreen = ({ navigation }: any) => {
-  const { farmName } = useBusinessUnit();
+  const { farmName, farmLocation } = useBusinessUnit();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
 
@@ -45,7 +45,11 @@ const MenuListScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.safe}>
       <Header
         title={farmName || 'Poultry Farms'}
+        subtitle={farmLocation || ''}
         onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
+        containerStyle={styles.headerContainer}
+        titleStyle={styles.headerTitle}
+        alignWithLogo={true}
       />
 
       {isDotsMenuVisible && (
@@ -67,7 +71,10 @@ const MenuListScreen = ({ navigation }: any) => {
               }}
             >
               <View style={styles.menuItemRow}>
-                <Image source={Theme.icons.logout} style={styles.menuItemIcon} />
+                <Image
+                  source={Theme.icons.logout}
+                  style={styles.menuItemIcon}
+                />
                 <Text style={styles.dotsMenuText}>Logout</Text>
               </View>
             </TouchableOpacity>
@@ -194,10 +201,22 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 15,
-    color: Theme.colors.blue,
+    color: Theme.colors.settinglable,
     marginLeft: 16,
     fontWeight: 'bold',
     marginBottom: 6,
+  },
+  headerContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.settinglines,
+    paddingBottom: 3,
+  },
+
+  headerTitle: {
+    flex: 1,
+    textAlign: 'left',
+    marginTop:16,
+    marginLeft: 1,
   },
 
   item: {
@@ -208,9 +227,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: Theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.sky,
+    borderBottomColor: Theme.colors.settinglines,
   },
-
+  divider: {
+    height: 1,
+    backgroundColor: Theme.colors.sky,
+    marginVertical: 6,
+    marginLeft: 50,
+    marginRight: 16,
+  },
   itemText: {
     marginLeft: 9,
     fontSize: 15,
@@ -232,7 +257,7 @@ const styles = StyleSheet.create({
   arrow: {
     width: 15,
     height: 15,
-    tintColor: Theme.colors.success,
+    tintColor: Theme.colors.greater,
   },
 
   dotsOverlayContainer: {
@@ -274,8 +299,8 @@ const styles = StyleSheet.create({
   },
 
   menuItemIcon: {
-    width: 20,
-    height: 20,
+    width: 15,
+    height: 15,
     resizeMode: 'contain',
     marginRight: 10,
   },
@@ -288,12 +313,5 @@ const styles = StyleSheet.create({
   dotsMenuText: {
     fontSize: 16,
     color: Theme.colors.textPrimary,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: Theme.colors.buttonPrimary,
-    marginVertical: 6,
-    marginHorizontal: 10,
   },
 });

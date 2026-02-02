@@ -1,28 +1,45 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   Modal,
   TouchableOpacity,
   StyleSheet,
-  Image
-} from "react-native";
-import Theme from "../../theme/Theme";
-import InputField from "../customInputs/Input";
-import DropDownPicker from "react-native-dropdown-picker";
+  Image,
+} from 'react-native';
+import Theme from '../../theme/Theme';
+import InputField from '../customInputs/Input';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 interface BusinessUnitModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave?: (data: { name: string; location: string }) => void;
-  onResetPassword?: (data: { newPassword: string; confirmPassword: string }) => void;
-  initialData?: { name: string; location: string };
-  mode?: "add" | "edit" | "filter" | "reset";
+  onResetPassword?: (data: {
+    newPassword: string;
+    confirmPassword: string;
+  }) => void;
   flockItems?: { label: string; value: string }[];
   supplierItems?: { label: string; value: string }[];
   selectedFlockId?: string | null;
   selectedSupplier?: string | null;
   onApplyFilter?: (flockId: string | null, supplierId: string | null) => void;
+  // mode
+  mode?: 'add' | 'edit' | 'filter' | 'reset' | 'singleField';
+
+  // Add/Edit mode
+  onSave?: (data: {
+    name: string;
+    location: string;
+    businessTypeId?: number;
+  }) => void;
+
+  // SingleField mode
+  onSaveSingleField?: (data: { value: string }) => void;
+
+  initialData?: { name: string; location: string };
+  modalTitle?: string;
+  singleFieldLabel?: string;
+  singleFieldValue?: string;
 }
 
 const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
@@ -31,28 +48,32 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   onSave,
   initialData,
   onResetPassword,
-  mode = "add",
+  onSaveSingleField,
+  mode = 'add',
   flockItems = [],
   supplierItems = [],
   selectedFlockId: initialFlockId,
   selectedSupplier: initialSupplier,
   onApplyFilter,
+  singleFieldLabel,
+  singleFieldValue,
+  modalTitle,
 }) => {
-  const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
 
   const [selectedFlockId, setSelectedFlockId] = useState<string | null>(
-    initialFlockId || null
+    initialFlockId || null,
   );
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(
-    initialSupplier || null
+    initialSupplier || null,
   );
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -61,29 +82,67 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
       setName(initialData.name);
       setLocation(initialData.location);
     } else {
-      setName("");
-      setLocation("");
+      setName('');
+      setLocation('');
     }
     setSelectedFlockId(initialFlockId || null);
     setSelectedSupplier(initialSupplier || null);
   }, [initialData, initialFlockId, initialSupplier, visible]);
 
+  // ===== PREFILL DATA =====
   useEffect(() => {
-    if (mode === "reset") {
-      setNewPassword("");
-      setConfirmPassword("");
+    if (mode === 'edit' && initialData) {
+      setName(initialData.name);
+      setLocation(initialData.location);
+    }
+
+    if (mode === 'singleField') {
+      setName(singleFieldValue || '');
+    }
+
+    if (mode === 'reset') {
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+
+    setSelectedFlockId(initialFlockId || null);
+    setSelectedSupplier(initialSupplier || null);
+  }, [mode, initialData, singleFieldValue, visible]);
+
+  // ===== TITLE LOGIC (FIXED) =====
+  const getTitle = () => {
+    if (modalTitle) return modalTitle;
+
+    if (mode === 'singleField') return singleFieldLabel || 'Add Item';
+    if (mode === 'add') return 'Add Poultry Farm';
+    if (mode === 'edit') return 'Edit Poultry Farm';
+    if (mode === 'filter') return 'Filter';
+    if (mode === 'reset') return 'Reset Password';
+
+    return '';
+  };
+
+  const handleSave = () => {
+    if (mode === 'singleField') {
+      onSaveSingleField?.({ value: name });
+    } else {
+      onSave?.({ name, location });
+    }
+    onClose();
+  };
+  useEffect(() => {
+    if (mode === 'reset') {
+      setNewPassword('');
+      setConfirmPassword('');
       setShowNewPassword(false);
       setShowConfirmPassword(false);
     }
   }, [visible, mode]);
 
-  const isSaveDisabled = name.trim() === "" || location.trim() === "";
-
-  const handleSave = () => {
-    if (isSaveDisabled || !onSave) return;
-    onSave({ name, location });
-    onClose();
-  };
+  const isSaveDisabled =
+    mode === 'singleField'
+      ? name.trim() === ''
+      : name.trim() === '' || location.trim() === '';
 
   const handleResetFilter = () => {
     setSelectedFlockId(null);
@@ -97,15 +156,28 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     onClose();
   };
 
+
+  useEffect(() => {
+  if (mode === 'singleField') {
+    setName(singleFieldValue || '');
+  }
+}, [mode, singleFieldValue, visible]);
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
+          <Text style={styles.title}>{getTitle()}</Text>
 
           {/* ===== FILTER MODE ===== */}
-          {mode === "filter" && (
+          {mode === 'filter' && (
             <>
-              <Text style={styles.title}>Flock Filter</Text>
+              {/* <Text style={styles.title}>Flock Filter</Text> */}
 
               <Text style={styles.inputLabel}>Flock</Text>
               <DropDownPicker
@@ -114,7 +186,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 items={flockItems}
                 setOpen={setDropdownOpen}
                 setValue={setSelectedFlockId}
-                setItems={() => { }}
+                setItems={() => {}}
                 placeholder="Select flock"
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
@@ -130,7 +202,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 items={supplierItems}
                 setOpen={setSupplierDropdownOpen}
                 setValue={setSelectedSupplier}
-                setItems={() => { }}
+                setItems={() => {}}
                 placeholder="Select supplier"
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
@@ -155,9 +227,9 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
           )}
 
           {/* ===== RESET PASSWORD MODE ===== */}
-          {mode === "reset" && (
+          {mode === 'reset' && (
             <>
-              <Text style={styles.title}>Reset Password</Text>
+              {/* <Text style={styles.title}>Reset Password</Text> */}
               <Text style={styles.inputLabel}>New Password</Text>
               <View style={styles.passwordContainer}>
                 <InputField
@@ -165,14 +237,18 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   value={newPassword}
                   onChangeText={setNewPassword}
                   secureTextEntry={!showNewPassword}
-                  style={{  paddingRight: 40, paddingVertical: 5 }} 
+                  style={{ paddingRight: 40, paddingVertical: 5 }}
                 />
                 <TouchableOpacity
                   style={styles.eyeIconContainer}
                   onPress={() => setShowNewPassword(prev => !prev)}
                 >
                   <Image
-                    source={showNewPassword ? Theme.icons.showPassword : Theme.icons.hidePassword}
+                    source={
+                      showNewPassword
+                        ? Theme.icons.showPassword
+                        : Theme.icons.hidePassword
+                    }
                     style={{ width: 24, height: 24 }}
                   />
                 </TouchableOpacity>
@@ -183,16 +259,20 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 <InputField
                   placeholder="Confirm password"
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword} 
+                  onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
-                  style={{  paddingRight: 40, paddingVertical: 5 }} 
+                  style={{ paddingRight: 40, paddingVertical: 5 }}
                 />
                 <TouchableOpacity
                   style={styles.eyeIconContainer}
                   onPress={() => setShowConfirmPassword(prev => !prev)}
                 >
                   <Image
-                    source={showConfirmPassword ? Theme.icons.showPassword : Theme.icons.hidePassword}
+                    source={
+                      showConfirmPassword
+                        ? Theme.icons.showPassword
+                        : Theme.icons.hidePassword
+                    }
                     style={{ width: 24, height: 24 }}
                   />
                 </TouchableOpacity>
@@ -203,16 +283,22 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   style={[styles.button, styles.discardButton]}
                   onPress={onClose}
                 >
-                  <Text style={[styles.buttonText, styles.discardText]}>Discard</Text>
+                  <Text style={[styles.buttonText, styles.discardText]}>
+                    Discard
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[
                     styles.button,
                     styles.saveButton,
-                    (newPassword.trim() === "" || confirmPassword.trim() === "") && styles.saveButtonDisabled
+                    (newPassword.trim() === '' ||
+                      confirmPassword.trim() === '') &&
+                      styles.saveButtonDisabled,
                   ]}
-                  disabled={newPassword.trim() === "" || confirmPassword.trim() === ""}
+                  disabled={
+                    newPassword.trim() === '' || confirmPassword.trim() === ''
+                  }
                   onPress={() => {
                     if (onResetPassword) {
                       onResetPassword({ newPassword, confirmPassword });
@@ -226,13 +312,18 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
             </>
           )}
 
-
           {/* ===== ADD / EDIT MODE ===== */}
-          {(mode === "add" || mode === "edit") && (
+          {(mode === 'add' || mode === 'edit') && (
             <>
-              <Text style={styles.title}>
-                {mode === "add" ? "Add Poultry Farm" : "Edit Poultry Farm"}
-              </Text>
+              {/* <Text style={styles.title}>
+                {modalTitle
+                  ? modalTitle
+                  : mode === 'add'
+                  ? 'Add Poultry Farm'
+                  : mode === 'edit'
+                  ? 'Edit Poultry Farm'
+                  : singleFieldLabel || 'Add Item'}
+              </Text> */}
 
               <InputField
                 label="Name"
@@ -254,7 +345,9 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   onPress={onClose}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.buttonText, styles.discardText]}>Discard</Text>
+                  <Text style={[styles.buttonText, styles.discardText]}>
+                    Discard
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -273,6 +366,45 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
             </>
           )}
 
+          {/* ===== SINGLE FIELD MODE ===== */}
+     {/* ===== SINGLE FIELD MODE ===== */}
+{mode === 'singleField' && (
+  <>
+    {/* INPUT LABEL */}
+    <Text style={styles.inputLabel}>
+      {singleFieldLabel || 'Value'}
+    </Text>
+
+    {/* INPUT FIELD */}
+    <InputField
+      placeholder={`Enter ${singleFieldLabel?.toLowerCase() || 'value'}...`}
+      value={name}
+      onChangeText={setName}
+    />
+
+    <View style={styles.buttonRow}>
+      <TouchableOpacity
+        style={[styles.button, styles.discardButton]}
+        onPress={onClose}
+      >
+        <Text style={styles.discardText}>Discard</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.button,
+          styles.saveButton,
+          name.trim() === '' && styles.saveButtonDisabled,
+        ]}
+        disabled={name.trim() === ''}
+        onPress={handleSave}
+      >
+        <Text style={styles.saveText}>Save</Text>
+      </TouchableOpacity>
+    </View>
+  </>
+)}
+
         </View>
       </View>
     </Modal>
@@ -284,45 +416,45 @@ export default BusinessUnitModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
-    width: "85%",
-    backgroundColor: "#fff",
+    width: '85%',
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
+    fontWeight: '600',
+    textAlign: 'center',
     marginBottom: 16,
-    color: "#050505",
+    color: '#050505',
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#555",
+    fontWeight: '600',
+    color: '#555',
     marginBottom: 6,
     marginTop: 8,
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     borderRadius: 8,
     minHeight: 45,
     marginBottom: 12,
   },
   dropdownContainer: {
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     borderRadius: 8,
   },
   buttonRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginTop: 16,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
   },
   resetButton: {
     flex: 1,
@@ -332,48 +464,48 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.white,
     borderWidth: 2,
     borderColor: Theme.colors.secondaryYellow,
-    alignItems: "center",
+    alignItems: 'center',
   },
   applyButton: {
     flex: 1,
     padding: 12,
     borderRadius: 8,
     backgroundColor: Theme.colors.primaryYellow,
-    alignItems: "center",
+    alignItems: 'center',
   },
   resetText: {
     color: Theme.colors.secondaryYellow,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   applyText: {
     color: Theme.colors.white,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   button: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginHorizontal: 5,
     elevation: 2,
   },
   passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 12,
     minHeight: 45,
   },
   eyeIconContainer: {
-    position: "absolute",
+    position: 'absolute',
     right: 10,
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   discardButton: {
     backgroundColor: Theme.colors.white,
@@ -388,7 +520,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   discardText: {
     color: Theme.colors.secondaryYellow,

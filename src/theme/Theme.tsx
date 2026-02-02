@@ -53,6 +53,12 @@ const colors = {
   dark: '#000000',
   blue: '#0A285A',
   sky: '#cfdffc',
+  greater:'#2E7D32',
+   settinglable:'#524B6B',
+   settinglines:'#DFF7E2',
+
+   
+  
 };
 
 const icons = {
