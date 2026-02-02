@@ -192,7 +192,7 @@ export default DataCard;
 const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
-    backgroundColor: Theme.colors.buttonPrimary,
+    backgroundColor: Theme.colors.haedercolor,
     paddingVertical: 12,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,

@@ -11,6 +11,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../components/common/Header';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 import {
   deleteBusinessUnit,
@@ -90,7 +92,6 @@ const DashboardScreen = () => {
         users: item.totalUser,
         employees: item.totalEmployee,
       }));
-
       setFarms(mappedFarms);
     } catch (error) {
       console.log('Failed to fetch farms', error);
@@ -99,10 +100,11 @@ const DashboardScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchFarms();
-  }, []);
-
+  useFocusEffect(
+    useCallback(() => {
+      fetchFarms();
+    }, []),
+  );
   // ===== LOAD ROLES =====
   useEffect(() => {
     fetchUserRoles();
@@ -381,6 +383,7 @@ const DashboardScreen = () => {
             />
           ))}
         </ScrollView>
+        <LoadingOverlay visible={loading} />
 
         <ConfirmationModal
           type="logout"
@@ -425,8 +428,6 @@ const DashboardScreen = () => {
           onClose={() => setShowAddUserModal(false)}
           onSave={handleSaveUser}
         />
-
-        <LoadingOverlay visible={loading} />
       </View>
     </SafeAreaView>
   );

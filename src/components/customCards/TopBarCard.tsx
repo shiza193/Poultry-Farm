@@ -124,7 +124,7 @@ const TopBarCard: React.FC<Props> = ({
               onBusinessUnitChange?.(selected);
             }}
             setItems={setItems}
-            placeholder="Poultry Farm"
+            placeholder="Poultry"
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownContainer}
             textStyle={styles.dropdownText}
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: Theme.colors.success,
   },
-  dropdownText: { fontSize: 12 },
+  dropdownText: { fontSize: 12},
 
   /* STATUS */
   statusWrapper: {

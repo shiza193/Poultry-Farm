@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#DC2626',
+    color:  Theme.colors.error,
   },
   locationRow: {
     flexDirection: 'row',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: Theme.colors.iconSecondary,
     borderRadius: 12,
-    padding: 4,
+    padding: 9,
   },
   statLabel: {
     fontSize: 11,

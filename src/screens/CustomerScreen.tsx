@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBusinessUnit } from '../context/BusinessContext';
-
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import Header from '../components/common/Header';
 import TopBarCard from '../components/customCards/TopBarCard';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
@@ -103,7 +104,6 @@ const CustomerScreen = () => {
   };
 
   const handleOpenProfile = (user: User) => {
-    // map User to ProfileData
     const profileData: ProfileData = {
       id: user.id,
       name: user.name,
@@ -118,9 +118,11 @@ const CustomerScreen = () => {
     setShowProfileModal(true);
   };
 
-  useEffect(() => {
-    fetchCustomers();
-  }, [currentPage, search, status, selectedBU]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchCustomers();
+    }, [currentPage, search, status, selectedBU]),
+  );
 
   const handleAddCustomer = async (formData: {
     name: string;
@@ -333,7 +335,7 @@ const CustomerScreen = () => {
                 email: updatedData.email?.trim() || null,
                 phone: updatedData.phone?.trim() || null,
                 address: updatedData.address?.trim() || '',
-                partyTypeId: 0, 
+                partyTypeId: 0,
                 businessUnitId: updatedData.businessUnitId || contextBU || '',
               };
 
@@ -342,7 +344,7 @@ const CustomerScreen = () => {
               if (response) {
                 showSuccessToast('Success', 'Customer updated successfully');
                 setShowProfileModal(false);
-                fetchCustomers(); 
+                fetchCustomers();
               }
             } catch (error: any) {
               console.error('Update customer error:', error);
@@ -359,8 +361,8 @@ const CustomerScreen = () => {
       <TopBarCard
         searchValue={search}
         onSearchChange={text => setSearch(text)}
-  status={status === 'all' ? null : status}
-  onStatusChange={s => setStatus(s ?? 'all')}
+        status={status === 'all' ? null : status}
+        onStatusChange={s => setStatus(s ?? 'all')}
         value={selectedBU}
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
@@ -422,9 +424,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.success,
   },
-  noDataContainer: {  justifyContent: 'center', alignItems: 'center' },
-noDataImage: {
-  width: 290,
-  height: 290,
-  resizeMode: 'contain',
-},});
+  noDataContainer: { justifyContent: 'center', alignItems: 'center' },
+  noDataImage: {
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
+  },
+});

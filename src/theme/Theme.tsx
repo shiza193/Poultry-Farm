@@ -57,7 +57,7 @@ const colors = {
    settinglable:'#524B6B',
    settinglines:'#DFF7E2',
 
-   
+   haedercolor:'#F4C430',
   
 };
 

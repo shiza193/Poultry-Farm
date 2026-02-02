@@ -11,6 +11,8 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Circle } from 'react-native-progress';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import Theme from '../theme/Theme';
 import Header from '../components/common/Header';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
@@ -40,9 +42,11 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [businessUnitId, fromDate, toDate]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [businessUnitId, fromDate, toDate]),
+  );
 
   /** InlineStat for simple numbers */
   const InlineStat = ({ icon, label, value, total }: any) => {

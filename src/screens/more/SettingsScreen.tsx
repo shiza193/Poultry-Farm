@@ -7,6 +7,8 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Theme from '../../theme/Theme';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
@@ -28,6 +30,7 @@ import {
   deleteEmployeeType,
 } from '../../services/SettingService';
 import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
+import LoadingOverlay from '../../components/loading/LoadingOverlay';
 
 const tabs = ['Egg Units', 'Feed Types', 'Employee Types', 'Vaccines'];
 
@@ -62,13 +65,13 @@ const SettingsScreen = () => {
   const [employees, setEmployees] = useState<EmployeeType[]>([]);
   const [vaccines, setVaccines] = useState<VaccineType[]>([]);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [loadingFeeds, setLoadingFeeds] = useState(false);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [loadingVaccines, setLoadingVaccines] = useState(false);
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
 
   const [menuPosition, setMenuPosition] = useState<{
     x: number;
@@ -76,6 +79,8 @@ const SettingsScreen = () => {
     row: any;
   } | null>(null);
 
+  const isLoading =
+    loading || loadingFeeds || loadingEmployees || loadingVaccines;
   const [showBusinessUnitModal, setShowBusinessUnitModal] = useState(false);
   const [modalData, setModalData] = useState<{
     title: string;
@@ -151,12 +156,14 @@ const SettingsScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchEggUnits();
-    fetchFeeds();
-    fetchEmployees();
-    fetchVaccines();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchEggUnits();
+      fetchFeeds();
+      fetchEmployees();
+      fetchVaccines();
+    }, []),
+  );
 
   // ===== TOGGLE STATUS =====
   const toggleEggStatus = async (unitId: number) => {
@@ -185,68 +192,82 @@ const SettingsScreen = () => {
   };
 
   // ===== DELETE HANDLER =====
-const [deleteType, setDeleteType] = useState<'EggUnit' | 'Feed' | 'EmployeeType' | null>(null);
+  const [deleteType, setDeleteType] = useState<
+    'EggUnit' | 'Feed' | 'EmployeeType' | null
+  >(null);
 
-const onDeletePress = (id: number | string, type: 'EggUnit' | 'Feed' | 'EmployeeType') => {
-  setSelectedUnitId(Number(id)); // Convert string ids to number if needed
-  setDeleteType(type);
-  setShowDeleteModal(true);
-  setMenuPosition(null);
-};
+  const onDeletePress = (
+    id: number | string,
+    type: 'EggUnit' | 'Feed' | 'EmployeeType',
+  ) => {
+    setSelectedUnitId(Number(id)); // Convert string ids to number if needed
+    setDeleteType(type);
+    setShowDeleteModal(true);
+    setMenuPosition(null);
+  };
 
+  const confirmDeleteItem = async () => {
+    if (!selectedUnitId || !deleteType) return;
+    setLoading(true);
 
- const confirmDeleteItem = async () => {
-  if (!selectedUnitId || !deleteType) return;
+    if (deleteType === 'EggUnit') {
+      const previousUnits = eggUnits;
+      setEggUnits(prev => prev.filter(u => u.unitId !== selectedUnitId));
+      setShowDeleteModal(false);
 
-  if (deleteType === 'EggUnit') {
-    const previousUnits = eggUnits;
-    setEggUnits(prev => prev.filter(u => u.unitId !== selectedUnitId));
-    setShowDeleteModal(false);
-
-    try {
-      await deleteEggUnit(selectedUnitId);
-    } catch (error) {
-      console.error('Delete Egg Unit failed:', error);
-      setEggUnits(previousUnits);
-    } finally {
-      setSelectedUnitId(null);
-      setDeleteType(null);
+      try {
+        await deleteEggUnit(selectedUnitId);
+      } catch (error) {
+        console.error('Delete Egg Unit failed:', error);
+        setEggUnits(previousUnits);
+      } finally {
+        setLoading(false);
+        setSelectedUnitId(null);
+        setDeleteType(null);
+      }
     }
-  }
 
-  if (deleteType === 'Feed') {
-    const previousFeeds = feedTypes;
-    setFeedTypes(prev => prev.filter(f => f.feedId !== selectedUnitId));
-    setShowDeleteModal(false);
+    if (deleteType === 'Feed') {
+      setLoading(true);
 
-    try {
-      await deleteFeed(selectedUnitId);
-    } catch (error) {
-      console.error('Delete Feed failed:', error);
-      setFeedTypes(previousFeeds);
-    } finally {
-      setSelectedUnitId(null);
-      setDeleteType(null);
+      const previousFeeds = feedTypes;
+      setFeedTypes(prev => prev.filter(f => f.feedId !== selectedUnitId));
+      setShowDeleteModal(false);
+
+      try {
+        await deleteFeed(selectedUnitId);
+      } catch (error) {
+        console.error('Delete Feed failed:', error);
+        setFeedTypes(previousFeeds);
+      } finally {
+        setLoading(true);
+        setSelectedUnitId(null);
+        setDeleteType(null);
+      }
     }
-  }
 
-  if (deleteType === 'EmployeeType') {
-    const previousEmployees = employees;
-    setEmployees(prev => prev.filter(e => e.id !== selectedUnitId.toString()));
-    setShowDeleteModal(false);
+    if (deleteType === 'EmployeeType') {
+      setLoading(true);
 
-    try {
-      await deleteEmployeeType(selectedUnitId);
-    } catch (error) {
-      console.error('Delete Employee Type failed:', error);
-      setEmployees(previousEmployees);
-    } finally {
-      setSelectedUnitId(null);
-      setDeleteType(null);
+      const previousEmployees = employees;
+      setEmployees(prev =>
+        prev.filter(e => e.id !== selectedUnitId.toString()),
+      );
+      setShowDeleteModal(false);
+
+      try {
+        await deleteEmployeeType(selectedUnitId);
+      } catch (error) {
+        console.error('Delete Employee Type failed:', error);
+        setEmployees(previousEmployees);
+      } finally {
+        setLoading(true);
+
+        setSelectedUnitId(null);
+        setDeleteType(null);
+      }
     }
-  }
-};
-
+  };
 
   // ===== COLUMNS WITH DOTS MENU =====
   const dotsColumn = (
@@ -487,42 +508,41 @@ const onDeletePress = (id: number | string, type: 'EggUnit' | 'Feed' | 'Employee
           />
         )}
       </View>
-     {menuPosition && (
-  <TouchableOpacity
-    style={styles.overlay}
-    activeOpacity={1}
-    onPress={() => setMenuPosition(null)}
-  >
-    <View
-      style={[
-        styles.floatingMenu,
-        {
-          top: menuPosition.y + 3,
-          left: menuPosition.x - 1,
-        },
-      ]}
-    >
-      <TouchableOpacity
-        onPress={() => {
-          const row = menuPosition.row;
+      {menuPosition && (
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setMenuPosition(null)}
+        >
+          <View
+            style={[
+              styles.floatingMenu,
+              {
+                top: menuPosition.y + 3,
+                left: menuPosition.x - 1,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                const row = menuPosition.row;
 
-          if ('unitId' in row) {
-            onDeletePress(row.unitId, 'EggUnit');
-          } else if ('feedId' in row) {
-            onDeletePress(row.feedId, 'Feed');
-          } else if ('empNo' in row) {
-            onDeletePress(row.id, 'EmployeeType');
-          }
+                if ('unitId' in row) {
+                  onDeletePress(row.unitId, 'EggUnit');
+                } else if ('feedId' in row) {
+                  onDeletePress(row.feedId, 'Feed');
+                } else if ('empNo' in row) {
+                  onDeletePress(row.id, 'EmployeeType');
+                }
 
-          setMenuPosition(null);
-        }}
-      >
-        <Text style={styles.dotsMenuText}>Delete</Text>
-      </TouchableOpacity>
-    </View>
-  </TouchableOpacity>
-)}
-
+                setMenuPosition(null);
+              }}
+            >
+              <Text style={styles.dotsMenuText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.body}>
         <ScrollView
@@ -584,6 +604,8 @@ const onDeletePress = (id: number | string, type: 'EggUnit' | 'Feed' | 'Employee
         }}
         onConfirm={confirmDeleteItem}
       />
+
+      <LoadingOverlay visible={isLoading}  />
     </SafeAreaView>
   );
 };
