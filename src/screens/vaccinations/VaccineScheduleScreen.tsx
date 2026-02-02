@@ -1,15 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     View,
     Text,
-    ScrollView,
     TouchableOpacity,
     Image,
     TextInput,
-    Alert,
 } from "react-native";
-import SidebarWrapper from "../../components/customButtons/SidebarWrapper";
-import { CustomConstants } from "../../constants/CustomConstants";
 import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
 import DropDownPicker from "react-native-dropdown-picker";
@@ -21,11 +17,11 @@ import {
 } from "../../services/VaccinationService";
 import { vsstyles } from "./style";
 import { getFlocks } from "../../services/FlockService";
-import ScreenTipCard from "../../components/customCards/ScreenTipCard";
 import { useBusinessUnit } from "../../context/BusinessContext";
 import { showErrorToast, showSuccessToast } from "../../utils/AppToast";
 import AddModal from "../../components/customPopups/AddModal";
 import ConfirmationModal from "../../components/customPopups/ConfirmationModal";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Flock {
     flockId: string;
@@ -33,8 +29,17 @@ interface Flock {
     breed: string;
     remainingQuantity: number;
 }
+interface Props {
+    openAddModal: boolean;
+    onCloseAddModal: () => void;
+    setGlobalLoading: (val: boolean) => void;
+}
+const VaccineScheduleScreen: React.FC<Props> = ({
+    openAddModal,
+    onCloseAddModal,
+    setGlobalLoading,
 
-const VaccineScheduleScreen = () => {
+}) => {
     const { businessUnitId } = useBusinessUnit();
     const [loading, setLoading] = useState<boolean>(true);
     const [schedules, setSchedules] = useState<VaccinationSchedule[]>([]);
@@ -42,7 +47,6 @@ const VaccineScheduleScreen = () => {
     const [tempSearch, setTempSearch] = useState<string>(""); const [flockOpen, setFlockOpen] = useState<boolean>(false);
     const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
     const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
-    const [showModal, setShowModal] = useState(false);
     const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
     const [vaccineItems, setVaccineItems] = useState<{ label: string; value: number }[]>([]);
     const [confirmationVisible, setConfirmationVisible] = useState(false);
@@ -50,7 +54,7 @@ const VaccineScheduleScreen = () => {
     // ===== FETCH SCHEDULES =====
     const fetchSchedules = async (pageNumber = 1, pageSize = 10) => {
         if (!businessUnitId) return;
-        setLoading(true);
+        setGlobalLoading(true);
         try {
             const payload: VaccinationSchedulePayload = {
                 searchKey: searchText || null,
@@ -66,13 +70,16 @@ const VaccineScheduleScreen = () => {
         } catch (error: any) {
             console.log(error);
         } finally {
-            setLoading(false);
+            setGlobalLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchSchedules();
-    }, [searchText, selectedFlock, businessUnitId]);
+    // 🔹 useFocusEffect ensures refresh on tab focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchSchedules();
+        }, [searchText, selectedFlock, businessUnitId])
+    );
 
     // ===== FETCH FLOCKS =====
     const fetchFlocks = async () => {
@@ -119,7 +126,6 @@ const VaccineScheduleScreen = () => {
 
             if (res.status === "Success") {
                 showSuccessToast(res.message || "Vaccination Schedule added successfully");
-                setShowModal(false);
                 fetchSchedules();
             } else {
                 const backendMsg =
@@ -138,10 +144,6 @@ const VaccineScheduleScreen = () => {
     const columns: TableColumn[] = [
         {
             key: "ref", title: "REF", isTitle: true, showDots: true,
-            onDotsPress: (row) => {
-                setSelectedScheduleId(row.vaccinationScheduleId);
-                setConfirmationVisible(true);
-            },
         },
         { key: "flockRef", title: "FLOCK" },
         { key: "vaccine", title: " NAME" },
@@ -232,15 +234,6 @@ const VaccineScheduleScreen = () => {
     return (
         <View style={vsstyles.container}>
             <View style={vsstyles.container}>
-                <LoadingOverlay visible={loading} text="Loading schedules..." />
-
-                {/* ===== TOP ROW ===== */}
-                {/* <View style={vsstyles.topRow}>
-                    <Text style={vsstyles.topRowTitle}>Vaccination Schedule</Text>
-                    <TouchableOpacity onPress={() => setIsDotsMenuVisible(!isDotsMenuVisible)}>
-                        <Image source={Theme.icons.dots} style={vsstyles.dotsIcon} />
-                    </TouchableOpacity>
-                </View> */}
                 {/* ===== SEARCH + FLOCK DROPDOWN ===== */}
                 <View style={vsstyles.filterRow}>
                     <View style={vsstyles.searchContainer}>
@@ -285,55 +278,84 @@ const VaccineScheduleScreen = () => {
                             setOpen={setFlockOpen}
                             setValue={setSelectedFlock}
                             setItems={setFlockItems}
-                            placeholder="Select Flock"
+                            placeholder=" Flock"
                             style={vsstyles.dropdown}
                             dropDownContainerStyle={vsstyles.dropdownContainer}
                             textStyle={vsstyles.dropdownText}
                         />
                     </View>
                 </View>
-
-                {/* ===== DOTS MENU MODAL ===== */}
-                {isDotsMenuVisible && (
-                    <TouchableOpacity
-                        style={vsstyles.dotsOverlay}
-                        activeOpacity={1}
-                        onPress={() => setIsDotsMenuVisible(false)}
-                    >
-                        <View style={vsstyles.dotsMenu}>
-                            <TouchableOpacity
-                                style={vsstyles.dotsMenuItem}
-                                onPress={() => setShowModal(true)}                            >
-
-                                <Text style={vsstyles.dotsMenuText}> + New schedule</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableOpacity>
+                {(selectedFlock || searchText) && (
+                    <View style={vsstyles.resetRow}>
+                        <TouchableOpacity onPress={() => {
+                            setSelectedFlock(null);
+                            setTempSearch("");
+                            setSearchText("");
+                        }}>
+                            <Text style={vsstyles.resetText}>Reset Filters</Text>
+                        </TouchableOpacity>
+                    </View>
                 )}
-
                 {/* ===== DATA TABLE ===== */}
                 <View style={{ flex: 1, marginTop: 10, paddingHorizontal: 16 }}>
-                    <DataCard columns={columns} data={tableData} />
+                    <DataCard
+                        columns={columns}
+                        data={tableData}
+                        itemsPerPage={5} // optional
+                        renderRowMenu={(row, closeMenu) => (
+                            <View>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        onCloseAddModal();
+                                        onCloseAddModal();
+                                        setTimeout(() => {
+                                            setTimeout(() => {
+                                                onCloseAddModal();
+                                            }, 0);
+                                        }, 0);
+
+                                    }}
+                                >
+                                    <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>Edit </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        // Open delete confirmation
+                                        setSelectedScheduleId(row.vaccinationScheduleId);
+                                        setConfirmationVisible(true);
+                                        closeMenu();
+                                    }}
+                                    style={{ marginTop: 8 }}
+                                >
+                                    <Text style={{ color: 'red', fontWeight: '600' }}>Delete </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    />
                 </View>
+
             </View>
 
             <AddModal
-                visible={showModal}
+                visible={openAddModal}
                 type="vaccination Schedule"
-                title={"Add Vaccine Schedule"}
-                onClose={() => setShowModal(false)}
-                onSave={handleSaveSchedule}
+                title="Add Vaccine Schedule"
+                onClose={onCloseAddModal}
+                onSave={(data) => {
+                    handleSaveSchedule(data);
+                    onCloseAddModal();
+                }}
                 vaccineItems={vaccineItems}
                 flockItems={flockItems}
             />
             <ConfirmationModal
                 visible={confirmationVisible}
-                type="delete" // ya custom type agar chahiye
+                type="delete"
                 title="Are you sure you want to delete this schedule?"
                 onClose={() => setConfirmationVisible(false)}
                 onConfirm={async () => {
                     if (!selectedScheduleId) return;
-                    // 🔹 call backend delete function
                     try {
                         const res = await deleteVaccinationSchedule(selectedScheduleId);
                         if (res.status === "Success") {

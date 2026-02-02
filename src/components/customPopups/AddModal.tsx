@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ScrollView,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
@@ -303,445 +304,448 @@ const AddModal: React.FC<AddModalProps> = ({
           <Text style={styles.title}>
             {title ?? (type === 'user' ? 'Add User' : 'Add Customer')}
           </Text>
-
-          {/* NAME */}
-          {type !== 'vaccination' && type !== 'vaccination Schedule' && (
-            <>
-              <Text style={styles.label}>
-                Name<Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter name..."
-                value={name}
-                onChangeText={setName}
-              />
-            </>
-          )}
-
-          {/* USER */}
-          {type === 'user' && (
-            <>
-              <Text style={styles.label}>
-                User Role<Text style={styles.required}>*</Text>
-              </Text>
-              <DropDownPicker
-                open={roleOpen}
-                value={role}
-                items={roleItems || []}
-                setOpen={setRoleOpen}
-                setValue={setRole}
-                // setItems={setRoleItems} // you can remove this if screen manages the state
-                placeholder="Select role..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
-
-              <Text style={styles.label}>
-                Email<Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter email..."
-                value={email}
-                onChangeText={text => {
-                  setEmail(text);
-                  if (text && !isValidEmail(text)) {
-                    setEmailError('Enter a valid email');
-                  } else {
-                    setEmailError('');
-                  }
-                }}
-              />
-              {emailError ? (
-                <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
-              ) : null}
-
-              <Text style={styles.label}>
-                Password<Text style={styles.required}>*</Text>
-              </Text>
-              <View style={{ position: 'relative' }}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* NAME */}
+            {type !== 'vaccination' && type !== 'vaccination Schedule' && (
+              <>
+                <Text style={styles.label}>
+                  Name<Text style={styles.required}>*</Text>
+                </Text>
                 <TextInput
-                  style={[styles.input, { paddingRight: 45 }]}
-                  placeholder="********"
-                  value={password}
+                  style={styles.input}
+                  placeholder="Enter name..."
+                  value={name}
+                  onChangeText={setName}
+                />
+              </>
+            )}
+
+            {/* USER */}
+            {type === 'user' && (
+              <>
+                <Text style={styles.label}>
+                  User Role<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  open={roleOpen}
+                  value={role}
+                  items={roleItems || []}
+                  setOpen={setRoleOpen}
+                  setValue={setRole}
+                  // setItems={setRoleItems} // you can remove this if screen manages the state
+                  placeholder="Select role..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+
+                <Text style={styles.label}>
+                  Email<Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter email..."
+                  value={email}
                   onChangeText={text => {
-                    setPassword(text);
-                    // Show validation error below
-                    if (text && !isValidPassword(text)) {
-                      setPasswordError(
-                        'Password must be 8+ chars, include uppercase, lowercase, number & symbol',
-                      );
+                    setEmail(text);
+                    if (text && !isValidEmail(text)) {
+                      setEmailError('Enter a valid email');
                     } else {
-                      setPasswordError('');
+                      setEmailError('');
                     }
                   }}
-                  secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: 10, top: 12 }}
-                >
-                  <Image
-                    source={
-                      showPassword
-                        ? Theme.icons.showPassword
-                        : Theme.icons.hidePassword
-                    }
-                    style={{ width: 25, height: 25 }}
+                {emailError ? (
+                  <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
+                ) : null}
+
+                <Text style={styles.label}>
+                  Password<Text style={styles.required}>*</Text>
+                </Text>
+                <View style={{ position: 'relative' }}>
+                  <TextInput
+                    style={[styles.input, { paddingRight: 45 }]}
+                    placeholder="********"
+                    value={password}
+                    onChangeText={text => {
+                      setPassword(text);
+                      // Show validation error below
+                      if (text && !isValidPassword(text)) {
+                        setPasswordError(
+                          'Password must be 8+ chars, include uppercase, lowercase, number & symbol',
+                        );
+                      } else {
+                        setPasswordError('');
+                      }
+                    }}
+                    secureTextEntry={!showPassword}
                   />
-                </TouchableOpacity>
-              </View>
-
-              {/* Show password error */}
-              {passwordError ? (
-                <Text style={{ color: 'red', fontSize: 12, marginBottom: 5 }}>
-                  {passwordError}
-                </Text>
-              ) : null}
-            </>
-          )}
-
-          {/* CUSTOMER */}
-          {type === 'customer' && (
-            <>
-              {/* BUSINESS UNIT */}
-              <Text style={styles.label}>
-                Business Units<Text style={styles.required}>*</Text>
-              </Text>
-              <DropDownPicker
-                open={buOpen}
-                value={businessUnit}
-                items={buItems}
-                setOpen={setBuOpen}
-                setValue={setBusinessUnit}
-                setItems={setBuItems}
-                placeholder="Select business unit..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
-
-              {/* PHONE */}
-              <Text style={styles.label}>Phone No</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="03XX-XXXXXXX"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-              />
-
-              {/* EMAIL */}
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter email..."
-                value={email}
-                onChangeText={text => {
-                  setEmail(text);
-                  if (text && !isValidEmail(text)) {
-                    setEmailError('Enter a valid email');
-                  } else {
-                    setEmailError('');
-                  }
-                }}
-              />
-              {emailError ? (
-                <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
-              ) : null}
-
-              {/* ADDRESS */}
-              <Text style={styles.label}>Address</Text>
-              <TextInput
-                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                placeholder="Enter address..."
-                multiline
-                value={address}
-                onChangeText={setAddress}
-              />
-            </>
-          )}
-
-          {type === 'employee' && (
-            <>
-              <Text style={styles.label}>
-                Type<Text style={styles.required}>*</Text>
-              </Text>
-              <DropDownPicker
-                open={typeOpen}
-                value={selectedEmployeeTypeId} // ✅ ID
-                items={typeItems} // value = employeeTypeId
-                setOpen={setTypeOpen}
-                setValue={setSelectedEmployeeTypeId} // ✅ ID set hogi
-                placeholder="Select type..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
-
-              <Text style={styles.label}>
-                Salary<Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter salary..."
-                value={salary}
-                onChangeText={setSalary}
-                keyboardType="numeric"
-              />
-              {!hidePoultryFarm && (
-                <>
-                  <Text style={styles.label}>
-                    Poultry Farm<Text style={styles.required}>*</Text>
-                  </Text>
-                  <DropDownPicker
-                    open={buOpen}
-                    value={businessUnit}
-                    items={buItems}
-                    setOpen={setBuOpen}
-                    setValue={setBusinessUnit}
-                    setItems={setBuItems}
-                    placeholder="Select Poultry Farm..."
-                    style={styles.dropdown}
-                    dropDownContainerStyle={styles.dropdownContainer}
-                  />
-                </>
-              )}
-
-              {/* ===== EMPLOYEE DATES ===== */}
-              <Text style={styles.label}>
-                Joining Date<Text style={styles.required}>*</Text>
-              </Text>
-              <TouchableOpacity
-                style={styles.inputWithIcon}
-                onPress={() => setShowJoiningPicker(true)}
-              >
-                <Text style={{ flex: 1 }}>
-                  {joiningDate
-                    ? joiningDate.toLocaleDateString()
-                    : 'mm/dd/yyyy'}
-                </Text>
-                <Image source={Theme.icons.date} style={styles.dateIcon} />
-              </TouchableOpacity>
-              {showJoiningPicker && (
-                <DateTimePicker
-                  value={joiningDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(_, date) => {
-                    setShowJoiningPicker(false);
-                    if (date) setJoiningDate(date);
-                  }}
-                />
-              )}
-
-              <Text style={styles.label}>End Date</Text>
-              <TouchableOpacity
-                style={styles.inputWithIcon}
-                onPress={() => setShowEndPicker(true)}
-              >
-                <Text style={{ flex: 1 }}>
-                  {endDate ? endDate.toLocaleDateString() : 'mm/dd/yyyy'}
-                </Text>
-                <Image source={Theme.icons.date} style={styles.dateIcon} />
-              </TouchableOpacity>
-              {showEndPicker && (
-                <DateTimePicker
-                  value={endDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(_, date) => {
-                    setShowEndPicker(false);
-                    if (date) setEndDate(date);
-                  }}
-                />
-              )}
-            </>
-          )}
-          {type === 'vaccination' && (
-            <>
-              {/* VACCINE */}
-              <Text style={styles.label}>
-                Vaccine<Text style={styles.required}>*</Text>
-              </Text>
-              <DropDownPicker
-                open={vaccineOpen}
-                value={vaccine}
-                items={vaccineItems || []}
-                setOpen={setVaccineOpen}
-                setValue={setVaccine}
-                placeholder="Select vaccine..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
-              {/* QUANTITY */}
-              <Text style={styles.label}>
-                Quantity<Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter quantity..."
-                value={quantity}
-                onChangeText={setQuantity}
-                keyboardType="numeric"
-              />
-
-              {/* DATE */}
-              <Text style={styles.label}>
-                Date<Text style={styles.required}>*</Text>
-              </Text>
-              <TouchableOpacity
-                style={styles.inputWithIcon}
-                onPress={() => setShowVaccinationPicker(true)}
-              >
-                <Text style={{ flex: 1 }}>
-                  {vaccinationDate
-                    ? vaccinationDate.toLocaleDateString()
-                    : 'mm/dd/yyyy'}
-                </Text>
-                <Image source={Theme.icons.date} style={styles.dateIcon} />
-              </TouchableOpacity>
-              {showVaccinationPicker && (
-                <DateTimePicker
-                  value={vaccinationDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event: DateTimePickerEvent, date?: Date) => {
-                    if (event.type === 'set' && date) {
-                      setVaccinationDate(date);
-                    }
-                    setShowVaccinationPicker(false);
-                  }}
-                />
-              )}
-
-              {/* SUPPLIER */}
-              <Text style={styles.label}>
-                Supplier<Text style={styles.required}>*</Text>
-              </Text>
-              <DropDownPicker
-                open={supplierOpen}
-                value={supplier}
-                items={supplierItems || []}
-                setOpen={setSupplierOpen}
-                setValue={setSupplier}
-                placeholder="Select supplier..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
-
-              {/* PRICE */}
-              <Text style={styles.label}>Price</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="numeric"
-              />
-
-              {/* NOTE */}
-              <Text style={styles.label}>Note</Text>
-              <TextInput
-                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                placeholder="Enter note..."
-                multiline
-                value={note}
-                onChangeText={setNote}
-              />
-              {/* PAID / UNPAID RADIO TOGGLE */}
-              {!isEdit && (
-                <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-                  {(['Paid', 'Unpaid'] as const).map(status => (
-                    <TouchableOpacity
-                      key={status}
-                      style={styles.radioContainer}
-                      onPress={() => setPaymentStatus(status)}
-                    >
-                      <View
-                        style={[
-                          styles.radioCircle,
-                          paymentStatus === status && styles.radioSelected,
-                        ]}
-                      >
-                        {paymentStatus === status && (
-                          <View style={styles.radioTick} />
-                        )}
-                      </View>
-                      <Text style={{ marginLeft: 8 }}>{status}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: 10, top: 12 }}
+                  >
+                    <Image
+                      source={
+                        showPassword
+                          ? Theme.icons.showPassword
+                          : Theme.icons.hidePassword
+                      }
+                      style={{ width: 25, height: 25 }}
+                    />
+                  </TouchableOpacity>
                 </View>
-              )}
-            </>
-          )}
 
-          {type === 'vaccination Schedule' && (
-            <>
-              {/* VACCINE */}
-              <Text style={styles.label}>Vaccine Name</Text>
-              <DropDownPicker
-                open={vaccineOpen}
-                value={vaccine}
-                items={vaccineItems || []}
-                setOpen={setVaccineOpen}
-                setValue={setVaccine}
-                placeholder="Select vaccine..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
-              {/* DATE */}
-              <Text style={styles.label}>Schedule Date</Text>
-              <TouchableOpacity
-                style={styles.inputWithIcon}
-                onPress={() => setShowVaccinationPicker(true)}
-              >
-                <Text style={{ flex: 1 }}>
-                  {vaccinationDate
-                    ? vaccinationDate.toLocaleDateString()
-                    : 'mm/dd/yyyy'}
+                {/* Show password error */}
+                {passwordError ? (
+                  <Text style={{ color: 'red', fontSize: 12, marginBottom: 5 }}>
+                    {passwordError}
+                  </Text>
+                ) : null}
+              </>
+            )}
+
+            {/* CUSTOMER */}
+            {type === 'customer' && (
+              <>
+                {/* BUSINESS UNIT */}
+                <Text style={styles.label}>
+                  Business Units<Text style={styles.required}>*</Text>
                 </Text>
-                <Image source={Theme.icons.date} style={styles.dateIcon} />
-              </TouchableOpacity>
+                <DropDownPicker
+                  open={buOpen}
+                  value={businessUnit}
+                  items={buItems}
+                  setOpen={setBuOpen}
+                  setValue={setBusinessUnit}
+                  setItems={setBuItems}
+                  placeholder="Select business unit..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
 
-              {showVaccinationPicker && (
-                <DateTimePicker
-                  value={vaccinationDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event, date) => {
-                    if (event.type === 'set' && date) {
-                      setVaccinationDate(date);
+                {/* PHONE */}
+                <Text style={styles.label}>Phone No</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="03XX-XXXXXXX"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                />
+
+                {/* EMAIL */}
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter email..."
+                  value={email}
+                  onChangeText={text => {
+                    setEmail(text);
+                    if (text && !isValidEmail(text)) {
+                      setEmailError('Enter a valid email');
+                    } else {
+                      setEmailError('');
                     }
-                    setShowVaccinationPicker(false);
                   }}
                 />
-              )}
-              {/* FLOCK */}
-              <Text style={styles.label}>
-                Flock<Text style={styles.required}>*</Text>
-              </Text>
-              <DropDownPicker
-                open={flockOpen}
-                value={selectedFlock}
-                items={flockItems || []}
-                setOpen={setFlockOpen}
-                setValue={setSelectedFlock}
-                placeholder="Select flock..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-              />
-              {/* QUANTITY */}
-              <Text style={styles.label}>Quantity</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter quantity..."
-                value={quantity}
-                onChangeText={setQuantity}
-                keyboardType="numeric"
-              />
-            </>
-          )}
+                {emailError ? (
+                  <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
+                ) : null}
 
+                {/* ADDRESS */}
+                <Text style={styles.label}>Address</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  placeholder="Enter address..."
+                  multiline
+                  value={address}
+                  onChangeText={setAddress}
+                />
+              </>
+            )}
+
+            {type === 'employee' && (
+              <>
+                <Text style={styles.label}>
+                  Type<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  open={typeOpen}
+                  value={selectedEmployeeTypeId} // ✅ ID
+                  items={typeItems} // value = employeeTypeId
+                  setOpen={setTypeOpen}
+                  setValue={setSelectedEmployeeTypeId} // ✅ ID set hogi
+                  placeholder="Select type..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+
+                <Text style={styles.label}>
+                  Salary<Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter salary..."
+                  value={salary}
+                  onChangeText={setSalary}
+                  keyboardType="numeric"
+                />
+                {!hidePoultryFarm && (
+                  <>
+                    <Text style={styles.label}>
+                      Poultry Farm<Text style={styles.required}>*</Text>
+                    </Text>
+                    <DropDownPicker
+                      open={buOpen}
+                      value={businessUnit}
+                      items={buItems}
+                      setOpen={setBuOpen}
+                      setValue={setBusinessUnit}
+                      setItems={setBuItems}
+                      placeholder="Select Poultry Farm..."
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                    />
+                  </>
+                )}
+
+                {/* ===== EMPLOYEE DATES ===== */}
+                <Text style={styles.label}>
+                  Joining Date<Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowJoiningPicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {joiningDate
+                      ? joiningDate.toLocaleDateString()
+                      : 'mm/dd/yyyy'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+                {showJoiningPicker && (
+                  <DateTimePicker
+                    value={joiningDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(_, date) => {
+                      setShowJoiningPicker(false);
+                      if (date) setJoiningDate(date);
+                    }}
+                  />
+                )}
+
+                <Text style={styles.label}>End Date</Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {endDate ? endDate.toLocaleDateString() : 'mm/dd/yyyy'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+                {showEndPicker && (
+                  <DateTimePicker
+                    value={endDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(_, date) => {
+                      setShowEndPicker(false);
+                      if (date) setEndDate(date);
+                    }}
+                  />
+                )}
+              </>
+            )}
+            {type === 'vaccination' && (
+              <>
+                {/* VACCINE */}
+                <Text style={styles.label}>
+                  Vaccine<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  open={vaccineOpen}
+                  value={vaccine}
+                  items={vaccineItems || []}
+                  setOpen={setVaccineOpen}
+                  setValue={setVaccine}
+                  placeholder="Select vaccine..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* QUANTITY */}
+                <Text style={styles.label}>
+                  Quantity<Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter quantity..."
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  keyboardType="numeric"
+                />
+
+                {/* DATE */}
+                <Text style={styles.label}>
+                  Date<Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowVaccinationPicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {vaccinationDate
+                      ? vaccinationDate.toLocaleDateString()
+                      : 'mm/dd/yyyy'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+                {showVaccinationPicker && (
+                  <DateTimePicker
+                    value={vaccinationDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event: DateTimePickerEvent, date?: Date) => {
+                      if (event.type === 'set' && date) {
+                        setVaccinationDate(date);
+                      }
+                      setShowVaccinationPicker(false);
+                    }}
+                  />
+                )}
+
+                {/* SUPPLIER */}
+                <Text style={styles.label}>
+                  Supplier<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  open={supplierOpen}
+                  value={supplier}
+                  items={supplierItems || []}
+                  setOpen={setSupplierOpen}
+                  setValue={setSupplier}
+                  placeholder="Select supplier..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+
+                {/* PRICE */}
+                <Text style={styles.label}>Price</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="numeric"
+                />
+
+                {/* NOTE */}
+                <Text style={styles.label}>Note</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  placeholder="Enter note..."
+                  multiline
+                  value={note}
+                  onChangeText={setNote}
+                />
+                {/* PAID / UNPAID RADIO TOGGLE */}
+                {!isEdit && (
+                  <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                    {(['Paid', 'Unpaid'] as const).map(status => (
+                      <TouchableOpacity
+                        key={status}
+                        style={styles.radioContainer}
+                        onPress={() => setPaymentStatus(status)}
+                      >
+                        <View
+                          style={[
+                            styles.radioCircle,
+                            paymentStatus === status && styles.radioSelected,
+                          ]}
+                        >
+                          {paymentStatus === status && (
+                            <View style={styles.radioTick} />
+                          )}
+                        </View>
+                        <Text style={{ marginLeft: 8 }}>{status}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+
+            {type === 'vaccination Schedule' && (
+              <>
+                {/* VACCINE */}
+                <Text style={styles.label}>Vaccine Name</Text>
+                <DropDownPicker
+                  open={vaccineOpen}
+                  value={vaccine}
+                  items={vaccineItems || []}
+                  setOpen={setVaccineOpen}
+                  setValue={setVaccine}
+                  placeholder="Select vaccine..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* DATE */}
+                <Text style={styles.label}>Schedule Date</Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowVaccinationPicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {vaccinationDate
+                      ? vaccinationDate.toLocaleDateString()
+                      : 'mm/dd/yyyy'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+
+                {showVaccinationPicker && (
+                  <DateTimePicker
+                    value={vaccinationDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      if (event.type === 'set' && date) {
+                        setVaccinationDate(date);
+                      }
+                      setShowVaccinationPicker(false);
+                    }}
+                  />
+                )}
+                {/* FLOCK */}
+                <Text style={styles.label}>
+                  Flock<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  open={flockOpen}
+                  value={selectedFlock}
+                  items={flockItems || []}
+                  setOpen={setFlockOpen}
+                  setValue={setSelectedFlock}
+                  placeholder="Select flock..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* QUANTITY */}
+                <Text style={styles.label}>Quantity</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter quantity..."
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  keyboardType="numeric"
+                />
+              </>
+            )}
+          </ScrollView>
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -779,6 +783,7 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     width: '90%',
+      maxHeight: '85%',  
     backgroundColor: Theme.colors.white,
     borderRadius: 12,
     padding: 20,
