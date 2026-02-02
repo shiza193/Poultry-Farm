@@ -1,35 +1,56 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import Theme from "../theme/Theme";
 import Header from "../components/common/Header";
-
+import { useNavigation } from '@react-navigation/native';
 import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
 import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
-import { SafeAreaView } from "react-native-safe-area-context";
+import LoadingOverlay from "../components/loading/LoadingOverlay";
+import { CustomConstants } from "../constants/CustomConstants";
 
 type TabType = "vaccination" | "schedule" | "stock";
 
 const VaccinationMainScreen = () => {
+    const navigation = useNavigation<any>();
     const [activeTab, setActiveTab] = useState<TabType>("vaccination");
     const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [addVaccinationModalVisible, setAddVaccinationModalVisible] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [selectedVaccination, setSelectedVaccination] = useState<any>(null);
-    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-    const [modalType, setModalType] = useState<TabType | null>(null);
-    const [selectedItem, setSelectedItem] = useState<any>(null);
+    const [openAddModal, setOpenAddModal] = useState(false);
+    const [globalLoading, setGlobalLoading] = useState(false);
+
     const renderScreen = () => {
         switch (activeTab) {
             case "schedule":
-                return <VaccineScheduleScreen />;
+                return (
+                    <VaccineScheduleScreen
+                        openAddModal={openAddModal}
+                        onCloseAddModal={() => setOpenAddModal(false)}
+                        // onOpenAddModal={() => setOpenAddModal(true)}
+                        setGlobalLoading={setGlobalLoading}
+                    />
+                );
+
             case "stock":
-                return <VaccinationStockScreen />;
+                return (
+                    <VaccinationStockScreen
+                        openAddModal={openAddModal}
+                        onCloseAddModal={() => setOpenAddModal(false)}
+                        setGlobalLoading={setGlobalLoading}
+                    />
+                );
+
             default:
-                return <VaccinationsScreen />;
+                return (
+                    <VaccinationsScreen
+                        openAddModal={openAddModal}
+                        onCloseAddModal={() => setOpenAddModal(false)}
+                        onOpenAddModal={() => setOpenAddModal(true)}
+                        setGlobalLoading={setGlobalLoading}
+                    />
+                );
         }
     };
+
     const getHeaderTitle = () => {
         switch (activeTab) {
             case "schedule":
@@ -70,13 +91,13 @@ const VaccinationMainScreen = () => {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: Theme.colors.white }}>
+        <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
+            <LoadingOverlay visible={globalLoading} text="Loading..." />
             {/* 🔹 TOP HEADER */}
             <Header
                 title={getHeaderTitle()}
                 onPressDots={() => setIsDotsMenuVisible(true)}
             />
-
             {isDotsMenuVisible && (
                 <TouchableOpacity
                     style={styles.dotsOverlay}
@@ -84,32 +105,77 @@ const VaccinationMainScreen = () => {
                     onPress={() => setIsDotsMenuVisible(false)}
                 >
                     <View style={styles.dotsMenu}>
-                        <TouchableOpacity
-                            style={styles.dotsMenuItemCustom}
-                            onPress={() => {
-                                setIsEditMode(false);
-                                setSelectedVaccination(null);
-                                setAddVaccinationModalVisible(true);
-                            }}
-                        >
-                            <View style={styles.menuItemRowCustom}>
-                                <Text style={styles.dotsMenuText}> + Add New</Text>
-                            </View>
-                        </TouchableOpacity>
+                        {/* ADD NEW */}
+                        {(activeTab === "vaccination" || activeTab === "schedule") && (
+                            <TouchableOpacity
+                                style={styles.dotsMenuItemCustom}
+                                onPress={() => {
+                                    setIsDotsMenuVisible(false);
+                                    setOpenAddModal(true);
+                                }}
+                            >
+                                <Text style={styles.dotsMenuText}>+ Add New</Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {/* EXPORT DATA - vaccination or stock */}
+                        {(activeTab === "vaccination" || activeTab === "stock") && (
+                            <TouchableOpacity
+                                style={styles.dotsMenuItemCustom}
+                                onPress={() => {
+                                    setIsDotsMenuVisible(false);
+                                    // Export logic
+                                }}
+                            >
+                                <View style={styles.menuItemRowCustom}>
+                                    <Image
+                                        source={Theme.icons.report}
+                                        style={styles.menuIcon}
+                                    />
+                                    <Text style={styles.dotsMenuText}>Report</Text>
+                                </View>
+                            </TouchableOpacity>
+                        )}
+
+                        {/* LOGOUT - har jagah dikhe */}
                         <TouchableOpacity
                             style={styles.dotsMenuItemCustom}
                             onPress={() => {
                                 setIsDotsMenuVisible(false);
+                                // 🔴 Logout logic
+                                // logout();
                             }}
                         >
                             <View style={styles.menuItemRowCustom}>
-                                <Text style={styles.dotsMenuText}>Export Data</Text>
+                                <Image
+                                    source={Theme.icons.logout}
+                                    style={styles.logoutIcon}
+                                />
+                                <Text style={[styles.dotsMenuText, { color: Theme.colors.textPrimary }]}>
+                                    Logout
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* BACK TO ADMIN - har jagah dikhe */}
+                        <TouchableOpacity
+                            style={styles.dotsMenuItemCustom}
+                            onPress={() => {
+                                setIsDotsMenuVisible(false);
+                                navigation.navigate(CustomConstants.DASHBOARD_TABS);
+                            }}
+                        >
+                            <View style={styles.menuItemRowCustom}>
+                                <Image
+                                    source={Theme.icons.back}
+                                    style={styles.logoutIcon}
+                                />
+                                <Text style={styles.dotsMenuText}>Admin Portal</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>
             )}
-
             {/* TOP TOGGLE BUTTONS */}
             <View style={styles.tabContainer}>
                 <TabButton
@@ -118,7 +184,6 @@ const VaccinationMainScreen = () => {
                     onPress={() => setActiveTab("vaccination")}
                 />
                 <View style={styles.separator} />
-
                 <TabButton
                     title="Schedule"
                     active={activeTab === "schedule"}
@@ -132,17 +197,15 @@ const VaccinationMainScreen = () => {
                     onPress={() => setActiveTab("stock")}
                 />
             </View>
-
             {/* SCREEN CONTENT */}
             <View style={{ flex: 1 }}>
                 {renderScreen()}
             </View>
-        </SafeAreaView>
+        </View>
     );
 };
 
 export default VaccinationMainScreen;
-
 
 const styles = StyleSheet.create({
     tabContainer: {
@@ -187,7 +250,7 @@ const styles = StyleSheet.create({
     dotsMenu: {
         position: 'absolute',
         top: 50,
-        right: 20,
+        right: 37,
         backgroundColor: Theme.colors.white,
         borderRadius: 10,
         padding: 10,
@@ -210,13 +273,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginRight: 10,
     },
-    menuIconCustom: {
-        width: 18,
-        height: 18,
-        resizeMode: "contain",
-    },
     dotsMenuText: {
-        fontSize: 16,
+        fontSize: 14,
         color: Theme.colors.textPrimary,
+    },
+    menuIcon: {
+        width: 16,
+        height: 16,
+        marginRight: 10,
+        tintColor: Theme.colors.textPrimary,
+    },
+    logoutIcon: {
+        width: 16,
+        height: 16,
+        marginRight: 10,
     },
 });

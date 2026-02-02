@@ -150,9 +150,7 @@ const icons = {
   image8: require('../resources/images/image8.png'),
   image9: require('../resources/images/image9.png'),
   delete: require('../resources/images/delete.png'),
-
-
-
+  report: require('../resources/images/report.png'),
   happy: require('../resources/images/happy.png'),
   anger: require('../resources/images/anger.png'),
 

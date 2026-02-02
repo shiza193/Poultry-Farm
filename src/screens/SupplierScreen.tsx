@@ -226,7 +226,7 @@ const SupplierScreen = () => {
   const columns: TableColumn[] = [
     {
       key: 'name',
-      title: 'Name',
+      title: 'NAME',
       width: 150,
       isTitle: true,
       showDots: true,
@@ -235,12 +235,12 @@ const SupplierScreen = () => {
         setDeleteModalVisible(true);
       },
     },
-    { key: 'email', title: 'Email', width: 200 },
-    { key: 'phone', title: 'Phone', width: 140 },
-    { key: 'address', title: 'Address', width: 220 },
+    { key: 'email', title: 'EMAIL', width: 200 },
+    { key: 'phone', title: 'PHONE', width: 140 },
+    { key: 'address', title: 'ADDRESS', width: 149 },
     {
       key: 'status',
-      title: 'Status',
+      title: 'STATUS',
       width: 120,
       render: (_value, row) => (
         <StatusToggle

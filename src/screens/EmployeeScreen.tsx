@@ -28,7 +28,6 @@ interface Employee {
   type: string;
   salary: number;
   poultryFarm: string;
-  businessUnitId: string;    
   joiningDate: string;
   endDate: string;
   status: EmployeeStatus;
@@ -65,7 +64,6 @@ const EmployeeScreen = () => {
         name: emp.name,
         type: emp.employeeType,
         salary: emp.salary,
-        businessUnitId: emp.businessUnitId,
         poultryFarm: emp.businessUnit,
         joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
         endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
@@ -97,27 +95,24 @@ const EmployeeScreen = () => {
       )
         return false;
     }
-if (selectedBU && emp.businessUnitId !== selectedBU) return false;
+    if (selectedBU && emp.poultryFarm !== selectedBU) return false;
     return true;
   });
 
   // ================= TABLE COLUMNS =================
   const columns: TableColumn[] = [
     {
-      key: 'name', title: 'Name', width: 120, isTitle: true, showDots: true,
-      onDotsPress: (row) => {
-        setOpenRowDotsId(row.employeeId);
-        setRowModalVisible(true);
-      },
+      key: 'name', title: 'NAME', width: 120, isTitle: true, showDots: true,
+
     },
-    { key: 'type', title: 'Type', width: 120 },
-    { key: 'salary', title: 'Salary', width: 120 },
-    { key: 'poultryFarm', title: 'Farm', width: 140 },
-    { key: 'joiningDate', title: 'Joining Date', width: 120 },
-    { key: 'endDate', title: 'End Date', width: 120 },
+    { key: 'type', title: 'TYPE', width: 120 },
+    { key: 'salary', title: 'SALARY', width: 120 },
+    { key: 'poultryFarm', title: 'FARM', width: 140 },
+    { key: 'joiningDate', title: 'JOINING DATE', width: 120 },
+    { key: 'endDate', title: 'END DATE', width: 120 },
     {
       key: 'status',
-      title: 'Status',
+      title: 'STATUS',
       width: 120,
       render: (value, row) => (
         <StatusToggle
@@ -195,7 +190,7 @@ if (selectedBU && emp.businessUnitId !== selectedBU) return false;
     setSelectedBU(null);
   };
 
-  const tableData = filteredEmployees.map(emp => ({ ...emp, raw: emp }));
+const tableData = filteredEmployees.map(emp => ({ ...emp }));
 
   // ================= UI =================
   return (
@@ -218,33 +213,8 @@ if (selectedBU && emp.businessUnitId !== selectedBU) return false;
         </View>
       )}
 
-      {openRowDotsId && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 267,
-            marginLeft: 16,
-            backgroundColor: Theme.colors.white,
-            borderRadius: 6,
-            elevation: 5,
-            padding: 8,
-            zIndex: 999,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedEmployeeId(openRowDotsId);
-              setDeleteModalVisible(true);
-              setOpenRowDotsId(null); 
-            }}
-          >
-            <Text style={{ color: 'red', fontWeight: '600' }}>Delete Emp</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* ===== TOP BAR ===== */}
-      <TopBarCard
+    <TopBarCard
         searchValue={search}
         onSearchChange={setSearch}
         status={status === 'all' ? null : status}
@@ -255,7 +225,22 @@ if (selectedBU && emp.businessUnitId !== selectedBU) return false;
       />
       {tableData.length > 0 ? (
         <View style={{ flex: 1, paddingHorizontal: 16 }}>
-          <DataCard columns={columns} data={tableData} itemsPerPage={5} />
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={5}
+            renderRowMenu={(row, closeMenu) => (
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedEmployeeId(row.employeeId); 
+                  setDeleteModalVisible(true);
+                  closeMenu();
+                }}
+              >
+                <Text style={{ color: 'red', fontWeight: '600' }}>Delete Employee</Text>
+              </TouchableOpacity>
+            )}
+          />
         </View>
       ) : (
         !loading && (
@@ -304,8 +289,8 @@ const styles = StyleSheet.create({
   },
   dotsMenu: {
     position: 'absolute',
-    top: 50,
-    right: 20,
+    top: 45,
+    right: 35,
     backgroundColor: Theme.colors.white,
     padding: 12,
     borderRadius: 8,

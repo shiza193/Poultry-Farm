@@ -130,7 +130,19 @@ const styles = StyleSheet.create({
     },
     dropdownText: {
         fontSize: 14,
-        color: Theme.colors.success,
+        color: Theme.colors.textPrimary,
+    },
+    resetRow: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        paddingHorizontal: 16,
+        marginTop: 6,
+        marginBottom: 4,
+    },
+    resetText: {
+        color: Theme.colors.error,
+        fontSize: 13,
+        fontWeight: "500",
     },
 });
 export default styles
@@ -140,7 +152,6 @@ export const vsstyles = StyleSheet.create({
         flex: 1,
         backgroundColor: Theme.colors.white,
     },
-    tipCardContainer: { marginTop: 30 },
     // ===== TOP ROW =====
     topRow: {
         flexDirection: "row",
@@ -242,6 +253,18 @@ export const vsstyles = StyleSheet.create({
     dotsMenuText: {
         fontSize: 14,
         color: Theme.colors.black,
+    },
+    resetRow: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        paddingHorizontal: 16,
+        marginTop: 6,
+    },
+
+    resetText: {
+        fontSize: 13,
+        fontWeight: "500",
+        color: Theme.colors.error,
     },
 
 });

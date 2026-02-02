@@ -242,7 +242,7 @@ const UserScreen = () => {
   const columns: TableColumn[] = [
     {
       key: "name",
-      title: "Name",
+      title: "NAME",
       width: 110,
       isTitle: true,
       showDots: true,
@@ -253,17 +253,17 @@ const UserScreen = () => {
     },
     {
       key: "email",
-      title: "Email",
+      title: "EMAIL",
       width: 220,
     },
     {
       key: "businessUnit",
-      title: "Farm",
+      title: "FARM",
       width: 160,
     },
     {
       key: "status",
-      title: "Status",
+      title: "STATUS",
       width: 120,
       render: (value, row) => (
         <StatusToggle

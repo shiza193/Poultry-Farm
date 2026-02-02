@@ -1,46 +1,64 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Theme from '../../theme/Theme';
-import DataCard from '../../components/customCards/DataCard';
+import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import PdfButton from '../../components/customButtons/PdfButton';
 
 const EggStockScreen = () => {
-
-     const handlePdfPress = () => {
+  const handlePdfPress = () => {
     console.log('PDF button pressed!');
   };
 
+  // ✅ TABLE DATA
+  const eggStockData = [
+    {
+      unit: 'Eggs',
+      totalProduced: 12000,
+      totalSold: 8500,
+      availableStock: 3500,
+    },
+  ];
+
+  // ✅ TABLE COLUMNS
+  const columns: TableColumn[] = [
+    {
+      key: 'unit',
+      title: 'UNIT',
+      width: 120,
+      isTitle: true,
+    },
+    {
+      key: 'totalProduced',
+      title: 'PRODUCED',
+      width: 150,
+    },
+    {
+      key: 'totalSold',
+      title: 'SOLD',
+      width: 120,
+    },
+    {
+      key: 'availableStock',
+      title: 'STOCK',
+      width: 150,
+    },
+  ];
+
   return (
     <View style={styles.container}>
-
- <View style={styles.buttonContainer}>
-        <PdfButton title="Download  Excle Report" onPress={handlePdfPress} />
+      {/* PDF BUTTON */}
+      <View style={styles.buttonContainer}>
+        <PdfButton title="Download Excel Report" onPress={handlePdfPress} />
       </View>
-      {/* ===== Scrollable Table ===== */}
-      <ScrollView horizontal contentContainerStyle={styles.scrollContent}>
-        <View>
-          {/* ===== Header ===== */}
-          <DataCard
-            isHeader
-            showEggStock
-            labels={{
-              unit: 'Unit',
-              totalProduced: 'Total Produced',
-              totalSold: 'Total Sold',
-              eggAvailableStock: 'Available Stock',
-            }}
-          />
 
-          {/* ===== Row ===== */}
-          <DataCard
-            showEggStock
-            unitValue="Eggs"
-            totalProducedValue={12000}
-            totalSoldValue={8500}
-            eggAvailableStockValue={3500}
-          />
-        </View>
-      </ScrollView>
+      {/* TABLE */}
+      <View style={{ paddingHorizontal: 12 }}>
+        <DataCard
+          columns={columns}
+          data={eggStockData}
+          itemsPerPage={10}
+        />
+      </View>
     </View>
   );
 };
@@ -50,22 +68,13 @@ export default EggStockScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.white, 
-    paddingTop: 40, 
+    backgroundColor: Theme.colors.white,
+    paddingTop: 40,
   },
-buttonContainer: {
-  alignItems: 'flex-end',
-  marginBottom: 20,     
-  paddingHorizontal: 8,
-  marginTop: -12,      
-},
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 80,
-    marginBottom: 12,
-  },
-  scrollContent: {
-    paddingHorizontal: 12, 
+  buttonContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+    paddingHorizontal: 8,
+    marginTop: -12,
   },
 });
