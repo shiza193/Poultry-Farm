@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -8,8 +8,10 @@ import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import AddModal from '../components/customPopups/AddModal';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
-
 import Theme from '../theme/Theme';
+import StatusToggle from '../components/common/StatusToggle';
+import TopBarCard from '../components/customCards/TopBarCard';
+
 import {
   getEmployees,
   updateEmployeeIsActive,
@@ -17,8 +19,7 @@ import {
   deleteEmployee,
 } from '../services/EmployeeService';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
-import StatusToggle from '../components/common/StatusToggle';
-import TopBarCard from '../components/customCards/TopBarCard';
+import BackArrow from '../components/common/BackArrow';
 
 type EmployeeStatus = 'Active' | 'Inactive';
 
@@ -27,7 +28,8 @@ interface Employee {
   name: string;
   type: string;
   salary: number;
-  poultryFarm: string;
+  poultryFarmId: string; // Add ID
+  poultryFarm: string; // Name
   joiningDate: string;
   endDate: string;
   status: EmployeeStatus;
@@ -36,25 +38,49 @@ interface Employee {
 const EmployeeScreen = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
-  const routeBU = route.params?.businessUnitId ?? null;
+  console.log('EmployeeScreen route params:', route.params);
+const fromMenu = route.params?.fromMenu === true;
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [selectedBU, setSelectedBU] = useState<string | null>(routeBU);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
+    null,
+  );
   const [openRowDotsId, setOpenRowDotsId] = useState<string | null>(null);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const pageSize = 50;
 
+  const routeBU = route.params?.businessUnitId ?? null;
+  const [selectedBU, setSelectedBU] = useState<string | null>(routeBU);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Get BU from route params
+      const bu = route.params?.businessUnitId ?? null;
+
+      // Always reset selectedBU to route param (or null)
+      setSelectedBU(bu);
+
+      // Fetch employees: if bu is null, fetch all
+      fetchEmployees(bu);
+
+      // Reset search and status filters when opening fresh
+      setSearch('');
+      setStatus('all');
+    }, [route.params?.businessUnitId]),
+  );
+
   // ================= FETCH EMPLOYEES =================
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (bu: string | null = null) => {
     try {
       setLoading(true);
       const params: any = { pageNumber: 1, pageSize };
-      if (selectedBU) params.businessUnitId = selectedBU;
+
+      //  Only pass businessUnitId if a BU is specified
+      if (bu) params.businessUnitId = bu;
 
       const data = await getEmployees(params);
 
@@ -63,6 +89,7 @@ const EmployeeScreen = () => {
         name: emp.name,
         type: emp.employeeType,
         salary: emp.salary,
+        poultryFarmId: emp.businessUnitId,
         poultryFarm: emp.businessUnit,
         joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
         endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
@@ -77,6 +104,7 @@ const EmployeeScreen = () => {
     }
   };
 
+
   useFocusEffect(
     useCallback(() => {
       fetchEmployees();
@@ -86,6 +114,7 @@ const EmployeeScreen = () => {
   const filteredEmployees = employees.filter(emp => {
     if (status === 'active' && emp.status !== 'Active') return false;
     if (status === 'inactive' && emp.status !== 'Inactive') return false;
+
     if (search) {
       const q = search.toLowerCase();
       if (
@@ -95,16 +124,22 @@ const EmployeeScreen = () => {
       )
         return false;
     }
-    if (selectedBU && emp.poultryFarm !== selectedBU) return false;
+
+    //  Only filter by BU if a BU is selected
+    if (selectedBU) {
+      if (emp.poultryFarmId !== selectedBU) return false;
+    }
+
     return true;
   });
 
+  console.log('Filtered employees for table:', filteredEmployees);
+
+  console.log('Filtered employees for table:', filteredEmployees);
+
   // ================= TABLE COLUMNS =================
   const columns: TableColumn[] = [
-    {
-      key: 'name', title: 'NAME', width: 120, isTitle: true, showDots: true,
-
-    },
+    { key: 'name', title: 'NAME', width: 120, isTitle: true, showDots: true },
     { key: 'type', title: 'TYPE', width: 120 },
     { key: 'salary', title: 'SALARY', width: 120 },
     { key: 'poultryFarm', title: 'FARM', width: 140 },
@@ -122,6 +157,7 @@ const EmployeeScreen = () => {
       ),
     },
   ];
+
   // ================= HANDLERS =================
   const handleToggleStatus = async (emp: Employee) => {
     try {
@@ -142,25 +178,20 @@ const EmployeeScreen = () => {
       showErrorToast('Failed to update status');
     }
   };
-  const formatDate = (date: Date) => {
-    const d = new Date(date);
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${year}-${month}-${day}`;
-  };
+
   const handleAddEmployee = async (data: any) => {
     try {
       const payload = {
         name: data.name,
         employeeTypeId: data.type,
-        joiningDate: formatDate(data.joiningDate),
+        joiningDate: new Date(data.joiningDate).toISOString(),
         salary: Number(data.salary),
-        endDate: data.endDate ? formatDate(data.endDate) : null,
-        businessUnitId: data.poultryFarm,
+        endDate: data.endDate ? new Date(data.endDate).toISOString() : null,
+        businessUnitId: selectedBU ?? data.poultryFarm,
       };
       console.log('Add payload:', payload);
-      const res = await addEmployee(payload);
+
+      await addEmployee(payload);
       fetchEmployees();
       showSuccessToast('Employee added successfully');
       setIsAddModalVisible(false);
@@ -174,7 +205,9 @@ const EmployeeScreen = () => {
     if (!selectedEmployeeId) return;
     try {
       await deleteEmployee(selectedEmployeeId);
-      setEmployees(prev => prev.filter(e => e.employeeId !== selectedEmployeeId));
+      setEmployees(prev =>
+        prev.filter(e => e.employeeId !== selectedEmployeeId),
+      );
       showSuccessToast('Employee deleted successfully');
     } catch {
       showErrorToast('Failed to delete employee');
@@ -192,14 +225,17 @@ const EmployeeScreen = () => {
 
   const tableData = filteredEmployees.map(emp => ({ ...emp }));
 
-  // ================= UI =================
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Header title="Employees"
-        onPressDots={() => setShowDotsMenu(prev => !prev)}
-      />
+    {fromMenu ? (
+        <BackArrow title="Employees" showBack={true} />
+      ) : (
+        <Header
+          title="Employees"
+          onPressDots={() => setShowDotsMenu(prev => !prev)}
+        />
+      )}
 
-      {/* ===== DOT MENU ===== */}
       {showDotsMenu && (
         <View style={styles.dotsMenu}>
           <TouchableOpacity
@@ -213,7 +249,6 @@ const EmployeeScreen = () => {
         </View>
       )}
 
-      {/* ===== TOP BAR ===== */}
       <TopBarCard
         searchValue={search}
         onSearchChange={setSearch}
@@ -223,6 +258,7 @@ const EmployeeScreen = () => {
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
       />
+
       {tableData.length > 0 ? (
         <View style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard
@@ -233,11 +269,14 @@ const EmployeeScreen = () => {
               <TouchableOpacity
                 onPress={() => {
                   setSelectedEmployeeId(row.employeeId);
+                  setSelectedEmployeeId(row.employeeId);
                   setDeleteModalVisible(true);
                   closeMenu();
                 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600' }}>Delete Employee</Text>
+                <Text style={{ color: 'red', fontWeight: '600' }}>
+                  Delete Employee
+                </Text>
               </TouchableOpacity>
             )}
           />
@@ -274,19 +313,9 @@ const EmployeeScreen = () => {
 export default EmployeeScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.white,
-  },
-  noDataContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noDataImage: {
-    width: 300,
-    height: 360,
-  },
+  container: { flex: 1, backgroundColor: Theme.colors.white },
+  noDataContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  noDataImage: { width: 300, height: 360 },
   dotsMenu: {
     position: 'absolute',
     top: 45,
@@ -297,9 +326,5 @@ const styles = StyleSheet.create({
     elevation: 6,
     zIndex: 999,
   },
-  menuText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Theme.colors.success,
-  },
+  menuText: { fontSize: 15, fontWeight: '600', color: Theme.colors.success },
 });

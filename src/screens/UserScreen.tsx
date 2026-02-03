@@ -21,6 +21,7 @@ import {
   resetPassword,
   getUserFarms,
   updateUserBusinessUnits,
+  updateUser,
 } from '../services/UserScreen';
 
 import AddModal from '../components/customPopups/AddModal';
@@ -32,6 +33,9 @@ import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import StatusToggle from '../components/common/StatusToggle';
 import BusinessUnitModal from '../components/customPopups/BusinessUnitModal';
 import AssignFarmRoleModal from '../components/customPopups/AssignRolePopup';
+import ProfileModal, {
+  ProfileData,
+} from '../components/customPopups/ProfileModal';
 type User = {
   id: string;
   image: string;
@@ -56,7 +60,8 @@ const UserScreen = () => {
     routeBusinessUnitId,
   );
   const [showAssignFarmModal, setShowAssignFarmModal] = useState(false);
-  const [farms, setFarms] = useState<{ id: number, name: string }[]>([]);
+  const [farms, setFarms] = useState<{ id: number; name: string }[]>([]);
+  const [rowModalVisible, setRowModalVisible] = useState(false);
   const [selectedRowUser, setSelectedRowUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
@@ -64,7 +69,14 @@ const UserScreen = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showResetModal, setShowResetModal] = useState(false);
-  const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<ProfileData | null>(
+    null,
+  );
+
+  const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(
+    null,
+  );
   const pageSize = 50;
 
   // ================= FETCH ROLES =================
@@ -112,7 +124,7 @@ const UserScreen = () => {
           image: u.imageLink || '',
           businessUnitId: u.businessUnitId || '',
           businessUnit: u.businessUnit ?? '—',
-
+          createdAt: u.createdAt,
         })),
       );
     } catch {
@@ -184,9 +196,7 @@ const UserScreen = () => {
       });
 
       setUsers(prev =>
-        prev.map(u =>
-          u.id === user.id ? { ...u, isActive: !u.isActive } : u,
-        ),
+        prev.map(u => (u.id === user.id ? { ...u, isActive: !u.isActive } : u)),
       );
 
       showSuccessToast(
@@ -217,18 +227,20 @@ const UserScreen = () => {
       setSelectedRowUser(user);
 
       const farmList = await getUserFarms(user.id);
-      setFarms(farmList.map((f: any) => ({
-        id: f.id,
-        name: f.name,
-        isAdded: f.isAdded,
-        userRoleId: f.userRoleId,
-        userRole: f.userRole,
-      })));
+      setFarms(
+        farmList.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          isAdded: f.isAdded,
+          userRoleId: f.userRoleId,
+          userRole: f.userRole,
+        })),
+      );
 
       setShowAssignFarmModal(true);
     } catch (error) {
       console.error(error);
-      showErrorToast("Failed to fetch farms");
+      showErrorToast('Failed to fetch farms');
     } finally {
     }
   };
@@ -239,25 +251,49 @@ const UserScreen = () => {
   };
   const columns: TableColumn[] = [
     {
-      key: "name",
-      title: "NAME",
+      key: 'name',
+      title: 'NAME',
       width: 110,
       isTitle: true,
+
       showDots: true,
+      onDotsPress: row => {
+        setSelectedRowUser(row.raw);
+        setRowModalVisible(true);
+      },
+
+      render: (value, row) => (
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedProfile({
+              id: row.raw.id,
+              name: row.raw.name,
+              email: row.raw.email,
+              isActive: row.raw.isActive,
+              createdAt: row.raw.createdAt ?? '2026-01-20',
+            });
+            setProfileVisible(true);
+          }}
+        >
+          <Text style={{ fontWeight: '700', color: Theme.colors.textPrimary }}>
+            {value}
+          </Text>
+        </TouchableOpacity>
+      ),
     },
     {
-      key: "email",
-      title: "EMAIL",
+      key: 'email',
+      title: 'EMAIL',
       width: 220,
     },
     {
-      key: "businessUnit",
-      title: "FARM",
+      key: 'businessUnit',
+      title: 'FARM',
       width: 160,
     },
     {
-      key: "status",
-      title: "STATUS",
+      key: 'status',
+      title: 'STATUS',
       width: 120,
       render: (value, row) => (
         <StatusToggle
@@ -290,7 +326,6 @@ const UserScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-
       {/* ===== TOP BAR ===== */}
       <TopBarCard
         searchValue={search}
@@ -353,7 +388,6 @@ const UserScreen = () => {
               </View>
             )}
           />
-
         </View>
       ) : (
         !loading && (
@@ -392,7 +426,7 @@ const UserScreen = () => {
 
           // Validate passwords match
           if (newPassword !== confirmPassword) {
-            showErrorToast("Passwords do not match");
+            showErrorToast('Passwords do not match');
             return;
           }
           try {
@@ -402,12 +436,12 @@ const UserScreen = () => {
               conformPassword: confirmPassword,
             });
 
-            showSuccessToast("Password reset successfully");
+            showSuccessToast('Password reset successfully');
             setShowResetModal(false);
             setSelectedUserForReset(null);
           } catch (error) {
             console.error(error);
-            showErrorToast("Failed to reset password");
+            showErrorToast('Failed to reset password');
           }
         }}
       />
@@ -416,11 +450,11 @@ const UserScreen = () => {
         farms={farms}
         getUserRoles={getUserRoles}
         onClose={() => setShowAssignFarmModal(false)}
-        onSave={async (data) => {
+        onSave={async data => {
           if (!selectedRowUser) return;
 
           try {
-            const payload = Object.keys(data).map((farmId) => ({
+            const payload = Object.keys(data).map(farmId => ({
               businessUnitId: farmId,
               userRoleId: data[farmId]?.roleId ?? null,
               isChecked: data[farmId]?.checked ?? false,
@@ -428,15 +462,50 @@ const UserScreen = () => {
 
             await updateUserBusinessUnits(selectedRowUser.id, payload);
 
-            showSuccessToast("Farms & roles updated successfully");
+            showSuccessToast('Farms & roles updated successfully');
             setShowAssignFarmModal(false);
             fetchUsers();
           } catch (error) {
             console.error(error);
-            showErrorToast("Failed to assign farms");
+            showErrorToast('Failed to assign farms');
           }
         }}
       />
+      {profileVisible && selectedProfile && (
+        <ProfileModal
+          visible={profileVisible}
+          type="user"
+          data={selectedProfile}
+          onClose={() => {
+            setProfileVisible(false);
+            setSelectedProfile(null);
+          }}
+          onSave={async updated => {
+            try {
+              const res = await updateUser({
+                userId: updated.id,
+                fullName: updated.name,
+                email: updated.email, // backend required hai is liye bhej rahe
+              });
+
+              // UI update
+              setUsers(prev =>
+                prev.map(u =>
+                  u.id === updated.id ? { ...u, name: updated.name } : u,
+                ),
+              );
+
+              showSuccessToast(res?.message || 'Updated successfully');
+            } catch {
+              showErrorToast('Failed to update user');
+            } finally {
+              setProfileVisible(false);
+              setSelectedProfile(null);
+            }
+          }}
+        />
+      )}
+
       <LoadingOverlay visible={loading} />
     </View>
   );

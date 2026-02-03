@@ -153,3 +153,30 @@ export const updateUserBusinessUnits = async (
 
   return response.data;
 };
+
+interface UpdateUserPayload {
+  userId: string;
+  fullName: string;
+  email?: string;
+}
+
+export const updateUser = async (payload: UpdateUserPayload) => {
+  try {
+    const response = await api.put(
+      `api/User/update-user/${payload.userId}`,
+      {
+        fullName: payload.fullName,
+        email: payload.email,
+      },
+    );
+
+    console.log('Update User Response:', response.data);
+    return response.data; 
+  } catch (error: any) {
+    console.error(
+      'Update User Error',
+      error.response || error.message,
+    );
+    throw error;
+  }
+};

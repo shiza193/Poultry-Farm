@@ -320,3 +320,279 @@ export const deleteEmployeeType = async (employeeTypeId: number) => {
     throw error;
   }
 };
+
+
+
+
+// ================= UPDATE EMPLOYEE TYPE STATUS =================
+export const updateEmployeeTypeIsActive = async (
+  employeeTypeId: number,
+  isActive: boolean
+): Promise<void> => {
+  try {
+    await api.put(
+      `api/Master/update-employee-type-isActive/${employeeTypeId}`,
+      null,
+      {
+        params: { isActive },
+      }
+    );
+    console.log(`EmployeeType ID ${employeeTypeId} updated to ${isActive ? 'Active' : 'Inactive'}`);
+  } catch (error: any) {
+    console.error('Error updating employee type status:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+// ================= UPDATE FEED STATUS =================
+export const updateFeedIsActive = async (
+  feedId: number,
+  isActive: boolean
+): Promise<void> => {
+  try {
+    await api.put(
+      `api/Master/update-feed-isActive/${feedId}`,
+      null,
+      {
+        params: { isActive },
+      }
+    );
+    console.log(`Feed ID ${feedId} updated to ${isActive ? 'Active' : 'Inactive'}`);
+  } catch (error: any) {
+    console.error('Error updating feed status:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+
+
+// ================= ADD VACCINE =================
+export interface AddVaccinePayload {
+  name: string;
+}
+
+export interface AddVaccineResponse {
+  status: string;
+  message: string;
+  data: {
+    vaccineId: number;
+    name: string;
+    isActive: boolean;
+    createdAt: string;
+  };
+}
+
+export const addVaccine = async (
+  payload: AddVaccinePayload
+): Promise<AddVaccineResponse> => {
+  try {
+    const response = await api.post<AddVaccineResponse>(
+      'api/Master/add-vaccine',
+      payload
+    );
+
+    if (response.data.status === 'Success') {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || 'Failed to add vaccine');
+    }
+  } catch (error: any) {
+    console.error('Error adding vaccine:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+
+
+// ================= DELETE VACCINE =================
+export const deleteVaccine = async (vaccineId: number): Promise<void> => {
+  try {
+    await api.delete(`api/Master/delete-vaccine${vaccineId}`);
+    console.log(`Vaccine ID ${vaccineId} deleted successfully`);
+  } catch (error: any) {
+    console.error(
+      'Error deleting vaccine:',
+      error?.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+
+
+export const updateVaccineIsActive = async (vaccineId: number, isActive: boolean) => {
+  try {
+    const response = await api.put(
+      `api/Master/update-vaccine-isActive/${vaccineId}?isActive=${isActive}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update vaccine status:', error);
+    throw error;
+  }
+};
+
+
+
+// edit
+
+
+interface EditUnitPayload {
+  unitId: number;
+  value: string;
+  productTypeId: number;
+}
+
+
+interface EditUnitApiResponse {
+  status: string;
+  message: string;
+  data: {
+    unitId: number;
+    value: string;
+    productTypeId: number;
+    isActive: boolean;
+  };
+}
+
+export const editUnit = async (
+  payload: EditUnitPayload,
+): Promise<EditUnitApiResponse> => {
+  try {
+    const response = await api.put<EditUnitApiResponse>(
+      'api/Master/edit-unit',
+      payload,
+    );
+
+    return response.data; 
+  } catch (err: any) {
+    console.error(
+      'Error editing unit:',
+      err?.response?.data || err.message,
+    );
+    throw err;
+  }
+};
+
+
+
+// Interface for payload
+interface EditFeedPayload {
+  feedId: number;
+  name: string;
+}
+
+// Interface for API response
+interface EditFeedApiResponse {
+  status: string;
+  message: string;
+  data: {
+    feedId: number;
+    name: string;
+    isActive: boolean;
+    createdAt: string;
+  };
+}
+
+// API function
+export const editFeed = async (
+  payload: EditFeedPayload,
+): Promise<EditFeedApiResponse> => {
+  try {
+    const response = await api.put<EditFeedApiResponse>(
+      'api/Master/update-feed',
+      payload,
+    );
+
+    return response.data; 
+  } catch (err: any) {
+    console.error(
+      'Error editing feed:',
+      err?.response?.data || err.message,
+    );
+    throw err;
+  }
+};
+
+
+// Payload interface
+interface EditEmployeePayload {
+  employeeTypeId: number;
+  name: string;
+}
+
+// API response interface
+interface EditEmployeeApiResponse {
+  status: string;
+  message: string;
+  data: {
+    employeeTypeId: number;
+    name: string;
+    isActive: boolean;
+    createdAt: string;
+  };
+}
+
+// API function
+export const editEmployeeType = async (
+  payload: EditEmployeePayload,
+): Promise<EditEmployeeApiResponse> => {
+  try {
+    const response = await api.put<EditEmployeeApiResponse>(
+      'api/Master/edit-employee-type',
+      payload,
+    );
+
+    return response.data; 
+  } catch (err: any) {
+    console.error(
+      'Error editing employee type:',
+      err?.response?.data || err.message,
+    );
+    throw err;
+  }
+};
+
+
+
+// Payload interface
+interface EditVaccinePayload {
+  vaccineId: number;
+  name: string;
+}
+
+// API response interface
+interface EditVaccineApiResponse {
+  status: string;
+  message: string;
+  data: {
+    vaccineId: number;
+    name: string;
+    isActive: boolean;
+    createdAt: string;
+  };
+}
+
+// API function
+export const editVaccine = async (
+  payload: EditVaccinePayload,
+): Promise<EditVaccineApiResponse> => {
+  try {
+    const response = await api.put<EditVaccineApiResponse>(
+      'api/Master/update-vaccine',
+      payload,
+    );
+
+    return response.data; 
+  } catch (err: any) {
+    console.error(
+      'Error editing vaccine:',
+      err?.response?.data || err.message,
+    );
+    throw err;
+  }
+};

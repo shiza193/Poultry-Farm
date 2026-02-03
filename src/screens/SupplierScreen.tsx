@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
+  FlatList,
   StyleSheet,
+  ScrollView,
+  Alert,
   Image,
-  TouchableOpacity, Text
+  TouchableOpacity,
+  Text,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -12,6 +16,8 @@ import {
   addParty,
   updatePartyIsActive,
 } from '../services/PartyService';
+import { useRoute } from '@react-navigation/native';
+
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import StatusToggle from '../components/common/StatusToggle';
 import { TableColumn } from '../components/customCards/DataCard';
@@ -24,7 +30,7 @@ import { useBusinessUnit } from '../context/BusinessContext';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 import Header from '../components/common/Header';
 import ProfileModal from '../components/customPopups/ProfileModal';
-import { useFocusEffect } from '@react-navigation/native';
+import BackArrow from '../components/common/BackArrow';
 
 type User = {
   id: string;
@@ -37,6 +43,9 @@ type User = {
 };
 
 const SupplierScreen = () => {
+  const route = useRoute<any>();
+  const fromMenu = route.params?.fromMenu === true;
+  const farmBU = route.params?.businessUnitId ?? null; // NEW: get farm BU if opened from menu
   const { businessUnitId } = useBusinessUnit();
   const insets = useSafeAreaInsets();
 
@@ -50,11 +59,13 @@ const SupplierScreen = () => {
 
   const [open, setOpen] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
+
   // All suppliers fetched from API
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedBU, setSelectedBU] = useState<string | null>(null);
+
+  const [selectedBU, setSelectedBU] = useState<string | null>(fromMenu ? farmBU : null); // NEW: lock BU if fromMenu
 
   // ================= FETCH SUPPLIERS =================
   const fetchUsers = async () => {
@@ -67,8 +78,11 @@ const SupplierScreen = () => {
         pageNumber: 1,
         pageSize: 100,
         partyTypeId: 1,
+        businessUnitId: fromMenu ? farmBU : null, // NEW: fetch only farm suppliers if fromMenu
       };
+
       const data = await getPartyBySearchAndFilter(payload);
+
       if (data?.list && Array.isArray(data.list)) {
         const mappedUsers: User[] = data.list.map((item: any) => ({
           id: item.partyId,
@@ -96,11 +110,9 @@ const SupplierScreen = () => {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchUsers();
-    }, [])
-  );
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   // ================= FILTER LOGIC =================
   useEffect(() => {
@@ -128,14 +140,13 @@ const SupplierScreen = () => {
     address?: string;
   }) => {
     try {
-
       const payload = {
         name: formData.name.trim(),
         phone: formData.phone?.trim() || null,
         email: formData.email?.trim() || null,
         address: formData.address?.trim() || '',
         partyTypeId: 1,
-        businessUnitId: businessUnitId,
+        businessUnitId: selectedBU || businessUnitId,
       };
 
       const response = await addParty(payload);
@@ -149,7 +160,6 @@ const SupplierScreen = () => {
       console.error('ADD SUPPLIER ERROR:', error);
       const errMsg = error?.response?.data?.message || 'Failed to add supplier';
       showErrorToast('Error', errMsg);
-    } finally {
     }
   };
 
@@ -167,8 +177,7 @@ const SupplierScreen = () => {
 
       showSuccessToast(
         'Success',
-        `Supplier has been ${!currentStatus ? 'activated' : 'deactivated'
-        } successfully`,
+        `Supplier has been ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
       );
     } catch (error: any) {
       console.error('Error updating status:', error);
@@ -180,7 +189,7 @@ const SupplierScreen = () => {
 
   // ================= RESET FILTERS =================
   const resetFilters = () => {
-    setSelectedBU(null);
+    setSelectedBU(fromMenu ? farmBU : null); // keep farm BU if fromMenu
     setStatus('all');
     setSearch('');
   };
@@ -215,11 +224,13 @@ const SupplierScreen = () => {
       setSelectedPartyId(null);
     }
   };
+
   const tableData = filteredUsers.map(u => ({
     ...u,
     status: u.isActive ? 'Active' : 'Inactive',
     raw: u,
   }));
+
   const columns: TableColumn[] = [
     {
       key: 'name',
@@ -227,6 +238,10 @@ const SupplierScreen = () => {
       width: 150,
       isTitle: true,
       showDots: true,
+      onDotsPress: row => {
+        setSelectedPartyId(row.id);
+        setDeleteModalVisible(true);
+      },
     },
     { key: 'email', title: 'EMAIL', width: 200 },
     { key: 'phone', title: 'PHONE', width: 140 },
@@ -243,15 +258,20 @@ const SupplierScreen = () => {
       ),
     },
   ];
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* ===== HEADER ===== */}
-      <Header
-        title="Suppliers"
-        onPressDots={() => setDotsMenuVisible(prev => !prev)}
-      />
+      {fromMenu ? (
+        <BackArrow title="Suppliers" showBack={true}
+          onAddNewPress={() => setShowAddModal(true)}
+        />
+      ) : (
+        <Header
+          title="Suppliers"
+          onPressDots={() => setDotsMenuVisible(prev => !prev)}
+        />
+      )}
 
-      {/* ===== DOTS MENU ===== */}
       {dotsMenuVisible && (
         <View style={styles.dotsMenu}>
           <TouchableOpacity
@@ -264,7 +284,7 @@ const SupplierScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-      {/* ===== DOT MENU ===== */}
+
       {showDotsMenu && (
         <View style={styles.dotsMenu}>
           <TouchableOpacity
@@ -283,47 +303,16 @@ const SupplierScreen = () => {
         status={status === 'all' ? null : status}
         onStatusChange={s => setStatus(s ?? 'all')}
         value={selectedBU}
-        onBusinessUnitChange={setSelectedBU}
+        onBusinessUnitChange={fromMenu ? undefined : setSelectedBU} 
         onReset={resetFilters}
+        hideBUDropdown={fromMenu}
       />
+
       <View style={{ flex: 1 }}>
-        {!loading && filteredUsers.length === 0 && (
-          <View
-            style={{
-              justifyContent: 'flex-start',
-              alignItems: 'flex-start',
-              marginTop: 50,
-            }}
-          >
-            <Image
-              source={Theme.icons.nodata}
-              style={{ width: 300, height: 360, marginBottom: 30 }}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+
         {tableData.length > 0 ? (
           <View style={{ flex: 1, paddingHorizontal: 16 }}>
-            <DataCard
-              columns={columns}
-              data={tableData}
-              itemsPerPage={5}
-              renderRowMenu={(row, closeMenu) => (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSelectedPartyId(row.id);
-                    setDeleteModalVisible(true);
-                    closeMenu();
-                  }}
-                  style={{ paddingVertical: 10 }}
-                >
-                  <Text style={{ color: 'red', fontWeight: '600' }}>
-                    Delete Supplier
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-
+            <DataCard columns={columns} data={tableData} itemsPerPage={5} />
           </View>
         ) : (
           !loading && (
@@ -333,7 +322,6 @@ const SupplierScreen = () => {
           )
         )}
 
-        {/* ===== ADD MODAL ===== */}
         <AddModal
           visible={showAddModal}
           type="customer"
@@ -342,7 +330,6 @@ const SupplierScreen = () => {
           onSave={handleAddSupplier}
         />
 
-        {/* ===== DELETE CONFIRMATION ===== */}
         <ConfirmationModal
           type="delete"
           visible={deleteModalVisible}
@@ -351,11 +338,8 @@ const SupplierScreen = () => {
           title="Are you sure you want to delete this supplier?"
         />
 
-        {/* ===== PROFILE MODAL ===== */}
-        {/* <ProfileModal visible={openProfile} onClose={() => setOpenProfile(false)} /> */}
+        <LoadingOverlay visible={loading} />
       </View>
-      {/* ===== LOADING ===== */}
-      <LoadingOverlay visible={loading} />
     </View>
   );
 };
@@ -363,11 +347,7 @@ const SupplierScreen = () => {
 export default SupplierScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.white,
-  },
-
+  container: { flex: 1, backgroundColor: Theme.colors.white },
   dotsMenu: {
     position: 'absolute',
     top: 50,
@@ -379,14 +359,10 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   menuText: { fontSize: 15, fontWeight: '600', color: Theme.colors.success },
-  noDataContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
+  noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
   noDataImage: {
-    width: 300,
-    height: 360,
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
   },
 });

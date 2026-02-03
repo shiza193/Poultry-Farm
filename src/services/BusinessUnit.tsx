@@ -2,24 +2,24 @@ import api from '../api/Api';
 
 export const deleteBusinessUnit = async (businessUnitId: string) => {
   try {
-    console.log('🗑️ Deleting BusinessUnit ID:', businessUnitId);
+    console.log(' Deleting BusinessUnit ID:', businessUnitId);
 
     const response = await api.delete(
       `api/BusinessUnit/delete-business-unit${businessUnitId}`,
     );
 
-    console.log('✅ Status:', response.status);
-    console.log('📦 Data:', response.data);
+    console.log(' Status:', response.status);
+    console.log(' Data:', response.data);
 
     return response.data;
   } catch (error: any) {
-    console.log('❌ Delete Business Unit Error');
-
+    console.log(' Delete Business Unit Error');
+//agar backend ne error response bheja
     if (error.response) {
-      console.log('🔴 Status:', error.response.status);
-      console.log('🔴 Data:', error.response.data);
+      console.log(' Status:', error.response.status);
+      console.log(' Data:', error.response.data);
     } else {
-      console.log('⚠️ Message:', error.message);
+      console.log(' Message:', error.message);
     }
 
     throw error;
@@ -156,23 +156,23 @@ export const getPoultryFarmSummary = async (businessUnitId: string, from: string
       payload
     );
 
-    console.log('✅ Poultry Farm Summary:', response.data);
+    console.log(' Poultry Farm Summary:', response.data);
 
     // Ensure the API returns the expected structure
     if (response.data && response.data.status === 'Success') {
       return response.data.data;
     }
 
-    console.warn('⚠️ Unexpected response format:', response.data);
+    console.warn(' Unexpected response format:', response.data);
     return null;
   } catch (error: any) {
-    console.error('❌ Error fetching Poultry Farm Summary');
+    console.error(' Error fetching Poultry Farm Summary');
 
     if (error.response) {
-      console.error('🔴 Status:', error.response.status);
-      console.error('🔴 Data:', error.response.data);
+      console.error(' Status:', error.response.status);
+      console.error(' Data:', error.response.data);
     } else {
-      console.error('⚠️ Message:', error.message);
+      console.error(' Message:', error.message);
     }
 
     throw error;

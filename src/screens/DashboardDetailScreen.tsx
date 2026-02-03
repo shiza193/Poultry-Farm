@@ -29,15 +29,33 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
   const [showToPicker, setShowToPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
-
   const fetchData = async () => {
     if (!businessUnitId) return;
+
     setLoading(true);
+
     const res = await getPoultryFarmSummary(
       businessUnitId,
       fromDate?.toISOString() || null,
       toDate?.toISOString() || null,
     );
+
+    console.log('===== POULTRY FARM SUMMARY =====');
+    console.log('Total Birds:', res?.totalBirds);
+    console.log('Remaining Birds:', res?.totalRemainingBirds);
+    console.log('Total Eggs Produced:', res?.totalEggsProduced);
+    console.log('Production % (API):', res?.totalEggsProductionsPercentage);
+
+    if (res?.totalEggsProduced && res?.totalEggsProductionsPercentage) {
+      const calculatedLayingBirds =
+        (res.totalEggsProduced * 100) / res.totalEggsProductionsPercentage;
+
+      console.log(
+        'Calculated Active Laying Birds:',
+        calculatedLayingBirds.toFixed(2),
+      );
+    }
+
     setData(res);
     setLoading(false);
   };
@@ -87,35 +105,45 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
     </View>
   );
 
+  // eggs = total eggs produced
+  // productionPercentage = API se aane wali % value (e.g. 66.67)
   const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
-    //   Agar production 0 ho → isZero = true.
-
-    // Agar production >0 ho → isZero = false.
+    //  Check: agar percentage null, undefined ya 0 ho
+    // is se hum safe rehte hain crash se
     const isZero = !productionPercentage || productionPercentage <= 0;
 
-    // Circle progress
-    const progress = isZero
-      ? 1 // full circle if
-      : Math.min(productionPercentage / 100, 1); // clamp to max 100%
+    //  Circle component percentage nahi leta
+    // wo 0 se 1 ke beech value leta hai
+    // is liye 66.67% → 0.6667 banane ke liye 100 se divide
+    // Math.min is liye taake value 1 (100%) se zyada na ho
+    const progress = isZero ? 0 : Math.min(productionPercentage / 100, 1);
 
-    // Conditional color: blue if 0%, green otherwise
+    //  Agar production 0 ho to blue color
+    // agar production > 0 ho to green color
     const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
 
     return (
+      //  Main card container
       <View style={styles.eggsProductionCard}>
+        {/* ===== LEFT SIDE : CIRCLE GRAPH ===== */}
         <View style={styles.leftBlock}>
           <View style={styles.circleWrapper}>
+            {/* Progress circle */}
             <Circle
-              size={95}
-              progress={progress}
-              thickness={6}
-              showsText={false}
-              color={circleColor}
-              unfilledColor={Theme.colors.grey}
-              borderWidth={0}
+              size={95} // Circle ka size
+              progress={progress} // 0–1 ke beech value (e.g. 0.6667)
+              thickness={6} // Circle ki line ki motai
+              showsText={false} // Default text hide
+              color={circleColor} // Filled part ka color
+              unfilledColor={Theme.colors.grey} // Empty part ka color
+              borderWidth={0} // Extra border disable
             />
+
+            {/* Circle ke beech ka text */}
             <View style={styles.circleCenterContent}>
               <Text style={styles.productionLabel}>Production</Text>
+
+              {/* Percentage value show ho rahi hai (as it is API se) */}
               <Text style={[styles.productionValue, { color: circleColor }]}>
                 {productionPercentage ?? 0}%
               </Text>
@@ -130,8 +158,11 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
           </View>
         </View>
 
+        {/* ===== RIGHT SIDE : TOTAL EGGS ===== */}
         <View style={styles.rightBlock}>
           <Text style={styles.eggsLabel}>Total Eggs</Text>
+
+          {/* Total eggs value */}
           <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
         </View>
       </View>
