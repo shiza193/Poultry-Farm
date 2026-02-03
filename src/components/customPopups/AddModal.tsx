@@ -475,6 +475,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   User Role<Text style={styles.required}>*</Text>
                 </Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
                   open={roleOpen}
                   value={role}
                   items={roleItems || []}
@@ -560,6 +561,7 @@ const AddModal: React.FC<AddModalProps> = ({
                       Business Units<Text style={styles.required}>*</Text>
                     </Text>
                     <DropDownPicker
+                      listMode="SCROLLVIEW"
                       open={buOpen}
                       value={businessUnit}
                       items={buItems}
@@ -620,6 +622,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   Type<Text style={styles.required}>*</Text>
                 </Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
                   open={typeOpen}
                   value={selectedEmployeeTypeId} // ✅ ID
                   items={typeItems} // value = employeeTypeId
@@ -646,6 +649,7 @@ const AddModal: React.FC<AddModalProps> = ({
                       Poultry Farm<Text style={styles.required}>*</Text>
                     </Text>
                     <DropDownPicker
+                      listMode="SCROLLVIEW"
                       open={buOpen}
                       value={businessUnit}
                       items={buItems}
