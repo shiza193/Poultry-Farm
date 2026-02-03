@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import Theme from '../../theme/Theme';
 import ConfirmationModal from '../customPopups/ConfirmationModal';
 import { CustomConstants } from '../../constants/CustomConstants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface HeaderProps {
   title: string;
@@ -22,6 +23,20 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
   const [showDots, setShowDots] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+
+  
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
+      });
+    } catch (error) {
+      console.log('Logout failed', error);
+    }
+  };
   return (
     <>
       {/* ===== TOP BAR ===== */}
@@ -105,10 +120,7 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
         visible={showLogoutModal}
         title="Are you sure you want to logout?"
         onClose={() => setShowLogoutModal(false)}
-        onConfirm={() => {
-          setShowLogoutModal(false);
-          // logout logic here
-        }}
+         onConfirm={handleLogout}
       />
     </>
   );

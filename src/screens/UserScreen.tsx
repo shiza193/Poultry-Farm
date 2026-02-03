@@ -536,14 +536,10 @@ const styles = StyleSheet.create({
     color: Theme.colors.success,
   },
 
-  noDataContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
+  noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
   noDataImage: {
-    width: 300,
-    height: 360,
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
   },
 });

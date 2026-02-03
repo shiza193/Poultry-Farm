@@ -19,6 +19,8 @@ import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { getPoultryFarmSummary } from '../services/BusinessUnit';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { CustomConstants } from '../constants/CustomConstants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 
 const DashboardDetailScreen = ({ navigation, route }: any) => {
   const { businessUnitId, farmName, farmLocation } = useBusinessUnit();
@@ -26,6 +28,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -87,6 +90,18 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
     );
   };
 
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
+      });
+    } catch (error) {
+      console.log('Logout failed', error);
+    }
+  };
   const InlineRowWithDividers = ({ stats }: any) => (
     <View style={styles.inlineRow}>
       {stats.map((stat: any, index: number) => (
@@ -254,7 +269,10 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
             <View style={styles.dotsMenu}>
               <TouchableOpacity
                 style={styles.dotsMenuItem}
-                onPress={() => setIsDotsMenuVisible(false)}
+                onPress={() => {
+                  setIsDotsMenuVisible(false);
+                  setShowLogoutModal(true);
+                }}
               >
                 <View style={styles.menuItemRow}>
                   <Image
@@ -264,6 +282,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
                   <Text style={styles.dotsMenuText}>Logout</Text>
                 </View>
               </TouchableOpacity>
+
               <View style={styles.menuDivider} />
               <TouchableOpacity
                 style={styles.dotsMenuItem}
@@ -436,6 +455,13 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
             />
           </View>
         )}
+        <ConfirmationModal
+          type="logout"
+          visible={showLogoutModal}
+          title="Are you sure you want to logout?"
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleLogout}
+        />
       </ScrollView>
     </SafeAreaView>
   );

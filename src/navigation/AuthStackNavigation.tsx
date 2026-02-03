@@ -26,6 +26,7 @@ import EmployeeScreen from "../screens/EmployeeScreen";
 import SupplierScreen from "../screens/SupplierScreen";
 import PoultryDetailTab from "./PoultryDetailTab";
 import SettingsScreen from "../screens/more/SettingsScreen";
+import SignupScreen from "../screens/auth/SignupScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +44,11 @@ const AuthStackNavigation = () => {
         name={CustomConstants.LOGIN_SCREEN}
         component={LoginScreen}
       />
+        <Stack.Screen
+        name={CustomConstants.SIGN_UP_SCREEN}
+        component={SignupScreen}
+      />
+      
        <Stack.Screen
         name={CustomConstants.USER_SCREEN}
         component={UserScreen}
@@ -95,34 +101,12 @@ const AuthStackNavigation = () => {
         name={CustomConstants.MAIN_LAYOUT}
         component={MainLayout}
       />
-          <Stack.Screen
-        name={CustomConstants.EGG_PRODUCTION_SCREEN}
-        component={EggProductionScreen}
-      />
-       <Stack.Screen
-        name={CustomConstants.EGG_SALE_SCREEN}
-        component={EggSaleScreen}
-      />
-       <Stack.Screen
-        name={CustomConstants.EGG_STOCK_SCREEN}
-        component={EggStockScreen}
-      />
+     
         <Stack.Screen
         name={CustomConstants.ABOUT_US_SCREEN}
         component={AboutUsScreen}
       />
-        <Stack.Screen
-        name={CustomConstants.VACCINATIONS_SCREEN}
-        component={VaccinationsScreen}
-      />
-         <Stack.Screen
-        name={CustomConstants.VACCINATION_STOCK_SCREEEN}
-        component={VaccinationStockScreen}
-      />
-         <Stack.Screen
-        name={CustomConstants.VACCINE_SCHEDULE_SCREEN}
-        component={VaccineScheduleScreen}
-      />
+      
        <Stack.Screen
         name={CustomConstants.EMPLOYEE_SCREEN}
         component={EmployeeScreen}

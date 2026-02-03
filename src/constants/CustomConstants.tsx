@@ -32,7 +32,7 @@ export const CustomConstants = {
   VACCINATIONS_SCREEN: "VaccinationsScreen",
   VACCINE_SCHEDULE_SCREEN: "VaccineScheduleScreen",
   VACCINATION_STOCK_SCREEEN: "VaccinationStockScreen",
-
+SIGN_UP_SCREEN:"SignUpScreen",
 } as const;
 
 // ScreenType only includes tabs that MainLayout handles

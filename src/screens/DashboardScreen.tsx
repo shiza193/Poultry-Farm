@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../components/common/Header';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   deleteBusinessUnit,
@@ -103,6 +104,19 @@ const DashboardScreen = () => {
   useEffect(() => {
     fetchUserRoles();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
+      });
+    } catch (error) {
+      console.log('Logout failed', error);
+    }
+  };
 
   const mapBusinessUnitToFarm = (
     item: any,
@@ -388,8 +402,9 @@ const DashboardScreen = () => {
           visible={showLogoutModal}
           title="Are you sure you want to logout?"
           onClose={() => setShowLogoutModal(false)}
-          onConfirm={() => {}}
+          onConfirm={handleLogout}
         />
+
         <ConfirmationModal
           type="delete"
           visible={showDeleteModal}

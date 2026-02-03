@@ -38,3 +38,38 @@ export const loginUser = async (payload: { email: string; password: string }) =>
   }
 };
 
+
+
+
+
+type RegisterPayload = {
+  fullName: string;
+  companyName: string;
+  email: string;
+  password: string;
+};
+
+export const registerUser = async (payload: RegisterPayload) => {
+  try {
+    console.log(" Register payload sent to API:", payload);
+
+    const response = await api.post(
+      "api/Account/register",
+      payload
+    );
+
+    console.log(" Register status:", response.status);
+    console.log(" Register response:", response.data);
+
+    return response.data;
+  } catch (err: any) {
+    console.log(" Register API error:", err.message);
+
+    if (err.response) {
+      console.log(" Status:", err.response.status);
+      console.log(" Data:", err.response.data);
+    }
+
+    throw err;
+  }
+};

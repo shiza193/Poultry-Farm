@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MenuItem = ({ title, icon, onPress }: any) => (
   <TouchableOpacity style={styles.item} onPress={onPress}>
@@ -41,6 +42,18 @@ const MenuListScreen = ({ navigation }: any) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
 
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
+      });
+    } catch (error) {
+      console.log('Logout failed', error);
+    }
+  };
   return (
     <SafeAreaView style={styles.safe}>
       <Header
@@ -97,7 +110,6 @@ const MenuListScreen = ({ navigation }: any) => {
           </View>
         </View>
       )}
-
       <ScrollView>
         {/* FEED */}
         <Section title="Feed">
@@ -155,7 +167,7 @@ const MenuListScreen = ({ navigation }: any) => {
             onPress={() =>
               navigation.navigate(CustomConstants.CUSTOMER_SCREEN, {
                 fromMenu: true,
-                businessUnitId: businessUnitId, 
+                businessUnitId: businessUnitId,
               })
             }
           />
@@ -166,7 +178,7 @@ const MenuListScreen = ({ navigation }: any) => {
             onPress={() =>
               navigation.navigate(CustomConstants.EMPLOYEE_SCREEN, {
                 fromMenu: true,
-                 businessUnitId: businessUnitId,
+                businessUnitId: businessUnitId,
               })
             }
           />
@@ -176,7 +188,7 @@ const MenuListScreen = ({ navigation }: any) => {
             onPress={() =>
               navigation.navigate(CustomConstants.SUPPILER_SCREEN, {
                 fromMenu: true,
-                 businessUnitId: businessUnitId,
+                businessUnitId: businessUnitId,
               })
             }
           />
@@ -199,10 +211,7 @@ const MenuListScreen = ({ navigation }: any) => {
         visible={showLogoutModal}
         title="Are you sure you want to logout?"
         onClose={() => setShowLogoutModal(false)}
-        onConfirm={() => {
-          setShowLogoutModal(false);
-          // logout logic here
-        }}
+        onConfirm={handleLogout}
       />
     </SafeAreaView>
   );

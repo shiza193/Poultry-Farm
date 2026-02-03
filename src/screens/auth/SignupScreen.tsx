@@ -7,20 +7,22 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from 'react-native';
 
 import InputField from '../../components/customInputs/Input';
 import PrimaryButton from '../../components/customButtons/customButtom';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { isValidEmail, isValidPassword } from '../../utils/validation';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { loginUser } from '../../services/AuthService';
+import { registerUser } from '../../services/AuthService';
 
 import styles from './style';
 import Theme from '../../theme/Theme';
 
-const LoginScreen = ({ navigation }: any) => {
+const SignupScreen = ({ navigation }: any) => {
+  const [companyName, setCompanyName] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,43 +38,57 @@ const LoginScreen = ({ navigation }: any) => {
     }
   };
 
-  AsyncStorage.getItem('token').then(t => console.log(' STORED TOKEN:', t));
-const isFormValid = email.trim().length > 0 && password.length > 0;
+  const isFormValid =
+    companyName.trim().length > 0 &&
+    name.trim().length > 0 &&
+    isValidEmail(email) &&
+    isValidPassword(password);
 
-const handleLogin = async () => {
-  Keyboard.dismiss();
+  const handleSignup = async () => {
+    Keyboard.dismiss();
 
-  if (!isValidEmail(email)) {
-    setEmailError('Enter a valid email address');
-    return;
-  }
+    if (!isFormValid) return;
 
-  if (!isValidPassword(password)) {
-    console.log('Invalid password');
-    return;
-  }
+    try {
+      setLoading(true);
 
-  try {
-    setLoading(true);
+      const payload = {
+        fullName: name,
+        companyName: companyName,
+        email: email,
+        password: password,
+      };
 
-    const res = await loginUser({ email, password });
+      console.log(' Signup payload:', payload);
 
-    const token = res?.token;
-    const userId = res?.userId;
+      const res = await registerUser(payload);
+      console.log(' Signup response:', res);
 
-    if (token) {
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('userId', userId?.toString() || '');
+      if (res?.status === 'Success') {
+        Alert.alert(
+          'Success',
+          'Account created successfully. Please login.',
+          [
+            {
+              text: 'OK',
+              onPress: () =>
+                navigation.replace(CustomConstants.LOGIN_SCREEN),
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.log(' Signup failed:', error);
 
-      navigation.replace(CustomConstants.DASHBOARD_TABS);
+      const errorMessage =
+        error?.response?.data?.message ||
+        'Something went wrong. Please try again.';
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.log('Login failed', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -80,7 +96,23 @@ const handleLogin = async () => {
         {/* Logo */}
         <Image source={Theme.icons.logo} style={styles.logo} />
 
-        <Text style={styles.title}>Welcome Back !</Text>
+        <Text style={styles.title}>Create an Account</Text>
+
+        {/* Company Name */}
+        <InputField
+          label="Company Name"
+          placeholder="Enter company"
+          value={companyName}
+          onChangeText={setCompanyName}
+        />
+
+        {/* Name */}
+        <InputField
+          label="Name"
+          placeholder="Enter name"
+          value={name}
+          onChangeText={setName}
+        />
 
         {/* Email */}
         <InputField
@@ -90,13 +122,15 @@ const handleLogin = async () => {
           onChangeText={setEmail}
           onBlur={handleEmailBlur}
         />
-        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+        {emailError ? (
+          <Text style={styles.errorText}>{emailError}</Text>
+        ) : null}
 
         {/* Password */}
         <View style={{ position: 'relative', width: '100%' }}>
           <InputField
             label="Password"
-            placeholder="*********"
+            placeholder="********"
             value={password}
             secureTextEntry={!showPassword}
             onChangeText={setPassword}
@@ -105,11 +139,7 @@ const handleLogin = async () => {
 
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
-            style={{
-              position: 'absolute',
-              right: 15,
-              top: 35,
-            }}
+            style={{ position: 'absolute', right: 15, top: 35 }}
           >
             <Image
               source={
@@ -123,13 +153,15 @@ const handleLogin = async () => {
           </TouchableOpacity>
         </View>
 
-        {/* Login Button */}
+        {/* Signup Button */}
         <PrimaryButton
-          title={loading ? 'Logging in...' : 'Login'}
-          onPress={handleLogin}
+          title={loading ? 'Creating account...' : 'Sign Up'}
+          onPress={handleSignup}
           disabled={!isFormValid || loading}
           style={
-            !isFormValid ? { backgroundColor: Theme.colors.buttonDisabled } : {}
+            !isFormValid
+              ? { backgroundColor: Theme.colors.buttonDisabled }
+              : {}
           }
           textStyle={{ color: Theme.colors.black }}
         />
@@ -141,12 +173,14 @@ const handleLogin = async () => {
             style={{ marginTop: 10 }}
           />
         )}
-        {/* Signup navigation */}
-        <View style={{ flexDirection: 'row', marginTop: 20 }}>
-          <Text style={{ color: '#555' }}>Not an account? </Text>
 
+        {/* Login navigation */}
+        <View style={{ flexDirection: 'row', marginTop: 20 }}>
+          <Text>Do you have an account? </Text>
           <TouchableOpacity
-            onPress={() => navigation.navigate(CustomConstants.SIGN_UP_SCREEN)}
+            onPress={() =>
+              navigation.navigate(CustomConstants.LOGIN_SCREEN)
+            }
           >
             <Text
               style={{
@@ -154,7 +188,7 @@ const handleLogin = async () => {
                 fontWeight: '600',
               }}
             >
-              Signup now
+              Please login
             </Text>
           </TouchableOpacity>
         </View>
@@ -163,4 +197,4 @@ const handleLogin = async () => {
   );
 };
 
-export default LoginScreen;
+export default SignupScreen;
