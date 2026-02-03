@@ -1,3 +1,4 @@
+
 const colors = {
   /* ===== Primary Theme ===== */
   primaryYellow: '#F9C74F',
@@ -29,6 +30,7 @@ const colors = {
   borderYellow: '#F9C74F',
   grey: '#B0B0B0',
   lightGrey: '#f5f5f5',
+  SeparatorColor:"#E3E3E3",
   /* ===== Poultry ===== */
   eggYellow: '#FFD60A',
   chickenBrown: '#8D5524',
@@ -58,7 +60,8 @@ const colors = {
    settinglines:'#DFF7E2',
 
    haedercolor:'#F4C430',
-  
+    lightgreen: '#f0fff0',
+
 };
 
 const icons = {

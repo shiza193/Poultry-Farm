@@ -9,7 +9,6 @@ import {
 import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
 import DropDownPicker from "react-native-dropdown-picker";
-import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import {
     getVaccinationSchedule, VaccinationSchedule,
     VaccinationSchedulePayload, updateVaccinationStatus, getVaccines,
@@ -41,13 +40,11 @@ const VaccineScheduleScreen: React.FC<Props> = ({
 
 }) => {
     const { businessUnitId } = useBusinessUnit();
-    const [loading, setLoading] = useState<boolean>(true);
     const [schedules, setSchedules] = useState<VaccinationSchedule[]>([]);
     const [searchText, setSearchText] = useState<string>("");
     const [tempSearch, setTempSearch] = useState<string>(""); const [flockOpen, setFlockOpen] = useState<boolean>(false);
     const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
     const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
-    const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
     const [vaccineItems, setVaccineItems] = useState<{ label: string; value: number }[]>([]);
     const [confirmationVisible, setConfirmationVisible] = useState(false);
     const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
@@ -78,6 +75,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     useFocusEffect(
         useCallback(() => {
             fetchSchedules();
+            setSelectedFlock(null);
         }, [searchText, selectedFlock, businessUnitId])
     );
 
@@ -105,7 +103,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
         };
         fetchVaccines();
     }, []);
-    const handleSaveSchedule = async (data: any) => {
+    const handleAddSchedule = async (data: any) => {
         if (!businessUnitId) {
             showErrorToast("Business Unit not found");
             return;
@@ -202,10 +200,10 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                             borderRadius: 6,
                             borderWidth: 2,
                             borderColor: row.isVaccinated
-                                ? Theme.colors.buttonPrimary
+                                ? Theme.colors.success
                                 : Theme.colors.borderColor,
                             backgroundColor: row.isVaccinated
-                                ? Theme.colors.buttonPrimary
+                                ? Theme.colors.success
                                 : "transparent",
                             alignItems: "center",
                             justifyContent: "center",
@@ -289,8 +287,6 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                     <View style={vsstyles.resetRow}>
                         <TouchableOpacity onPress={() => {
                             setSelectedFlock(null);
-                            setTempSearch("");
-                            setSearchText("");
                         }}>
                             <Text style={vsstyles.resetText}>Reset Filters</Text>
                         </TouchableOpacity>
@@ -343,7 +339,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                 title="Add Vaccine Schedule"
                 onClose={onCloseAddModal}
                 onSave={(data) => {
-                    handleSaveSchedule(data);
+                    handleAddSchedule(data);
                     onCloseAddModal();
                 }}
                 vaccineItems={vaccineItems}

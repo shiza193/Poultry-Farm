@@ -33,49 +33,6 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
     friendIcon: { width: 30, height: 30, resizeMode: "contain" },
-    dotsOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 99999,
-    },
-    dotsMenu: {
-        position: 'absolute',
-        top: 50,
-        right: 20,
-        backgroundColor: Theme.colors.white,
-        borderRadius: 10,
-        padding: 10,
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-    },
-    dotsMenuItemCustom: {
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-    },
-    menuItemRowCustom: { flexDirection: "row", alignItems: "center" },
-    circleIcon: {
-        width: 35,
-        height: 35,
-        borderRadius: 18,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 10,
-    },
-    menuIconCustom: {
-        width: 18,
-        height: 18,
-        resizeMode: "contain",
-    },
-    dotsMenuText: {
-        fontSize: 16,
-        color: Theme.colors.textPrimary,
-    },
     filterRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -136,12 +93,13 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "flex-end",
         paddingHorizontal: 16,
-        marginTop: 6,
+        marginTop: 4,
         marginBottom: 4,
     },
     resetText: {
         color: Theme.colors.error,
         fontSize: 13,
+        marginRight: 5,
         fontWeight: "500",
     },
 });
@@ -166,11 +124,6 @@ export const vsstyles = StyleSheet.create({
         fontSize: 20,
         fontWeight: "bold",
         color: Theme.colors.black,
-    },
-    dotsIcon: {
-        width: 22, height: 22, tintColor: Theme.colors.black,
-        borderColor: Theme.colors.borderColor,
-        marginRight: 20
     },
     // ===== SEARCH + DROPDOWN ROW =====
     filterRow: {
@@ -207,60 +160,12 @@ export const vsstyles = StyleSheet.create({
     },
     dropdownContainer: { borderColor: Theme.colors.success },
     dropdownText: { color: Theme.colors.black },
-
-    // ===== DOTS MENU =====
-    dotsOverlay: {
-        position: "absolute",
-        top: 50,
-        right: 20,
-        left: 0,
-        bottom: 0,
-        zIndex: 3000,
-    },
-    dotsMenu: {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: 160,
-        backgroundColor: Theme.colors.white,
-        borderRadius: 6,
-        shadowColor: Theme.colors.black,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 5,
-        paddingVertical: 6,
-        zIndex: 3000,
-    },
-    circleIcon: {
-        width: 35,
-        height: 35,
-        borderRadius: 18,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 10,
-    },
-    menuIconCustom: {
-        width: 18,
-        height: 18,
-        resizeMode: "contain",
-    },
-    dotsMenuItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        padding: 12,
-    },
-    dotsMenuText: {
-        fontSize: 14,
-        color: Theme.colors.black,
-    },
     resetRow: {
         flexDirection: "row",
         justifyContent: "flex-end",
         paddingHorizontal: 16,
-        marginTop: 6,
+        marginTop: 4,
     },
-
     resetText: {
         fontSize: 13,
         fontWeight: "500",

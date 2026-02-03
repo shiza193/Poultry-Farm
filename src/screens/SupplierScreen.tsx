@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
-  ScrollView,
-  Alert,
   Image,
   TouchableOpacity, Text
 } from 'react-native';
@@ -27,6 +24,7 @@ import { useBusinessUnit } from '../context/BusinessContext';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 import Header from '../components/common/Header';
 import ProfileModal from '../components/customPopups/ProfileModal';
+import { useFocusEffect } from '@react-navigation/native';
 
 type User = {
   id: string;
@@ -56,7 +54,6 @@ const SupplierScreen = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-
   const [selectedBU, setSelectedBU] = useState<string | null>(null);
 
   // ================= FETCH SUPPLIERS =================
@@ -71,9 +68,7 @@ const SupplierScreen = () => {
         pageSize: 100,
         partyTypeId: 1,
       };
-
       const data = await getPartyBySearchAndFilter(payload);
-
       if (data?.list && Array.isArray(data.list)) {
         const mappedUsers: User[] = data.list.map((item: any) => ({
           id: item.partyId,
@@ -101,9 +96,11 @@ const SupplierScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsers();
+    }, [])
+  );
 
   // ================= FILTER LOGIC =================
   useEffect(() => {
@@ -230,10 +227,6 @@ const SupplierScreen = () => {
       width: 150,
       isTitle: true,
       showDots: true,
-      onDotsPress: (row) => {
-        setSelectedPartyId(row.id);
-        setDeleteModalVisible(true);
-      },
     },
     { key: 'email', title: 'EMAIL', width: 200 },
     { key: 'phone', title: 'PHONE', width: 140 },
@@ -293,62 +286,76 @@ const SupplierScreen = () => {
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
       />
-        <View style={{ flex: 1 }}>
-          {!loading && filteredUsers.length === 0 && (
-            <View
-              style={{
-                justifyContent: 'flex-start',
-                alignItems: 'flex-start',
-                marginTop: 50,
-              }}
-            >
-              <Image
-                source={Theme.icons.nodata}
-                style={{ width: 300, height: 360, marginBottom: 30 }}
-                resizeMode="contain"
-              />
-            </View>
-          )}
-      {tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>
-          <DataCard
-            columns={columns}
-            data={tableData}
-            itemsPerPage={5}
-          />
-        </View>
-      ) : (
-        !loading && (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+      <View style={{ flex: 1 }}>
+        {!loading && filteredUsers.length === 0 && (
+          <View
+            style={{
+              justifyContent: 'flex-start',
+              alignItems: 'flex-start',
+              marginTop: 50,
+            }}
+          >
+            <Image
+              source={Theme.icons.nodata}
+              style={{ width: 300, height: 360, marginBottom: 30 }}
+              resizeMode="contain"
+            />
           </View>
-        )
-      )}
+        )}
+        {tableData.length > 0 ? (
+          <View style={{ flex: 1, paddingHorizontal: 16 }}>
+            <DataCard
+              columns={columns}
+              data={tableData}
+              itemsPerPage={5}
+              renderRowMenu={(row, closeMenu) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedPartyId(row.id);
+                    setDeleteModalVisible(true);
+                    closeMenu();
+                  }}
+                  style={{ paddingVertical: 10 }}
+                >
+                  <Text style={{ color: 'red', fontWeight: '600' }}>
+                    Delete Supplier
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
 
-      {/* ===== ADD MODAL ===== */}
-      <AddModal
-        visible={showAddModal}
-        type="customer"
-        title="Add Supplier"
-        onClose={() => setShowAddModal(false)}
-        onSave={handleAddSupplier}
-      />
+          </View>
+        ) : (
+          !loading && (
+            <View style={styles.noDataContainer}>
+              <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+            </View>
+          )
+        )}
 
-      {/* ===== DELETE CONFIRMATION ===== */}
-      <ConfirmationModal
-        type="delete"
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
-        onConfirm={handleConfirmDelete}
-        title="Are you sure you want to delete this supplier?"
-      />
+        {/* ===== ADD MODAL ===== */}
+        <AddModal
+          visible={showAddModal}
+          type="customer"
+          title="Add Supplier"
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddSupplier}
+        />
 
-      {/* ===== PROFILE MODAL ===== */}
-      {/* <ProfileModal visible={openProfile} onClose={() => setOpenProfile(false)} /> */}
+        {/* ===== DELETE CONFIRMATION ===== */}
+        <ConfirmationModal
+          type="delete"
+          visible={deleteModalVisible}
+          onClose={() => setDeleteModalVisible(false)}
+          onConfirm={handleConfirmDelete}
+          title="Are you sure you want to delete this supplier?"
+        />
 
+        {/* ===== PROFILE MODAL ===== */}
+        {/* <ProfileModal visible={openProfile} onClose={() => setOpenProfile(false)} /> */}
+      </View>
       {/* ===== LOADING ===== */}
       <LoadingOverlay visible={loading} />
-    </View>
     </View>
   );
 };
@@ -356,9 +363,10 @@ const SupplierScreen = () => {
 export default SupplierScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1,
+  container: {
+    flex: 1,
     backgroundColor: Theme.colors.white,
-    },
+  },
 
   dotsMenu: {
     position: 'absolute',

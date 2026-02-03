@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 
 import Header from '../components/common/Header';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
@@ -45,7 +45,6 @@ const EmployeeScreen = () => {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
-  const [rowModalVisible, setRowModalVisible] = useState(false);
   const [openRowDotsId, setOpenRowDotsId] = useState<string | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const pageSize = 50;
@@ -78,10 +77,11 @@ const EmployeeScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchEmployees();
-  }, [search, status, selectedBU]);
-
+  useFocusEffect(
+    useCallback(() => {
+      fetchEmployees();
+    }, [selectedBU])
+  );
   // ================= FILTER =================
   const filteredEmployees = employees.filter(emp => {
     if (status === 'active' && emp.status !== 'Active') return false;
@@ -190,7 +190,7 @@ const EmployeeScreen = () => {
     setSelectedBU(null);
   };
 
-const tableData = filteredEmployees.map(emp => ({ ...emp }));
+  const tableData = filteredEmployees.map(emp => ({ ...emp }));
 
   // ================= UI =================
   return (
@@ -214,7 +214,7 @@ const tableData = filteredEmployees.map(emp => ({ ...emp }));
       )}
 
       {/* ===== TOP BAR ===== */}
-    <TopBarCard
+      <TopBarCard
         searchValue={search}
         onSearchChange={setSearch}
         status={status === 'all' ? null : status}
@@ -232,7 +232,7 @@ const tableData = filteredEmployees.map(emp => ({ ...emp }));
             renderRowMenu={(row, closeMenu) => (
               <TouchableOpacity
                 onPress={() => {
-                  setSelectedEmployeeId(row.employeeId); 
+                  setSelectedEmployeeId(row.employeeId);
                   setDeleteModalVisible(true);
                   closeMenu();
                 }}

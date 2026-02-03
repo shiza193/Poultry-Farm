@@ -1,63 +1,48 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, } from 'react-native';
 import Theme from '../../theme/Theme';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
-import PdfButton from '../../components/customButtons/PdfButton';
+import { useBusinessUnit } from "../../context/BusinessContext";
+import { useFocusEffect } from '@react-navigation/native';
+import { getEggStock, EggStock } from '../../services/EggsService';
 
-const EggStockScreen = () => {
-  const handlePdfPress = () => {
-    console.log('PDF button pressed!');
+type Props = {
+  openAddModal: boolean;
+  onCloseAddModal: () => void;
+  setGlobalLoading: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+const EggStockScreen: React.FC<Props> = ({ setGlobalLoading }) => {
+  const [eggStockData, setEggStockData] = useState<EggStock[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const { businessUnitId } = useBusinessUnit();
+
+  const columns: TableColumn[] = [
+    { key: 'unit', title: 'UNIT', width: 80, isTitle: true },
+    { key: 'totalProduced', title: 'PRODUCED', width: 90 },
+    { key: 'totalSold', title: 'SOLD', width: 90 },
+    { key: 'availableStock', title: 'STOCK', width: 80 },
+  ];
+
+  const fetchEggStock = async () => {
+    if (!businessUnitId) return;
+    setGlobalLoading(true);
+    const data = await getEggStock(businessUnitId);
+    setEggStockData(data);
+    setGlobalLoading(false);
   };
 
-  // ✅ TABLE DATA
-  const eggStockData = [
-    {
-      unit: 'Eggs',
-      totalProduced: 12000,
-      totalSold: 8500,
-      availableStock: 3500,
-    },
-  ];
-
-  // ✅ TABLE COLUMNS
-  const columns: TableColumn[] = [
-    {
-      key: 'unit',
-      title: 'UNIT',
-      width: 120,
-      isTitle: true,
-    },
-    {
-      key: 'totalProduced',
-      title: 'PRODUCED',
-      width: 150,
-    },
-    {
-      key: 'totalSold',
-      title: 'SOLD',
-      width: 120,
-    },
-    {
-      key: 'availableStock',
-      title: 'STOCK',
-      width: 150,
-    },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      fetchEggStock();
+    }, [businessUnitId])
+  );
 
   return (
     <View style={styles.container}>
-      {/* PDF BUTTON */}
-      <View style={styles.buttonContainer}>
-        <PdfButton title="Download Excel Report" onPress={handlePdfPress} />
-      </View>
 
-      {/* TABLE */}
-      <View style={{ paddingHorizontal: 12 }}>
-        <DataCard
-          columns={columns}
-          data={eggStockData}
-          itemsPerPage={10}
-        />
+      <View style={{ paddingHorizontal: 16 }}>
+        <DataCard columns={columns} data={eggStockData} itemsPerPage={10} />
       </View>
     </View>
   );
@@ -66,15 +51,5 @@ const EggStockScreen = () => {
 export default EggStockScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Theme.colors.white,
-    paddingTop: 40,
-  },
-  buttonContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 20,
-    paddingHorizontal: 8,
-    marginTop: -12,
-  },
+  container: { flex: 1, backgroundColor: Theme.colors.white, paddingTop: 40 },
 });

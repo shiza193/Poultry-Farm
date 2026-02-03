@@ -117,6 +117,7 @@ const VaccinationMainScreen = () => {
                                 <Text style={styles.dotsMenuText}>+ Add New</Text>
                             </TouchableOpacity>
                         )}
+                        <View style={styles.menuSeparator} />
 
                         {/* EXPORT DATA - vaccination or stock */}
                         {(activeTab === "vaccination" || activeTab === "stock") && (
@@ -136,6 +137,7 @@ const VaccinationMainScreen = () => {
                                 </View>
                             </TouchableOpacity>
                         )}
+                        <View style={styles.menuSeparator} />
 
                         {/* LOGOUT - har jagah dikhe */}
                         <TouchableOpacity
@@ -156,6 +158,7 @@ const VaccinationMainScreen = () => {
                                 </Text>
                             </View>
                         </TouchableOpacity>
+                        <View style={styles.menuSeparator} />
 
                         {/* BACK TO ADMIN - har jagah dikhe */}
                         <TouchableOpacity
@@ -250,10 +253,10 @@ const styles = StyleSheet.create({
     dotsMenu: {
         position: 'absolute',
         top: 50,
-        right: 37,
+        right: 30,
         backgroundColor: Theme.colors.white,
         borderRadius: 10,
-        padding: 10,
+        padding: 5,
         elevation: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -282,6 +285,11 @@ const styles = StyleSheet.create({
         height: 16,
         marginRight: 10,
         tintColor: Theme.colors.textPrimary,
+    },
+    menuSeparator: {
+        height: 1,
+        backgroundColor: Theme.colors.SeparatorColor,
+        marginHorizontal: 8,
     },
     logoutIcon: {
         width: 16,

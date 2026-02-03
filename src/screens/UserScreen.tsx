@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -8,8 +8,7 @@ import {
   Text,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
-
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import Header from '../components/common/Header';
 import TopBarCard from '../components/customCards/TopBarCard';
 
@@ -28,7 +27,6 @@ import AddModal from '../components/customPopups/AddModal';
 import Theme from '../theme/Theme';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
-import { useBusinessUnit } from '../context/BusinessContext';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import StatusToggle from '../components/common/StatusToggle';
@@ -47,9 +45,7 @@ type User = {
 const UserScreen = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
-  const { businessUnitId: contextBU } = useBusinessUnit();
   const routeBusinessUnitId = route.params?.businessUnitId ?? null;
-
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [roleItems, setRoleItems] = useState<
@@ -61,7 +57,6 @@ const UserScreen = () => {
   );
   const [showAssignFarmModal, setShowAssignFarmModal] = useState(false);
   const [farms, setFarms] = useState<{ id: number, name: string }[]>([]);
-  const [rowModalVisible, setRowModalVisible] = useState(false);
   const [selectedRowUser, setSelectedRowUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
@@ -127,9 +122,11 @@ const UserScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, [search, status, selectedBU]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsers();
+    }, [search, status, selectedBU])
+  );
 
   // ================= FILTER =================
   const filteredUsers = users.filter(user => {
@@ -207,13 +204,14 @@ const UserScreen = () => {
       await deleteUser(selectedUserId);
       setUsers(prev => prev.filter(u => u.id !== selectedUserId));
       showSuccessToast('User deleted successfully');
-    } catch {
-      showErrorToast('Failed to delete user');
+    } catch (error: any) { 
+      const backendMessage = error?.response?.data?.message || error.message || 'Failed to delete user';
+      showErrorToast(backendMessage);
     } finally {
       setDeleteModalVisible(false);
       setSelectedUserId(null);
     }
-  };
+  }
   const handleAssignPoultry = async (user: User) => {
     try {
       setSelectedRowUser(user);
@@ -246,10 +244,6 @@ const UserScreen = () => {
       width: 110,
       isTitle: true,
       showDots: true,
-      onDotsPress: (row) => {
-        setSelectedRowUser(row.raw);
-        setRowModalVisible(true);
-      },
     },
     {
       key: "email",
@@ -296,75 +290,6 @@ const UserScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-      {/* ===== ROW ACTION MODAL ===== */}
-      {rowModalVisible && selectedRowUser && (
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 230,
-            left: 40,
-            right: 0,
-            bottom: 0,
-            justifyContent: "flex-start",
-            alignItems: "flex-start",
-            zIndex: 1000,
-          }}
-          activeOpacity={1}
-          onPress={() => setRowModalVisible(false)}
-        >
-          <View
-            style={{
-              backgroundColor: Theme.colors.white,
-              borderRadius: 8,
-              padding: 5,
-              minWidth: 140,
-              elevation: 10,
-            }}
-          >
-            <TouchableOpacity
-              style={{ paddingVertical: 10, paddingHorizontal: 10 }}
-              onPress={() => {
-                setDeleteModalVisible(true);
-                setRowModalVisible(false);
-              }}
-            >
-              <Text style={{ fontSize: 16, color: "red", fontWeight: '500' }}>
-                Delete
-              </Text>
-            </TouchableOpacity>
-            {/* Separator */}
-            <View style={{ height: 1, backgroundColor: Theme.colors.buttonPrimary, marginVertical: 2 }} />
-
-            <TouchableOpacity
-              style={{ paddingVertical: 10, paddingHorizontal: 10 }}
-              onPress={() => {
-                setSelectedUserForReset(selectedRowUser);
-                setShowResetModal(true);
-                setRowModalVisible(false);
-              }}
-            >
-              <Text style={{ fontSize: 16, color: Theme.colors.textPrimary, fontWeight: '500' }}>
-                Reset Password
-              </Text>
-            </TouchableOpacity>
-
-            {/* Separator */}
-            <View style={{ height: 1, backgroundColor: Theme.colors.buttonPrimary, marginVertical: 2 }} />
-
-            <TouchableOpacity
-              style={{ paddingVertical: 10, paddingHorizontal: 10 }}
-              onPress={() => {
-                handleAssignPoultry(selectedRowUser!);
-                setRowModalVisible(false);
-              }}
-            >
-              <Text style={{ fontSize: 16, color: Theme.colors.textPrimary, fontWeight: '500' }}>
-                Assign to Poultry
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      )}
 
       {/* ===== TOP BAR ===== */}
       <TopBarCard
@@ -383,7 +308,52 @@ const UserScreen = () => {
             columns={columns}
             data={tableData}
             itemsPerPage={5}
+            renderRowMenu={(row, closeMenu) => (
+              <View>
+                {/* DELETE */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedUserId(row.raw.id);
+                    setDeleteModalVisible(true);
+                    closeMenu();
+                  }}
+                  style={{ paddingVertical: 10 }}
+                >
+                  <Text style={{ color: 'red', fontWeight: '600' }}>
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+
+                {/* RESET PASSWORD */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedUserForReset(row.raw);
+                    setShowResetModal(true);
+                    closeMenu();
+                  }}
+                  style={{ paddingVertical: 10 }}
+                >
+                  <Text style={{ fontWeight: '500' }}>
+                    Reset Password
+                  </Text>
+                </TouchableOpacity>
+
+                {/* ASSIGN TO POULTRY */}
+                <TouchableOpacity
+                  onPress={() => {
+                    handleAssignPoultry(row.raw);
+                    closeMenu();
+                  }}
+                  style={{ paddingVertical: 10 }}
+                >
+                  <Text style={{ fontWeight: '500' }}>
+                    Assign to Poultry
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           />
+
         </View>
       ) : (
         !loading && (

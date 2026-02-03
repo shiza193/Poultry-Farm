@@ -6,6 +6,7 @@ import Theme from '../theme/Theme';
 import DashboardDetailScreen from '../screens/DashboardDetailScreen';
 import VaccinationMainScreen from './VaccinationTabs';
 import MenuListScreen from '../screens/more/MenuListScreen';
+import EggMainScreen from './EggTabs';
 
 const Tab = createBottomTabNavigator();
 
@@ -80,7 +81,7 @@ const PoultryDetailTab = () => (
 
     <Tab.Screen
       name="Eggs"
-      children={() => <EmptyScreen name="Eggs" />}
+      children={() => <EggMainScreen />}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text

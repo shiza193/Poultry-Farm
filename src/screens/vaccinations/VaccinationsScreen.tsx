@@ -56,6 +56,7 @@ const VaccinationsScreen: React.FC<Props> = ({
     useFocusEffect(
         useCallback(() => {
             fetchVaccinationsData();
+            setSupplierValue(null);
         }, [businessUnitId])
     );
 
@@ -217,8 +218,6 @@ const VaccinationsScreen: React.FC<Props> = ({
                 <View style={styles.resetRow}>
                     <TouchableOpacity onPress={() => {
                         setSupplierValue(null);
-                        setTempSearch("");
-                        setSearchText("");
                     }}>
                         <Text style={styles.resetText}>Reset Filters</Text>
                     </TouchableOpacity>

@@ -18,13 +18,16 @@ import DateTimePicker, {
 
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
+import { getFlockTotalEggs } from '../../services/EggsService';
 
 type ModalType =
   | 'user'
   | 'customer'
   | 'employee'
   | 'vaccination'
-  | 'vaccination Schedule';
+  | 'vaccination Schedule'
+  | 'Egg production'
+  | 'Egg sale';
 
 interface AddModalProps {
   visible: boolean;
@@ -36,7 +39,13 @@ interface AddModalProps {
   vaccineItems?: { label: string; value: number }[];
   supplierItems?: { label: string; value: string }[];
   flockItems?: { label: string; value: string }[];
+  customerItems?: { label: string; value: string }[];
+  unitItems?: { label: string; value: number }[];
 
+  // ✅ Add this line
+  setUnitItems?: React.Dispatch<
+    React.SetStateAction<{ label: string; value: number }[]>
+  >;
   isEdit?: boolean;
   initialData?: any;
   hidePoultryFarm?: boolean;
@@ -52,6 +61,8 @@ const AddModal: React.FC<AddModalProps> = ({
   roleItems,
   vaccineItems,
   flockItems,
+  unitItems,
+  customerItems,
   supplierItems,
   isEdit = false,
   initialData = null,
@@ -135,7 +146,37 @@ const AddModal: React.FC<AddModalProps> = ({
     }
   }, [type, isEdit, initialData, visible]);
   const [passwordError, setPasswordError] = useState('');
+  /* ===== Eggs States ===== */
+  const [intactEggs, setIntactEggs] = useState<string>("");
+  const [brokenEggs, setBrokenEggs] = useState<string>("");
+  const totalEggs =
+    (Number(intactEggs) || 0) + (Number(brokenEggs) || 0);
+  const [unitOpen, setUnitOpen] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<number | null>(null);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  /* ===== Egg Sale ===== */
+  const [trayCount, setTrayCount] = useState('');
+  const [eggCount, setEggCount] = useState('');
+  const [trayError, setTrayError] = useState('');
+  const [eggError, setEggError] = useState('');
+  const [flockEggs, setFlockEggs] = useState<{ trays: number; eggs: number; patti: number } | null>(null);
+  const [loadingFlockEggs, setLoadingFlockEggs] = useState(false);
 
+  useEffect(() => {
+    const fetchFlockEggs = async () => {
+      if (selectedFlock) {
+        setLoadingFlockEggs(true);
+        const data = await getFlockTotalEggs(selectedFlock);
+        setFlockEggs(data);
+        setLoadingFlockEggs(false);
+      } else {
+        setFlockEggs(null);
+      }
+    };
+
+    fetchFlockEggs();
+  }, [selectedFlock]);
   useEffect(() => {
     if (type === 'employee') {
       const fetchEmployeeTypes = async () => {
@@ -208,6 +249,43 @@ const AddModal: React.FC<AddModalProps> = ({
 
       setIsSaveEnabled(isValid);
     }
+    if (type === 'Egg production') {
+      const isValid =
+        selectedFlock !== null &&
+        selectedUnit !== null &&
+        endDate !== null;
+
+      setIsSaveEnabled(isValid);
+    }
+    if (type === 'Egg sale') {
+      const tray = Number(trayCount);
+      const eggs = Number(eggCount);
+
+      let valid = true;
+
+      if (trayCount !== '' && (tray < 0 || tray > 11)) {
+        setTrayError('Tray should be in given range 0 to 11');
+        valid = false;
+      } else {
+        setTrayError('');
+      }
+
+      if (eggCount !== '' && (eggs < 1 || eggs > 29)) {
+        setEggError('Egg should be in given range 1 to 29');
+        valid = false;
+      } else {
+        setEggError('');
+      }
+      console.log("unitItems in modal:", unitItems);
+
+      setIsSaveEnabled(
+        selectedCustomer !== null &&
+        selectedFlock !== null &&
+        endDate !== null &&
+        price.trim().length > 0 &&
+        valid
+      );
+    }
   }, [
     type,
     name,
@@ -222,6 +300,10 @@ const AddModal: React.FC<AddModalProps> = ({
     supplier,
     quantity,
     vaccinationDate,
+    selectedFlock,
+    endDate,
+    price,
+    selectedCustomer,
   ]);
 
   const reset = () => {
@@ -293,6 +375,28 @@ const AddModal: React.FC<AddModalProps> = ({
         quantity,
       });
     }
+    else if (type === 'Egg production') {
+      onSave({
+        flockId: selectedFlock,
+        unitId: selectedUnit,
+        intactEggs: Number(intactEggs),
+        brokenEggs: Number(brokenEggs),
+        totalEggs,
+        date: endDate,
+      });
+    }
+    else if (type === 'Egg sale') {
+      onSave({
+        customerId: selectedCustomer,
+        flockId: selectedFlock,
+        unitId: selectedUnit,
+        trays: Number(trayCount),
+        eggs: Number(eggCount),
+        pricePerTray: Number(price),
+        date: endDate,
+        note,
+      });
+    }
     reset();
     onClose();
   };
@@ -309,19 +413,20 @@ const AddModal: React.FC<AddModalProps> = ({
             keyboardShouldPersistTaps="handled"
           >
             {/* NAME */}
-            {type !== 'vaccination' && type !== 'vaccination Schedule' && (
-              <>
-                <Text style={styles.label}>
-                  Name<Text style={styles.required}>*</Text>
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter name..."
-                  value={name}
-                  onChangeText={setName}
-                />
-              </>
-            )}
+            {type !== 'vaccination' && type !== 'vaccination Schedule' &&
+              type !== 'Egg production' && type !== 'Egg sale' && (
+                <>
+                  <Text style={styles.label}>
+                    Name<Text style={styles.required}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter name..."
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </>
+              )}
 
             {/* USER */}
             {type === 'user' && (
@@ -568,6 +673,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   Vaccine<Text style={styles.required}>*</Text>
                 </Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
                   open={vaccineOpen}
                   value={vaccine}
                   items={vaccineItems || []}
@@ -623,6 +729,8 @@ const AddModal: React.FC<AddModalProps> = ({
                   Supplier<Text style={styles.required}>*</Text>
                 </Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
+
                   open={supplierOpen}
                   value={supplier}
                   items={supplierItems || []}
@@ -684,6 +792,8 @@ const AddModal: React.FC<AddModalProps> = ({
                 {/* VACCINE */}
                 <Text style={styles.label}>Vaccine Name</Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
+
                   open={vaccineOpen}
                   value={vaccine}
                   items={vaccineItems || []}
@@ -725,6 +835,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   Flock<Text style={styles.required}>*</Text>
                 </Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
                   open={flockOpen}
                   value={selectedFlock}
                   items={flockItems || []}
@@ -742,6 +853,261 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={quantity}
                   onChangeText={setQuantity}
                   keyboardType="numeric"
+                />
+              </>
+            )}
+            {type === 'Egg production' && (
+              <>
+                {/* FLOCK */}
+                <Text style={styles.label}>
+                  Flock<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={flockOpen}
+                  value={selectedFlock}
+                  items={flockItems || []}
+                  setOpen={setFlockOpen}
+                  setValue={setSelectedFlock}
+                  placeholder="Select flock..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+
+                {/* DATE */}
+                <Text style={styles.label}>Date</Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {endDate ? endDate.toLocaleDateString() : 'mm/dd/yyyy'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+
+                {showEndPicker && (
+                  <DateTimePicker
+                    value={endDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(_, date) => {
+                      setShowEndPicker(false);
+                      if (date) setEndDate(date);
+                    }}
+                  />
+                )}
+                {/* Units */}
+                <Text style={styles.label}>
+                  Unit<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={unitOpen}
+                  value={selectedUnit}
+                  items={unitItems || []}
+                  setOpen={setUnitOpen}
+                  setValue={setSelectedUnit}
+                  placeholder="Select unit..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* INTACT EGGS */}
+                <Text style={styles.label}>Intact Eggs</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={intactEggs}
+                  onChangeText={setIntactEggs}
+                  placeholder="Enter intact eggs"
+                />
+
+                {/* BROKEN EGGS */}
+                <Text style={styles.label}>Broken Eggs</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={brokenEggs}
+                  onChangeText={setBrokenEggs}
+                  placeholder="Enter broken eggs"
+                />
+
+                {/* TOTAL EGGS (NON-EDITABLE) */}
+                <Text style={styles.label}>Total Eggs</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: '#f2f2f2' }]}
+                  value={String(totalEggs)}
+                  editable={false}
+                />
+              </>
+            )}
+            {type === 'Egg sale' && (
+              <>
+                {/* CUSTOMER */}
+                <Text style={styles.label}>
+                  Customer<Text style={styles.required}>*</Text>
+                </Text>
+
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={customerOpen}
+                  value={selectedCustomer}
+                  items={customerItems || []}
+                  setOpen={setCustomerOpen}
+                  setValue={setSelectedCustomer}
+                  placeholder="Select customer..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* DATE */}
+                <Text style={styles.label}>Date</Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {endDate ? endDate.toLocaleDateString() : 'mm/dd/yyyy'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+
+                {showEndPicker && (
+                  <DateTimePicker
+                    value={endDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(_, date) => {
+                      setShowEndPicker(false);
+                      if (date) setEndDate(date);
+                    }}
+                  />
+                )}
+                {/* FLOCK */}
+                <Text style={styles.label}>
+                  Flock<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={flockOpen}
+                  value={selectedFlock}
+                  items={flockItems || []}
+                  setOpen={setFlockOpen}
+                  setValue={setSelectedFlock}
+                  placeholder="Select flock..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* PRICE */}
+                <Text style={styles.label}>Price</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter price..."
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="numeric"
+                />
+                {/* Units */}
+                <Text style={styles.label}>
+                  Unit in Gram<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={unitOpen}
+                  value={selectedUnit}
+                  items={unitItems || []}
+                  setOpen={setUnitOpen}
+                  setValue={setSelectedUnit}
+                  placeholder="Select unit"
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* PRICE PER TRAY */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                  <Text style={styles.label}>Patti</Text>
+                  {selectedFlock && (
+                    <View style={styles.stockPill}>
+                      <Text style={styles.stockPillText}>
+                        STOCK: {flockEggs?.patti || 0}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter patti..."
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="numeric"
+                />
+
+                {/* TRAYS */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                  <Text style={styles.label}>Trays</Text>
+                  {selectedFlock && (
+                    <View style={styles.stockPill}>
+                      <Text style={styles.stockPillText}>
+                        STOCK: {flockEggs?.trays || 0}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={trayCount}
+                  onChangeText={text => {
+                    setTrayCount(text);
+                  }}
+                  placeholder="Enter trays..."
+                />
+                {trayError ? (
+                  <Text style={{ color: 'red', fontSize: 12, marginBottom: 6 }}>
+                    {trayError}
+                  </Text>
+                ) : null}
+
+                {/* EGGS */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                  <Text style={styles.label}>Eggs</Text>
+                  {selectedFlock && (
+                    <View style={styles.stockPill}>
+                      <Text style={styles.stockPillText}>
+                        STOCK: {flockEggs?.eggs || 0}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={eggCount}
+                  onChangeText={text => {
+                    setEggCount(text);
+
+                    const eggs = Number(text);
+
+                    if (text !== '' && (eggs < 1 || eggs > 29)) {
+                      setEggError('Egg should be in given range 1 to 29');
+                    } else {
+                      setEggError('');
+                    }
+                  }}
+                  placeholder="Enter eggs..."
+                />
+                {eggError ? (
+                  <Text style={{ color: 'red', fontSize: 12, marginBottom: 6 }}>
+                    {eggError}
+                  </Text>
+                ) : null}
+
+                {/* NOTE (OPTIONAL) */}
+                <Text style={styles.label}>Note</Text>
+                <TextInput
+                  style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
+                  placeholder="Enter note..."
+                  multiline
+                  value={note}
+                  onChangeText={setNote}
                 />
               </>
             )}
@@ -783,7 +1149,7 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     width: '90%',
-      maxHeight: '85%',  
+    maxHeight: '85%',
     backgroundColor: Theme.colors.white,
     borderRadius: 12,
     padding: 20,
@@ -892,11 +1258,24 @@ const styles = StyleSheet.create({
   radioSelected: {
     backgroundColor: Theme.colors.primaryYellow,
   },
-
   radioTick: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: Theme.colors.white,
+  },
+  stockPill: {
+    borderColor: Theme.colors.success,
+    borderWidth: 1,
+    backgroundColor: Theme.colors.lightgreen,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  stockPillText: {
+    color: Theme.colors.success,
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 });
