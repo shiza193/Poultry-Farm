@@ -135,7 +135,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
 
     //  Agar production 0 ho to blue color
     // agar production > 0 ho to green color
-    const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
+    const circleColor = isZero ? Theme.colors.grey : Theme.colors.success;
 
     return (
       //  Main card container
@@ -194,7 +194,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
   }: any) => {
     // Determine color based on innerValue
     const isZero = !innerValue || innerValue <= 0;
-    const circleColor = isZero ? Theme.colors.blue : Theme.colors.success;
+    const circleColor = isZero ? Theme.colors.grey : Theme.colors.success;
 
     // Progress clamped between 0 and 1
     const progress = total ? Math.min(Math.max(innerValue / total, 0), 1) : 1;
