@@ -46,6 +46,7 @@ interface AddModalProps {
   setUnitItems?: React.Dispatch<
     React.SetStateAction<{ label: string; value: number }[]>
   >;
+hideBusinessUnit?: boolean;
   isEdit?: boolean;
   initialData?: any;
   hidePoultryFarm?: boolean;
@@ -66,8 +67,10 @@ const AddModal: React.FC<AddModalProps> = ({
   supplierItems,
   isEdit = false,
   initialData = null,
-  hidePoultryFarm = false,
+   hidePoultryFarm = false,
+  hideBusinessUnit = false, 
   defaultBusinessUnitId = null,
+ 
 }) => {
   /* ===== COMMON ===== */
   const [name, setName] = useState('');
@@ -216,16 +219,16 @@ const AddModal: React.FC<AddModalProps> = ({
     }
 
     // ===== USER =====
-    if (type === 'user') {
-      const isValid =
-        name.trim().length > 0 &&
-        role !== null &&
-        isValidEmail(email) &&
-        isValidPassword(password);
+     if (type === 'user') {
+    const isValid =
+      name.trim().length > 0 &&
+      role !== null &&
+      isValidEmail(email) &&
+      isValidPassword(password);
 
-      setIsSaveEnabled(isValid);
-      return;
-    }
+    setIsSaveEnabled(isValid);
+    return;
+  }
     if (type === 'vaccination') {
       const isValid =
         vaccine !== null &&
@@ -236,9 +239,12 @@ const AddModal: React.FC<AddModalProps> = ({
       return;
     }
     // ===== CUSTOMER =====
-    if (type === 'customer') {
-      setIsSaveEnabled(name.trim().length > 0 && businessUnit !== null);
-    }
+   if (type === 'customer') {
+  const isValid =
+    name.trim().length > 0 &&
+    (hideBusinessUnit ? true : businessUnit !== null);
+  setIsSaveEnabled(isValid);
+}
     // ADD THIS FOR VACCINATION SCHEDULE
     if (type === 'vaccination Schedule') {
       const isValid =
@@ -512,64 +518,67 @@ const AddModal: React.FC<AddModalProps> = ({
             )}
 
             {/* CUSTOMER */}
-            {type === 'customer' && (
-              <>
-                {/* BUSINESS UNIT */}
-                <Text style={styles.label}>
-                  Business Units<Text style={styles.required}>*</Text>
-                </Text>
-                <DropDownPicker
-                  open={buOpen}
-                  value={businessUnit}
-                  items={buItems}
-                  setOpen={setBuOpen}
-                  setValue={setBusinessUnit}
-                  setItems={setBuItems}
-                  placeholder="Select business unit..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
-                />
+          {type === 'customer' && (
+  <>
+    {!hideBusinessUnit && (
+      <>
+        <Text style={styles.label}>
+          Business Units<Text style={styles.required}>*</Text>
+        </Text>
+        <DropDownPicker
+          open={buOpen}
+          value={businessUnit}
+          items={buItems}
+          setOpen={setBuOpen}
+          setValue={setBusinessUnit}
+          setItems={setBuItems}
+          placeholder="Select business unit..."
+          style={styles.dropdown}
+          dropDownContainerStyle={styles.dropdownContainer}
+        />
+      </>
+    )}
 
-                {/* PHONE */}
-                <Text style={styles.label}>Phone No</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="03XX-XXXXXXX"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                />
+    {/* PHONE */}
+    <Text style={styles.label}>Phone No</Text>
+    <TextInput
+      style={styles.input}
+      placeholder="03XX-XXXXXXX"
+      keyboardType="phone-pad"
+      value={phone}
+      onChangeText={setPhone}
+    />
 
-                {/* EMAIL */}
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter email..."
-                  value={email}
-                  onChangeText={text => {
-                    setEmail(text);
-                    if (text && !isValidEmail(text)) {
-                      setEmailError('Enter a valid email');
-                    } else {
-                      setEmailError('');
-                    }
-                  }}
-                />
-                {emailError ? (
-                  <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
-                ) : null}
+    {/* EMAIL */}
+    <Text style={styles.label}>Email</Text>
+    <TextInput
+      style={styles.input}
+      placeholder="Enter email..."
+      value={email}
+      onChangeText={text => {
+        setEmail(text);
+        if (text && !isValidEmail(text)) {
+          setEmailError('Enter a valid email');
+        } else {
+          setEmailError('');
+        }
+      }}
+    />
+    {emailError ? (
+      <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
+    ) : null}
 
-                {/* ADDRESS */}
-                <Text style={styles.label}>Address</Text>
-                <TextInput
-                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                  placeholder="Enter address..."
-                  multiline
-                  value={address}
-                  onChangeText={setAddress}
-                />
-              </>
-            )}
+    {/* ADDRESS */}
+    <Text style={styles.label}>Address</Text>
+    <TextInput
+      style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+      placeholder="Enter address..."
+      multiline
+      value={address}
+      onChangeText={setAddress}
+    />
+  </>
+)}
 
             {type === 'employee' && (
               <>

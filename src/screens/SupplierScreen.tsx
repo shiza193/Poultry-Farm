@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, } from 'react';
 import {
   View,
   FlatList,
@@ -16,7 +16,7 @@ import {
   addParty,
   updatePartyIsActive,
 } from '../services/PartyService';
-import { useRoute } from '@react-navigation/native';
+import { useFocusEffect, useRoute, } from '@react-navigation/native';
 
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import StatusToggle from '../components/common/StatusToggle';
@@ -78,7 +78,7 @@ const SupplierScreen = () => {
         pageNumber: 1,
         pageSize: 100,
         partyTypeId: 1,
-        businessUnitId: fromMenu ? farmBU : null, // NEW: fetch only farm suppliers if fromMenu
+        businessUnitId: fromMenu ? farmBU : null,
       };
 
       const data = await getPartyBySearchAndFilter(payload);
@@ -110,9 +110,11 @@ const SupplierScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchUsers();
+    }, [fromMenu, farmBU])
+  );
 
   // ================= FILTER LOGIC =================
   useEffect(() => {
@@ -303,7 +305,7 @@ const SupplierScreen = () => {
         status={status === 'all' ? null : status}
         onStatusChange={s => setStatus(s ?? 'all')}
         value={selectedBU}
-        onBusinessUnitChange={fromMenu ? undefined : setSelectedBU} 
+        onBusinessUnitChange={fromMenu ? undefined : setSelectedBU}
         onReset={resetFilters}
         hideBUDropdown={fromMenu}
       />
@@ -337,9 +339,8 @@ const SupplierScreen = () => {
           onConfirm={handleConfirmDelete}
           title="Are you sure you want to delete this supplier?"
         />
-
-        <LoadingOverlay visible={loading} />
       </View>
+      <LoadingOverlay visible={loading} />
     </View>
   );
 };
