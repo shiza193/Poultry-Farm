@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBusinessUnit } from '../context/BusinessContext';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
+
 import Header from '../components/common/Header';
+import BackArrow from '../components/common/BackArrow';
 import TopBarCard from '../components/customCards/TopBarCard';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import AddModal from '../components/customPopups/AddModal';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
+import StatusToggle from '../components/common/StatusToggle';
+import ProfileModal, { ProfileData } from '../components/customPopups/ProfileModal';
+
 import Theme from '../theme/Theme';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 
@@ -20,11 +24,6 @@ import {
   deleteParty,
   updateParty,
 } from '../services/PartyService';
-
-import StatusToggle from '../components/common/StatusToggle';
-import ProfileModal, {
-  ProfileData,
-} from '../components/customPopups/ProfileModal';
 
 type User = {
   id: string;
@@ -38,12 +37,16 @@ type User = {
 };
 
 const CustomerScreen = () => {
+  const route = useRoute<any>();
+  const fromMenu = route.params?.fromMenu === true;
+  const farmBU = route.params?.businessUnitId ?? null;
+
   const insets = useSafeAreaInsets();
   const { businessUnitId: contextBU } = useBusinessUnit();
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [selectedBU, setSelectedBU] = useState<string | null>(null);
+  const [selectedBU, setSelectedBU] = useState<string | null>(farmBU);
   const [openRowDotsId, setOpenRowDotsId] = useState<string | null>(null);
 
   const [users, setUsers] = useState<User[]>([]);
@@ -71,7 +74,7 @@ const CustomerScreen = () => {
         pageNumber: currentPage,
         pageSize: itemsPerPage,
         partyTypeId: 0,
-        businessUnitId: selectedBU || null,
+        businessUnitId: selectedBU || null, // automatically filtered if opened from farm
       };
 
       const response = await getPartyBySearchAndFilter(payload);
@@ -124,6 +127,7 @@ const CustomerScreen = () => {
     }, [currentPage, search, status, selectedBU]),
   );
 
+  // ================= ADD CUSTOMER =================
   const handleAddCustomer = async (formData: {
     name: string;
     phone?: string | null;
@@ -157,6 +161,7 @@ const CustomerScreen = () => {
     }
   };
 
+  // ================= TOGGLE STATUS =================
   const handleToggleStatus = async (user: User) => {
     try {
       setLoading(true);
@@ -176,6 +181,7 @@ const CustomerScreen = () => {
     }
   };
 
+  // ================= DELETE CUSTOMER =================
   const handleConfirmDelete = async () => {
     if (!selectedUserId) return;
 
@@ -208,7 +214,7 @@ const CustomerScreen = () => {
   const resetFilters = () => {
     setSearch('');
     setStatus('all');
-    setSelectedBU(null);
+    if (!fromMenu) setSelectedBU(null); // keep BU filter if opened from farm
     setCurrentPage(1);
   };
 
@@ -252,11 +258,9 @@ const CustomerScreen = () => {
         </TouchableOpacity>
       ),
       onDotsPress: row => {
-        // toggle row menu open/close
         setOpenRowDotsId(prev => (prev === row.raw.id ? null : row.raw.id));
       },
     },
-
     { key: 'email', title: 'EMAIL', width: 130 },
     { key: 'phone', title: 'PHONE', width: 120 },
     { key: 'address', title: 'ADDRESS', width: 100 },
@@ -276,10 +280,14 @@ const CustomerScreen = () => {
   // ================= UI =================
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Header
-        title="Customers"
-        onPressDots={() => setShowDotsMenu(prev => !prev)}
-      />
+      {fromMenu ? (
+        <BackArrow title="Customers" showBack={true} />
+      ) : (
+        <Header
+          title="Customers"
+          onPressDots={() => setShowDotsMenu(prev => !prev)}
+        />
+      )}
 
       {showDotsMenu && (
         <View style={styles.dotsMenu}>
@@ -315,11 +323,12 @@ const CustomerScreen = () => {
             }}
           >
             <Text style={{ color: 'red', fontWeight: '600' }}>
-              Delete Customer{' '}
+              Delete Customer
             </Text>
           </TouchableOpacity>
         </View>
       )}
+
       {selectedUser && (
         <ProfileModal
           visible={showProfileModal}
@@ -329,7 +338,6 @@ const CustomerScreen = () => {
           onSave={async updatedData => {
             try {
               setLoading(true);
-
               const payload = {
                 name: updatedData.name.trim(),
                 email: updatedData.email?.trim() || null,
@@ -364,7 +372,7 @@ const CustomerScreen = () => {
         status={status === 'all' ? null : status}
         onStatusChange={s => setStatus(s ?? 'all')}
         value={selectedBU}
-        onBusinessUnitChange={setSelectedBU}
+        onBusinessUnitChange={fromMenu ? undefined : setSelectedBU} // lock BU if opened from farm
         onReset={resetFilters}
       />
 
@@ -424,7 +432,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.success,
   },
-  noDataContainer: { justifyContent: 'center', alignItems: 'center' },
+  noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
   noDataImage: {
     width: 290,
     height: 290,

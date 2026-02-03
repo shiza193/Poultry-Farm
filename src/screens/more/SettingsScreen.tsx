@@ -18,6 +18,7 @@ import BackArrow from '../../components/common/BackArrow';
 import {
   getUnitsWithFlag,
   getFeedsWithFlag,
+  updateEmployeeTypeIsActive,
   Feed,
   getEmployeeTypesWithFlag,
   getVaccinesWithFlag,
@@ -28,6 +29,14 @@ import {
   deleteFeed,
   addEmployeeType,
   deleteEmployeeType,
+  updateFeedIsActive,
+  addVaccine,
+  deleteVaccine,
+  updateVaccineIsActive,
+  editUnit,
+  editFeed,
+  editEmployeeType,
+  editVaccine,
 } from '../../services/SettingService';
 import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
 import LoadingOverlay from '../../components/loading/LoadingOverlay';
@@ -64,6 +73,8 @@ const SettingsScreen = () => {
   const [feedTypes, setFeedTypes] = useState<Feed[]>([]);
   const [employees, setEmployees] = useState<EmployeeType[]>([]);
   const [vaccines, setVaccines] = useState<VaccineType[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
@@ -79,8 +90,21 @@ const SettingsScreen = () => {
     row: any;
   } | null>(null);
 
-  const isLoading =
-    loading || loadingFeeds || loadingEmployees || loadingVaccines;
+  const isTabLoading = () => {
+    switch (activeTab) {
+      case 'Egg Units':
+        return loading;
+      case 'Feed Types':
+        return loadingFeeds;
+      case 'Employee Types':
+        return loadingEmployees;
+      case 'Vaccines':
+        return loadingVaccines;
+      default:
+        return false;
+    }
+  };
+
   const [showBusinessUnitModal, setShowBusinessUnitModal] = useState(false);
   const [modalData, setModalData] = useState<{
     title: string;
@@ -156,14 +180,12 @@ const SettingsScreen = () => {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchEggUnits();
-      fetchFeeds();
-      fetchEmployees();
-      fetchVaccines();
-    }, []),
-  );
+  useEffect(() => {
+    if (activeTab === 'Egg Units') fetchEggUnits();
+    else if (activeTab === 'Feed Types') fetchFeeds();
+    else if (activeTab === 'Employee Types') fetchEmployees();
+    else if (activeTab === 'Vaccines') fetchVaccines();
+  }, [activeTab]);
 
   // ===== TOGGLE STATUS =====
   const toggleEggStatus = async (unitId: number) => {
@@ -191,16 +213,99 @@ const SettingsScreen = () => {
     }
   };
 
+  // ===== TOGGLE EMPLOYEE STATUS =====
+  const toggleEmpStatus = async (id: string) => {
+    const currentEmp = employees.find(emp => emp.id === id);
+    if (!currentEmp) return;
+
+    const newStatus = currentEmp.status === 'Active' ? 'Inactive' : 'Active';
+
+    setEmployees(prev =>
+      prev.map(emp => (emp.id === id ? { ...emp, status: newStatus } : emp)),
+    );
+
+    try {
+      await updateEmployeeTypeIsActive(
+        currentEmp.empNo,
+        newStatus === 'Active',
+      );
+    } catch (error) {
+      console.error('Failed to update employee type status:', error);
+
+      // Revert UI on failure
+      setEmployees(prev =>
+        prev.map(emp =>
+          emp.id === id ? { ...emp, status: currentEmp.status } : emp,
+        ),
+      );
+    }
+  };
+
+  // ===== TOGGLE FEED STATUS =====
+  const toggleFeedStatus = async (id: number) => {
+    const currentFeed = feedTypes.find(f => f.feedId === id);
+    if (!currentFeed) return;
+
+    const newStatus = !currentFeed.isActive;
+
+    setFeedTypes(prev =>
+      prev.map(feed =>
+        feed.feedId === id ? { ...feed, isActive: newStatus } : feed,
+      ),
+    );
+
+    try {
+      await updateFeedIsActive(id, newStatus);
+    } catch (error) {
+      console.error('Failed to update feed status:', error);
+
+      setFeedTypes(prev =>
+        prev.map(feed =>
+          feed.feedId === id
+            ? { ...feed, isActive: currentFeed.isActive }
+            : feed,
+        ),
+      );
+    }
+  };
+
+  const toggleVaccineStatus = async (id: string) => {
+    const currentVaccine = vaccines.find(v => v.id === id);
+    if (!currentVaccine) return;
+
+    const newStatus =
+      currentVaccine.status === 'Active' ? 'Inactive' : 'Active';
+
+    setVaccines(prev =>
+      prev.map(v => (v.id === id ? { ...v, status: newStatus } : v)),
+    );
+
+    try {
+      await updateVaccineIsActive(
+        Number(currentVaccine.vaccineNo),
+        newStatus === 'Active',
+      );
+    } catch (error) {
+      console.error('Failed to update vaccine status:', error);
+
+      setVaccines(prev =>
+        prev.map(v =>
+          v.id === id ? { ...v, status: currentVaccine.status } : v,
+        ),
+      );
+    }
+  };
+
   // ===== DELETE HANDLER =====
   const [deleteType, setDeleteType] = useState<
-    'EggUnit' | 'Feed' | 'EmployeeType' | null
+    'EggUnit' | 'Feed' | 'EmployeeType' | 'Vaccine' | null
   >(null);
 
   const onDeletePress = (
     id: number | string,
-    type: 'EggUnit' | 'Feed' | 'EmployeeType',
+    type: 'EggUnit' | 'Feed' | 'EmployeeType' | 'Vaccine',
   ) => {
-    setSelectedUnitId(Number(id)); // Convert string ids to number if needed
+    setSelectedUnitId(Number(id));
     setDeleteType(type);
     setShowDeleteModal(true);
     setMenuPosition(null);
@@ -246,6 +351,22 @@ const SettingsScreen = () => {
       }
     }
 
+    if (deleteType === 'Vaccine') {
+      const previousVaccines = vaccines;
+      setVaccines(prev => prev.filter(v => v.id !== selectedUnitId.toString()));
+      setShowDeleteModal(false);
+
+      try {
+        await deleteVaccine(selectedUnitId);
+      } catch (error) {
+        console.error('Delete Vaccine failed:', error);
+        setVaccines(previousVaccines);
+      } finally {
+        setLoading(false);
+        setSelectedUnitId(null);
+        setDeleteType(null);
+      }
+    }
     if (deleteType === 'EmployeeType') {
       setLoading(true);
 
@@ -267,6 +388,25 @@ const SettingsScreen = () => {
         setDeleteType(null);
       }
     }
+  };
+
+  const onEditPress = (row: any) => {
+    setIsEditMode(true);
+    setEditItem(row);
+
+    setModalData({
+      title:
+        activeTab === 'Egg Units'
+          ? 'Edit Egg Unit'
+          : activeTab === 'Feed Types'
+          ? 'Edit Feed Type'
+          : activeTab === 'Employee Types'
+          ? 'Edit Employee Type'
+          : 'Edit Vaccine',
+      defaultValue: 0,
+    });
+
+    setShowBusinessUnitModal(true);
   };
 
   // ===== COLUMNS WITH DOTS MENU =====
@@ -314,14 +454,6 @@ const SettingsScreen = () => {
     },
   ];
 
-  const toggleFeedStatus = (id: number) => {
-    setFeedTypes(prev =>
-      prev.map(feed =>
-        feed.feedId === id ? { ...feed, isActive: !feed.isActive } : feed,
-      ),
-    );
-  };
-
   const feedColumns: TableColumn[] = [
     dotsColumn(
       row => row.feedId,
@@ -342,16 +474,6 @@ const SettingsScreen = () => {
       ),
     },
   ];
-
-  const toggleEmpStatus = (id: string) => {
-    setEmployees(prev =>
-      prev.map(emp =>
-        emp.id === id
-          ? { ...emp, status: emp.status === 'Active' ? 'Inactive' : 'Active' }
-          : emp,
-      ),
-    );
-  };
 
   const deleteEmployeeHandler = (id: string) =>
     setEmployees(prev => prev.filter(e => e.id !== id));
@@ -375,16 +497,6 @@ const SettingsScreen = () => {
       ),
     },
   ];
-
-  const toggleVaccineStatus = (id: string) => {
-    setVaccines(prev =>
-      prev.map(v =>
-        v.id === id
-          ? { ...v, status: v.status === 'Active' ? 'Inactive' : 'Active' }
-          : v,
-      ),
-    );
-  };
 
   const deleteVaccineHandler = (id: string) =>
     setVaccines(prev => prev.filter(v => v.id !== id));
@@ -440,67 +552,218 @@ const SettingsScreen = () => {
             singleFieldLabel={
               activeTab === 'Egg Units' ? 'Unit In Gram' : 'Name'
             }
-            singleFieldValue={''}
-            onClose={() => setShowBusinessUnitModal(false)}
+            singleFieldValue={
+              isEditMode
+                ? activeTab === 'Egg Units'
+                  ? editItem?.value
+                  : activeTab === 'Feed Types'
+                  ? editItem?.name
+                  : activeTab === 'Employee Types'
+                  ? editItem?.empName
+                  : editItem?.vaccineName
+                : ''
+            }
+            onClose={() => {
+              setShowBusinessUnitModal(false);
+              setIsEditMode(false);
+              setEditItem(null);
+            }}
             onSaveSingleField={async data => {
               try {
                 if (activeTab === 'Egg Units') {
-                  const payload = {
-                    value: data.value,
-                    productTypeId: 1,
-                    description: null,
-                  };
-                  const response = await addEggUnit(payload);
-                  const newUnit: EggUnit = {
-                    unitId: response.data.unitId,
-                    value: response.data.value,
-                    isActive: response.data.isActive,
-                    orderNumber: eggUnits.length + 1,
-                  };
-                  setEggUnits(prev => [...prev, newUnit]);
+                  if (isEditMode) {
+                    const previousUnits = eggUnits;
+
+                    setEggUnits(prev =>
+                      prev.map(unit =>
+                        unit.unitId === editItem.unitId
+                          ? { ...unit, value: data.value }
+                          : unit,
+                      ),
+                    );
+
+                    try {
+                      await editUnit({
+                        unitId: editItem.unitId,
+                        value: data.value,
+                        productTypeId: 1,
+                      });
+                    } catch (error) {
+                      console.error('Edit Egg Unit failed:', error);
+                      setEggUnits(previousUnits);
+                    }
+                  } else {
+                    const response = await addEggUnit({
+                      value: data.value,
+                      productTypeId: 1,
+                      description: null,
+                    });
+
+                    setEggUnits(prev => [
+                      ...prev,
+                      {
+                        unitId: response.data.unitId,
+                        value: response.data.value,
+                        isActive: response.data.isActive,
+                        orderNumber: prev.length + 1,
+                      },
+                    ]);
+                  }
                 }
+
                 if (activeTab === 'Feed Types') {
-                  try {
-                    const payload = { name: data.value };
-                    const response = await addFeed(payload);
+                  if (isEditMode) {
+                    const previousFeeds = feedTypes;
 
-                    const newFeed: Feed = {
-                      feedId: response.data.feedId,
-                      name: response.data.name,
-                      isActive: response.data.isActive,
-                      createdAt: response.data.createdAt,
-                    };
+                    setFeedTypes(prev =>
+                      prev.map(feed =>
+                        feed.feedId === editItem.feedId
+                          ? { ...feed, name: data.value }
+                          : feed,
+                      ),
+                    );
 
-                    setFeedTypes(prev => [...prev, newFeed]);
-                  } catch (error) {
-                    console.error('Failed to add Feed Type:', error);
+                    try {
+                      const res = await editFeed({
+                        feedId: editItem.feedId,
+                        name: data.value,
+                      });
+
+                      setFeedTypes(prev =>
+                        prev.map(feed =>
+                          feed.feedId === res.data.feedId
+                            ? {
+                                ...feed,
+                                name: res.data.name,
+                                isActive: res.data.isActive,
+                              }
+                            : feed,
+                        ),
+                      );
+                    } catch (error) {
+                      console.error('Edit Feed failed:', error);
+                      setFeedTypes(previousFeeds);
+                    }
+                  } else {
+                    const response = await addFeed({ name: data.value });
+
+                    setFeedTypes(prev => [
+                      ...prev,
+                      {
+                        feedId: response.data.feedId,
+                        name: response.data.name,
+                        isActive: response.data.isActive,
+                        createdAt: response.data.createdAt,
+                      },
+                    ]);
                   }
                 }
 
                 if (activeTab === 'Employee Types') {
-                  const response = await addEmployeeType({ name: data.value });
+                  if (isEditMode) {
+                    const previousEmployees = employees;
 
-                  const newEmp: EmployeeType = {
-                    id: response.data.employeeTypeId.toString(),
-                    empNo: employees.length + 1,
-                    empName: response.data.name,
-                    status: response.data.isActive ? 'Active' : 'Inactive',
-                  };
+                    setEmployees(prev =>
+                      prev.map(emp =>
+                        emp.id === editItem.id
+                          ? { ...emp, empName: data.value }
+                          : emp,
+                      ),
+                    );
 
-                  setEmployees(prev => [...prev, newEmp]);
+                    try {
+                      const res = await editEmployeeType({
+                        employeeTypeId: editItem.empNo,
+                        name: data.value,
+                      });
+
+                      setEmployees(prev =>
+                        prev.map(emp =>
+                          emp.id === res.data.employeeTypeId.toString()
+                            ? {
+                                ...emp,
+                                empName: res.data.name,
+                                status: res.data.isActive
+                                  ? 'Active'
+                                  : 'Inactive',
+                              }
+                            : emp,
+                        ),
+                      );
+                    } catch (error) {
+                      console.error('Edit Employee Type failed:', error);
+                      setEmployees(previousEmployees);
+                    }
+                  } else {
+                    const response = await addEmployeeType({
+                      name: data.value,
+                    });
+
+                    setEmployees(prev => [
+                      ...prev,
+                      {
+                        id: response.data.employeeTypeId.toString(),
+                        empNo: response.data.employeeTypeId,
+                        empName: response.data.name,
+                        status: response.data.isActive ? 'Active' : 'Inactive',
+                      },
+                    ]);
+                  }
                 }
-
                 if (activeTab === 'Vaccines') {
-                  const newVaccine: VaccineType = {
-                    id: Math.random().toString(),
-                    vaccineNo: vaccines.length + 1,
-                    vaccineName: data.value,
-                    status: 'Active',
-                  };
-                  setVaccines(prev => [...prev, newVaccine]);
+                  if (isEditMode) {
+                    const previousVaccines = vaccines;
+
+                    setVaccines(prev =>
+                      prev.map(v =>
+                        v.id === editItem.id
+                          ? { ...v, vaccineName: data.value }
+                          : v,
+                      ),
+                    );
+
+                    try {
+                      const res = await editVaccine({
+                        vaccineId: editItem.vaccineNo,
+                        name: data.value,
+                      });
+
+                      setVaccines(prev =>
+                        prev.map(v =>
+                          v.id === res.data.vaccineId.toString()
+                            ? {
+                                ...v,
+                                vaccineName: res.data.name,
+                                status: res.data.isActive
+                                  ? 'Active'
+                                  : 'Inactive',
+                              }
+                            : v,
+                        ),
+                      );
+                    } catch (error) {
+                      console.error('Edit Vaccine failed:', error);
+                      setVaccines(previousVaccines); // revert on fail
+                    }
+                  } else {
+                    // ➕ ADD vaccine (same as before)
+                    const response = await addVaccine({ name: data.value });
+
+                    setVaccines(prev => [
+                      ...prev,
+                      {
+                        id: response.data.vaccineId.toString(),
+                        vaccineNo: response.data.vaccineId,
+                        vaccineName: response.data.name,
+                        status: response.data.isActive ? 'Active' : 'Inactive',
+                      },
+                    ]);
+                  }
                 }
 
                 setShowBusinessUnitModal(false);
+                setIsEditMode(false);
+                setEditItem(null);
               } catch (error) {
                 console.error('Failed to add item:', error);
               }
@@ -508,41 +771,63 @@ const SettingsScreen = () => {
           />
         )}
       </View>
-      {menuPosition && (
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setMenuPosition(null)}
-        >
-          <View
-            style={[
-              styles.floatingMenu,
-              {
-                top: menuPosition.y + 3,
-                left: menuPosition.x - 1,
-              },
-            ]}
-          >
+      {menuPosition &&
+        (() => {
+          const { x, y, row } = menuPosition;
+
+          return (
             <TouchableOpacity
-              onPress={() => {
-                const row = menuPosition.row;
-
-                if ('unitId' in row) {
-                  onDeletePress(row.unitId, 'EggUnit');
-                } else if ('feedId' in row) {
-                  onDeletePress(row.feedId, 'Feed');
-                } else if ('empNo' in row) {
-                  onDeletePress(row.id, 'EmployeeType');
-                }
-
-                setMenuPosition(null);
-              }}
+              style={styles.overlay}
+              activeOpacity={1}
+              onPress={() => setMenuPosition(null)}
             >
-              <Text style={styles.dotsMenuText}>Delete</Text>
+              <View
+                style={[
+                  styles.floatingMenu,
+                  {
+                    top: y + 3,
+                    left: x - 1,
+                  },
+                ]}
+              >
+                {/* EDIT */}
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    onEditPress(row);
+                    setMenuPosition(null);
+                  }}
+                >
+                  <Text style={styles.menuText}>Edit</Text>
+                </TouchableOpacity>
+
+                <View style={styles.menuDivider} />
+
+                {/* DELETE */}
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    if ('unitId' in row) {
+                      onDeletePress(row.unitId, 'EggUnit');
+                    } else if ('feedId' in row) {
+                      onDeletePress(row.feedId, 'Feed');
+                    } else if ('empNo' in row) {
+                      onDeletePress(row.id, 'EmployeeType');
+                    } else if ('vaccineNo' in row) {
+                      onDeletePress(row.id, 'Vaccine');
+                    }
+
+                    setMenuPosition(null);
+                  }}
+                >
+                  <Text style={[styles.menuText, styles.deleteText]}>
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      )}
+          );
+        })()}
 
       <View style={styles.body}>
         <ScrollView
@@ -568,7 +853,6 @@ const SettingsScreen = () => {
           })}
         </ScrollView>
 
-        {/* CONTENT */}
         <View style={styles.contentContainer}>
           {activeTab === 'Egg Units' && (
             <DataCard columns={eggColumns} data={eggUnits} itemsPerPage={5} />
@@ -596,7 +880,15 @@ const SettingsScreen = () => {
       <ConfirmationModal
         type="delete"
         visible={showDeleteModal}
-        title="Are you sure you want to delete this item?"
+        title={
+          activeTab === 'Egg Units'
+            ? 'Are you sure you want to delete this Egg Unit?'
+            : activeTab === 'Feed Types'
+            ? 'Are you sure you want to delete this Feed Type?'
+            : activeTab === 'Employee Types'
+            ? 'Are you sure you want to delete this Employee Type?'
+            : 'Are you sure you want to delete this Vaccine?'
+        }
         onClose={() => {
           setShowDeleteModal(false);
           setSelectedUnitId(null);
@@ -605,7 +897,7 @@ const SettingsScreen = () => {
         onConfirm={confirmDeleteItem}
       />
 
-      <LoadingOverlay visible={isLoading}  />
+      <LoadingOverlay visible={isTabLoading()} />
     </SafeAreaView>
   );
 };
@@ -633,6 +925,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  activeTab: { backgroundColor: Theme.colors.feedGreen },
+  tabText: { fontSize: 16, color: Theme.colors.feedGreen, fontWeight: '600' },
+  activeTabText: { color: Theme.colors.white, fontWeight: '700' },
+
   overlay: {
     position: 'absolute',
     top: 0,
@@ -642,37 +938,34 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
 
+  // -------- Floating menu like FarmCard --------
   floatingMenu: {
     position: 'absolute',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    elevation: 10,
+    top: 0, // will be overridden dynamically
+    left: 0, // will be overridden dynamically
+    backgroundColor: Theme.colors.white,
+    borderRadius: 10,
+    elevation: 6,
+    width: 80,
+    zIndex: 100,
+    overflow: 'hidden', // ensures rounded corners for inner items
   },
-
-  dotsMenuText: {
-    color: '#000',
+  menuItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 9,
+  },
+  menuText: {
     fontSize: 14,
     fontWeight: '600',
+    color: Theme.colors.textPrimary,
   },
-
-  activeTab: { backgroundColor: Theme.colors.feedGreen },
-  tabText: { fontSize: 16, color: Theme.colors.feedGreen, fontWeight: '600' },
-  activeTabText: { color: Theme.colors.white, fontWeight: '700' },
-  dotsMenu: {
-    position: 'absolute',
-    top: 24,
-    right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    zIndex: 100,
-    width: 80,
-    elevation: 5,
+  deleteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Theme.colors.error,
   },
-  dotsMenuItem: { padding: 8 },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#eee',
+  },
 });

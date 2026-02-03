@@ -21,9 +21,11 @@ export type ProfileData = {
   phone?: string;
   email?: string;
   address?: string;
+  createdAt?: string;
   isActive?: boolean;
   businessUnitId?: string | null;
 };
+
 
 type ProfileModalProps = {
   visible: boolean;
@@ -84,43 +86,46 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     })();
   }, []);
 
-  const handleSave = () => {
-    const updated = {
-      ...formData,
-      name: nameDraft,
-      phone: phoneDraft,
-      address: addressDraft,
-      email: emailDraft,
-    };
-    onSave?.(updated);
-    onClose();
-  };
+ const handleSave = () => {
+  const updated =
+    type === 'user'
+      ? { ...formData, name: nameDraft }
+      : {
+          ...formData,
+          name: nameDraft,
+          phone: phoneDraft,
+          address: addressDraft,
+          email: emailDraft,
+        };
 
-  const renderField = (
-    label: string,
-    value: string,
-    setter: any,
-    editable: boolean,
-    showLabel = true,
-  ) => (
-    <View style={[styles.field, { width: fieldWidth }]}>
-      {showLabel && <Text style={styles.label}>{label}</Text>}
-      {editable ? (
-        <TextInput
-          value={value}
-          editable={editable}
-          onChangeText={setter}
-          style={[
-            styles.input,
-            label === 'Email' && { backgroundColor: '#f2f2f2' },
-          ]}
-          placeholder={label}
-        />
-      ) : (
-        <Text style={styles.value}>{value || 'N/A'}</Text>
-      )}
-    </View>
-  );
+  onSave?.(updated);
+  onClose();
+};
+
+
+const renderField = (
+  label: string,
+  value: string,
+  setter?: (v: string) => void,
+  editable?: boolean,
+) => (
+  <View style={[styles.field, { width: fieldWidth }]}>
+    <Text style={styles.label}>{label}</Text>
+
+    {editable ? (
+      <TextInput
+        value={value}
+        onChangeText={setter}
+        style={styles.input}
+        placeholder={value ? label : 'N/A'}
+        placeholderTextColor="#999"
+      />
+    ) : (
+      <Text style={styles.value}>{value || 'N/A'}</Text>
+    )}
+  </View>
+);
+
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -137,19 +142,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               </View>
               <View style={{ flex: 1 }}>
                 {/* Name field without label */}
-                {editMode ? (
-                  <TextInput
-                    value={nameDraft}
-                    editable
-                    onChangeText={setNameDraft}
-                    style={styles.input}
-                    placeholder="Name"
-                  />
-                ) : (
-                  <Text style={[styles.value, { fontSize: 16 }]}>
-                    {nameDraft || 'N/A'}
-                  </Text>
-                )}
+               {editMode ? (
+  <TextInput
+    value={nameDraft}
+    onChangeText={setNameDraft}
+    style={styles.input}
+    placeholder={nameDraft ? 'Name' : 'N/A'}
+  />
+) : (
+  <Text style={[styles.value, { fontSize: 16 }]}>
+    {nameDraft || 'N/A'}
+  </Text>
+)}
+
 
                 {formData.isActive !== undefined && (
                   <View
@@ -173,49 +178,62 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
             <View style={styles.divider} />
 
             {/* CONTENT */}
-            <ScrollView
-              style={{ maxHeight: '70%' }}
-              contentContainerStyle={styles.grid}
-              keyboardShouldPersistTaps="handled"
-            >
-              {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
-              {renderField('Email', emailDraft, setEmailDraft, editMode)}
-              
-              {(type === 'customer' || type === 'employee') && (
-                <View
-                  style={{ zIndex: 3000, width: fieldWidth, marginBottom: 10 }}
-                >
-                  <Text style={styles.label}>
-                    {type === 'customer' ? 'Poultry Farm' : 'Department'}
-                  </Text>
-                  {editMode ? (
-                    <DropDownPicker
-                      listMode="SCROLLVIEW"
-                      open={buOpen}
-                      value={formData.businessUnitId ?? null}
-                      items={buItems}
-                      setOpen={setBUOpen}
-                      setValue={cb =>
-                        setFormData(prev => ({
-                          ...prev,
-                          businessUnitId: cb(prev.businessUnitId),
-                        }))
-                      }
-                      setItems={setBUItems}
-                      style={styles.dropdown}
-                      dropDownContainerStyle={styles.dropdownContainer}
-                    />
-                  ) : (
-                    <Text style={styles.value}>
-                      {buItems.find(i => i.value === formData.businessUnitId)
-                        ?.label || 'N/A'}
-                    </Text>
-                  )}
-                </View>
-              )}
-              {renderField('Address', addressDraft, setAddressDraft, editMode)}
+           <ScrollView
+  style={{ maxHeight: '70%' }}
+  contentContainerStyle={styles.grid}
+  keyboardShouldPersistTaps="handled"
+>
+  {/* USER SCREEN */}
+  {type === 'user' && (
+    <>
+      {renderField('Email Address', emailDraft)}
+      {renderField('Created At', formData.createdAt ?? '')}
+    </>
+  )}
 
-            </ScrollView>
+  {/* CUSTOMER / EMPLOYEE (OLD BEHAVIOUR) */}
+  {type !== 'user' && (
+    <>
+      {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
+      {renderField('Email', emailDraft, setEmailDraft, editMode)}
+
+      {(type === 'customer' || type === 'employee') && (
+        <View style={{ zIndex: 3000, width: fieldWidth }}>
+          <Text style={styles.label}>
+            {type === 'customer' ? 'Poultry Farm' : 'Department'}
+          </Text>
+
+          {editMode ? (
+            <DropDownPicker
+              listMode="SCROLLVIEW"
+              open={buOpen}
+              value={formData.businessUnitId ?? null}
+              items={buItems}
+              setOpen={setBUOpen}
+              setValue={cb =>
+                setFormData(prev => ({
+                  ...prev,
+                  businessUnitId: cb(prev.businessUnitId),
+                }))
+              }
+              setItems={setBUItems}
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownContainer}
+            />
+          ) : (
+            <Text style={styles.value}>
+              {buItems.find(i => i.value === formData.businessUnitId)?.label ||
+                'N/A'}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {renderField('Address', addressDraft, setAddressDraft, editMode)}
+    </>
+  )}
+</ScrollView>
+
 
             {/* ACTIONS */}
             <View style={styles.actions}>

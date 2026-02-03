@@ -84,14 +84,8 @@ const DashboardScreen = () => {
       setLoading(true);
       const data = await getAllBusinessUnits();
 
-      const mappedFarms = data.map((item: any) => ({
-        id: item.businessUnitId,
-        businessUnitId: item.businessUnitId,
-        title: item.name,
-        location: item.location,
-        users: item.totalUser,
-        employees: item.totalEmployee,
-      }));
+      const mappedFarms = data.map((item: any) => mapBusinessUnitToFarm(item));
+
       setFarms(mappedFarms);
     } catch (error) {
       console.log('Failed to fetch farms', error);
@@ -109,6 +103,18 @@ const DashboardScreen = () => {
   useEffect(() => {
     fetchUserRoles();
   }, []);
+
+  const mapBusinessUnitToFarm = (
+    item: any,
+    defaults?: { users?: number; employees?: number },
+  ): FarmData => ({
+    id: item.businessUnitId,
+    businessUnitId: item.businessUnitId,
+    title: item.name,
+    location: item.location,
+    users: defaults?.users ?? item.totalUser ?? 0,
+    employees: defaults?.employees ?? item.totalEmployee ?? 0,
+  });
 
   const fetchUserRoles = async () => {
     try {
@@ -186,7 +192,7 @@ const DashboardScreen = () => {
     }
   };
 
-  const handleSaveBusinessUnit = async (data: {
+  const EditSaveBusinessUnit = async (data: {
     name: string;
     location: string;
     businessTypeId?: number;
@@ -219,17 +225,9 @@ const DashboardScreen = () => {
         showSuccessToast('Success', 'Farm updated successfully');
       } else {
         const res = await addBusinessUnit(payload);
-
         setFarms(prev => [
           ...prev,
-          {
-            id: res.data?.businessUnitId,
-            businessUnitId: res.data?.businessUnitId,
-            title: res.data?.name,
-            location: res.data?.location,
-            users: 0,
-            employees: 0,
-          },
+          mapBusinessUnitToFarm(res.data, { users: 0, employees: 0 }),
         ]);
 
         showSuccessToast('Success', 'Farm added successfully');
@@ -401,7 +399,7 @@ const DashboardScreen = () => {
         <BusinessUnitModal
           visible={showBusinessModal}
           onClose={() => setShowBusinessModal(false)}
-          onSave={handleSaveBusinessUnit}
+          onSave={EditSaveBusinessUnit}
           mode={editingFarm ? 'edit' : 'add'}
           initialData={
             editingFarm

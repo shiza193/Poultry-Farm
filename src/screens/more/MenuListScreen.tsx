@@ -37,7 +37,7 @@ const Section = ({ title, children }: any) => (
 );
 
 const MenuListScreen = ({ navigation }: any) => {
-  const { farmName, farmLocation } = useBusinessUnit();
+  const { farmName, farmLocation, businessUnitId } = useBusinessUnit();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
 
@@ -152,22 +152,43 @@ const MenuListScreen = ({ navigation }: any) => {
           <MenuItem
             title="Customers"
             icon={Theme.icons.customer}
-            onPress={() => navigation.navigate('Customers')}
+            onPress={() =>
+              navigation.navigate(CustomConstants.CUSTOMER_SCREEN, {
+                fromMenu: true,
+                businessUnitId: businessUnitId, 
+              })
+            }
           />
+
           <MenuItem
             title="Employees"
             icon={Theme.icons.employee}
-            onPress={() => navigation.navigate('Employees')}
+            onPress={() =>
+              navigation.navigate(CustomConstants.EMPLOYEE_SCREEN, {
+                fromMenu: true,
+                 businessUnitId: businessUnitId,
+              })
+            }
           />
           <MenuItem
             title="Suppliers"
             icon={Theme.icons.supplier}
-            onPress={() => navigation.navigate('Suppliers')}
+            onPress={() =>
+              navigation.navigate(CustomConstants.SUPPILER_SCREEN, {
+                fromMenu: true,
+                 businessUnitId: businessUnitId,
+              })
+            }
           />
+
           <MenuItem
             title="Settings"
             icon={Theme.icons.setting}
-            onPress={() => navigation.navigate(CustomConstants.SETTINGS_SCREEN)}
+            onPress={() =>
+              navigation.navigate(CustomConstants.SETTINGS_SCREEN, {
+                fromMenu: true,
+              })
+            }
           />
         </Section>
       </ScrollView>
@@ -215,7 +236,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'left',
-    marginTop:16,
+    marginTop: 16,
     marginLeft: 1,
   },
 
