@@ -221,7 +221,9 @@ const fromMenu = route.params?.fromMenu === true;
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
     {fromMenu ? (
-        <BackArrow title="Employees" showBack={true} />
+        <BackArrow title="Employees" showBack={true} 
+         onAddNewPress={() => setIsAddModalVisible(true)}
+        />
       ) : (
         <Header
           title="Employees"
@@ -250,6 +252,7 @@ const fromMenu = route.params?.fromMenu === true;
         value={selectedBU}
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
+         hideBUDropdown={fromMenu} 
       />
 
       {tableData.length > 0 ? (
@@ -306,8 +309,12 @@ export default EmployeeScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.white },
-  noDataContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  noDataImage: { width: 300, height: 360 },
+  noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
+  noDataImage: {
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
+  },
   dotsMenu: {
     position: 'absolute',
     top: 45,

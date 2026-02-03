@@ -262,7 +262,9 @@ const SupplierScreen = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {fromMenu ? (
-        <BackArrow title="Suppliers" showBack={true} />
+        <BackArrow title="Suppliers" showBack={true} 
+         onAddNewPress={() => setShowAddModal(true)}
+        />
       ) : (
         <Header
           title="Suppliers"
@@ -304,24 +306,11 @@ const SupplierScreen = () => {
         value={selectedBU}
         onBusinessUnitChange={fromMenu ? undefined : setSelectedBU} // lock BU if opened from farm
         onReset={resetFilters}
+         hideBUDropdown={fromMenu} 
       />
 
       <View style={{ flex: 1 }}>
-        {!loading && filteredUsers.length === 0 && (
-          <View
-            style={{
-              justifyContent: 'flex-start',
-              alignItems: 'flex-start',
-              marginTop: 50,
-            }}
-          >
-            <Image
-              source={Theme.icons.nodata}
-              style={{ width: 300, height: 360, marginBottom: 30 }}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+        
         {tableData.length > 0 ? (
           <View style={{ flex: 1, paddingHorizontal: 16 }}>
             <DataCard columns={columns} data={tableData} itemsPerPage={5} />
@@ -371,13 +360,10 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   menuText: { fontSize: 15, fontWeight: '600', color: Theme.colors.success },
-  noDataContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
   noDataImage: {
-    width: 300,
-    height: 360,
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
   },
 });

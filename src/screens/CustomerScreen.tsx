@@ -12,7 +12,9 @@ import AddModal from '../components/customPopups/AddModal';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import StatusToggle from '../components/common/StatusToggle';
-import ProfileModal, { ProfileData } from '../components/customPopups/ProfileModal';
+import ProfileModal, {
+  ProfileData,
+} from '../components/customPopups/ProfileModal';
 
 import Theme from '../theme/Theme';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
@@ -281,7 +283,11 @@ const CustomerScreen = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {fromMenu ? (
-        <BackArrow title="Customers" showBack={true} />
+        <BackArrow
+          title="Customers"
+          showBack={true}
+          onAddNewPress={() => setShowAddModal(true)}
+        />
       ) : (
         <Header
           title="Customers"
@@ -301,7 +307,6 @@ const CustomerScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-
       {openRowDotsId && (
         <View
           style={{
@@ -374,6 +379,7 @@ const CustomerScreen = () => {
         value={selectedBU}
         onBusinessUnitChange={fromMenu ? undefined : setSelectedBU} // lock BU if opened from farm
         onReset={resetFilters}
+        hideBUDropdown={fromMenu}
       />
 
       {tableData.length > 0 ? (
@@ -382,6 +388,20 @@ const CustomerScreen = () => {
             columns={columns}
             data={tableData}
             itemsPerPage={itemsPerPage}
+            renderRowMenu={(row, closeMenu) => (
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedUserId(row.raw.id); // store selected user
+                  setDeleteModalVisible(true); // show confirmation modal
+                  closeMenu(); // close row dots menu
+                }}
+                style={{ padding: 2 }}
+              >
+                <Text style={{ color: 'red', fontWeight: '600' }}>
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            )}
           />
         </View>
       ) : (
@@ -398,6 +418,7 @@ const CustomerScreen = () => {
         title="Add Customer"
         onClose={() => setShowAddModal(false)}
         onSave={handleAddCustomer}
+        hideBusinessUnit={fromMenu}
       />
 
       <ConfirmationModal

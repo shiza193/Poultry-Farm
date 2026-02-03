@@ -15,10 +15,11 @@ interface Props {
   searchValue?: string;
   onSearchChange?: (text: string) => void;
   value?: string | null;
-status?: 'active' | 'inactive' | null;
+  status?: 'active' | 'inactive' | null;
   onStatusChange?: (status: 'active' | 'inactive' | null) => void;
   onReset?: () => void;
   onBusinessUnitChange?: (businessUnitId: string | null) => void;
+  hideBUDropdown?: boolean;
 }
 
 const TopBarCard: React.FC<Props> = ({
@@ -29,6 +30,7 @@ const TopBarCard: React.FC<Props> = ({
   onStatusChange,
   onReset,
   onBusinessUnitChange,
+  hideBUDropdown = false,
 }) => {
   /* ================= Business Unit ================= */
   const [buOpen, setBUOpen] = useState(false);
@@ -63,7 +65,8 @@ const TopBarCard: React.FC<Props> = ({
   }, [selectedBU]);
 
   const isFilterApplied =
-    !!tempSearch || buValue !== null || statusState !== null;
+    (buValue !== null && !hideBUDropdown) ||
+    statusState !== null;
 
   /* ================= Status Toggle ================= */
   const handleStatusPress = () => {
@@ -84,7 +87,12 @@ const TopBarCard: React.FC<Props> = ({
       {/* ===== TOP ROW ===== */}
       <View style={styles.row}>
         {/* SEARCH (LONGER) */}
-        <View style={styles.searchBox}>
+        <View
+          style={[
+            styles.searchBox,
+            hideBUDropdown && { flex: 1 }, // dynamically override flex if dropdown hidden
+          ]}
+        >
           <TextInput
             placeholder="Search"
             placeholderTextColor={Theme.colors.grey}
@@ -104,32 +112,33 @@ const TopBarCard: React.FC<Props> = ({
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            onPress={() => onSearchChange?.(tempSearch)}
-          >
+          <TouchableOpacity onPress={() => onSearchChange?.(tempSearch)}>
             <Image source={Theme.icons.search} style={styles.searchIcon} />
           </TouchableOpacity>
         </View>
 
         {/* BUSINESS UNIT (SMALLER) */}
-        <View style={styles.businessDropdown}>
-          <DropDownPicker
-            open={buOpen}
-            value={buValue}
-            items={items}
-            setOpen={setBUOpen}
-            setValue={val => {
-              const selected = val as unknown as string | null;
-              setBUValue(selected);
-              onBusinessUnitChange?.(selected);
-            }}
-            setItems={setItems}
-            placeholder="Poultry"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            textStyle={styles.dropdownText}
-          />
-        </View>
+        {/* BUSINESS UNIT (SMALLER) */}
+        {!hideBUDropdown && (
+          <View style={styles.businessDropdown}>
+            <DropDownPicker
+              open={buOpen}
+              value={buValue}
+              items={items}
+              setOpen={setBUOpen}
+              setValue={val => {
+                const selected = val as unknown as string | null;
+                setBUValue(selected);
+                onBusinessUnitChange?.(selected);
+              }}
+              setItems={setItems}
+              placeholder="Poultry"
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownContainer}
+              textStyle={styles.dropdownText}
+            />
+          </View>
+        )}
 
         {/* STATUS */}
         <TouchableOpacity
@@ -137,10 +146,7 @@ const TopBarCard: React.FC<Props> = ({
           onPress={handleStatusPress}
         >
           <View
-            style={[
-              styles.checkboxBox,
-              statusState && styles.checkboxActive,
-            ]}
+            style={[styles.checkboxBox, statusState && styles.checkboxActive]}
           >
             {statusState && (
               <Text style={styles.checkboxTick}>
@@ -149,9 +155,7 @@ const TopBarCard: React.FC<Props> = ({
             )}
           </View>
 
-          <Text style={styles.activeText}>
-            {statusState ?? 'Active'}
-          </Text>
+          <Text style={styles.activeText}>{statusState ?? 'Active'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -160,12 +164,12 @@ const TopBarCard: React.FC<Props> = ({
         <View style={styles.row2}>
           <TouchableOpacity
             onPress={() => {
-              setTempSearch('');
-              setBUValue(null);
+             
+              setBUValue(hideBUDropdown ? buValue : null);
               setStatusState(null);
               onReset?.();
-              onSearchChange?.('');
-              onBusinessUnitChange?.(null);
+             
+              if (!hideBUDropdown) onBusinessUnitChange?.(null);
               onStatusChange?.(null);
             }}
           >
@@ -228,7 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: Theme.colors.success,
   },
-  dropdownText: { fontSize: 12},
+  dropdownText: { fontSize: 12 },
 
   /* STATUS */
   statusWrapper: {
@@ -265,4 +269,3 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
-
