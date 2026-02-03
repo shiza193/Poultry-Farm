@@ -10,6 +10,8 @@ import { CustomConstants } from "../constants/CustomConstants";
 import EggProductionScreen from "../screens/eggs/EggProductionScreen";
 import EggSaleScreen from "../screens/eggs/EggSaleScreen";
 import EggStockScreen from "../screens/eggs/EggStockScreen";
+import ConfirmationModal from "../components/customPopups/ConfirmationModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type TabType = "production" | "sale" | "stock";
 
@@ -19,6 +21,7 @@ const EggMainScreen = () => {
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [openAddModal, setOpenAddModal] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // ================= RENDER SCREEN =================
   const renderScreen = () => {
@@ -64,7 +67,18 @@ const EggMainScreen = () => {
         return "Egg Production";
     }
   };
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
 
+      navigation.reset({
+        index: 0,
+        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
+      });
+    } catch (error) {
+      console.log('Logout failed', error);
+    }
+  };
   // ================= TAB BUTTON =================
   const TabButton = ({
     title,
@@ -84,7 +98,6 @@ const EggMainScreen = () => {
       </Text>
     </TouchableOpacity>
   );
-
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
       <LoadingOverlay visible={globalLoading} text="Loading..." />
@@ -94,7 +107,6 @@ const EggMainScreen = () => {
         title={getHeaderTitle()}
         onPressDots={() => setIsDotsMenuVisible(true)}
       />
-
       {/* ===== DOTS MENU ===== */}
       {isDotsMenuVisible && (
         <TouchableOpacity
@@ -142,14 +154,11 @@ const EggMainScreen = () => {
               style={styles.dotsMenuItemCustom}
               onPress={() => {
                 setIsDotsMenuVisible(false);
-                // logout logic
+                setShowLogoutModal(true);
               }}
             >
               <View style={styles.menuItemRowCustom}>
-                <Image
-                  source={Theme.icons.logout}
-                  style={styles.logoutIcon}
-                />
+                <Image source={Theme.icons.logout} style={styles.logoutIcon} />
                 <Text style={styles.dotsMenuText}>Logout</Text>
               </View>
             </TouchableOpacity>
@@ -198,6 +207,13 @@ const EggMainScreen = () => {
 
       {/* ===== SCREEN CONTENT ===== */}
       <View style={{ flex: 1 }}>{renderScreen()}</View>
+      <ConfirmationModal
+        type="logout"
+        visible={showLogoutModal}
+        title="Are you sure you want to logout?"
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+      />
     </View>
   );
 };

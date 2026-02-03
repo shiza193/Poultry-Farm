@@ -188,3 +188,31 @@ export const getFlockTotalEggs = async (flockId: string) => {
     return null;
   }
 };
+
+export const addEggSale = async (payload: {
+  businessUnitId: string;
+  customerId: string;
+  flockId: string;
+  unitId: number;
+  price: number;
+  date: string;
+  saleTypeId: number;
+  quantity?: number | null;
+  patti?: number | null;
+  tray?: number | null;
+  eggs?: number | null;
+  note?: string | null;
+}) => {
+  try {
+    const response = await api.post(
+      "api/Sale/add-sale",
+      payload
+    );
+
+    console.log("Add Sale Response:", response.data);
+    return response.data.data;
+  } catch (error: any) {
+    console.log("Add Sale Error:", error?.response?.data || error);
+    throw error;
+  }
+};
