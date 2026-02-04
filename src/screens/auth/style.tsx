@@ -9,10 +9,9 @@ export default StyleSheet.create({
     paddingHorizontal: 25,
   },
   logo: {
-    width: 190,
-    height: 190,
+    width: 990,
+    height: 290,
     resizeMode: 'contain',
-    marginBottom: 5,
     marginTop: -50,
   },
 

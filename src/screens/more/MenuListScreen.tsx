@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,24 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import Theme from '../../theme/Theme';
-import Header from '../../components/common/Header';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import Theme from '../../theme/Theme';
+import Header from '../../components/common/Header';
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const MenuItem = ({ title, icon, onPress }: any) => (
+//  Helper Components
+
+interface MenuItemProps {
+  title: string;
+  icon: any;
+  onPress: () => void;
+}
+
+const MenuItem = memo(({ title, icon, onPress }: MenuItemProps) => (
   <TouchableOpacity style={styles.item} onPress={onPress}>
     <View style={styles.leftRow}>
       <Image source={icon} style={styles.itemIcon} resizeMode="contain" />
@@ -28,24 +36,41 @@ const MenuItem = ({ title, icon, onPress }: any) => (
       resizeMode="contain"
     />
   </TouchableOpacity>
-);
+));
 
-const Section = ({ title, children }: any) => (
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const Section = ({ title, children }: SectionProps) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>{title}</Text>
     {children}
   </View>
 );
 
+//  Main Screen
+
 const MenuListScreen = ({ navigation }: any) => {
   const { farmName, farmLocation, businessUnitId } = useBusinessUnit();
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
+
+  /* ---------- Handlers ---------- */
+
+  const toggleDotsMenu = () => {
+    setIsDotsMenuVisible(prev => !prev);
+  };
+
+  const closeDotsMenu = () => {
+    setIsDotsMenuVisible(false);
+  };
 
   const handleLogout = async () => {
     try {
       await AsyncStorage.clear();
-
       navigation.reset({
         index: 0,
         routes: [{ name: CustomConstants.LOGIN_SCREEN }],
@@ -54,32 +79,32 @@ const MenuListScreen = ({ navigation }: any) => {
       console.log('Logout failed', error);
     }
   };
+
   return (
     <SafeAreaView style={styles.safe}>
       <Header
-        title={farmName || 'Poultry Farms'}
+        title={farmName || 'Poultry Farm'}
         subtitle={farmLocation || ''}
-        onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
+        onPressDots={toggleDotsMenu}
         containerStyle={styles.headerContainer}
         titleStyle={styles.headerTitle}
-        alignWithLogo={true}
+        alignWithLogo
       />
 
+      {/* -------- Dots Menu -------- */}
       {isDotsMenuVisible && (
         <View style={styles.dotsOverlayContainer}>
           <TouchableOpacity
             style={styles.dotsOverlay}
             activeOpacity={1}
-            onPress={() => setIsDotsMenuVisible(false)}
+            onPress={closeDotsMenu}
           />
 
-          {/* Actual menu */}
           <View style={styles.dotsMenu}>
-            {/* LOGOUT */}
             <TouchableOpacity
               style={styles.dotsMenuItem}
               onPress={() => {
-                setIsDotsMenuVisible(false);
+                closeDotsMenu();
                 setShowLogoutModal(true);
               }}
             >
@@ -94,11 +119,10 @@ const MenuListScreen = ({ navigation }: any) => {
 
             <View style={styles.divider} />
 
-            {/* ADMIN PORTAL */}
             <TouchableOpacity
               style={styles.dotsMenuItem}
               onPress={() => {
-                setIsDotsMenuVisible(false);
+                closeDotsMenu();
                 navigation.navigate(CustomConstants.DASHBOARD_TABS);
               }}
             >
@@ -110,8 +134,9 @@ const MenuListScreen = ({ navigation }: any) => {
           </View>
         </View>
       )}
+
+      {/* -------- Menu Sections -------- */}
       <ScrollView>
-        {/* FEED */}
         <Section title="Feed">
           <MenuItem
             title="Feed Record"
@@ -130,7 +155,6 @@ const MenuListScreen = ({ navigation }: any) => {
           />
         </Section>
 
-        {/* FINANCE */}
         <Section title="Finance">
           <MenuItem
             title="Account Head"
@@ -159,7 +183,6 @@ const MenuListScreen = ({ navigation }: any) => {
           />
         </Section>
 
-        {/* MANAGEMENT */}
         <Section title="Management">
           <MenuItem
             title="Customers"
@@ -167,18 +190,17 @@ const MenuListScreen = ({ navigation }: any) => {
             onPress={() =>
               navigation.navigate(CustomConstants.CUSTOMER_SCREEN, {
                 fromMenu: true,
-                businessUnitId: businessUnitId,
+                businessUnitId,
               })
             }
           />
-
           <MenuItem
             title="Employees"
             icon={Theme.icons.employee}
             onPress={() =>
               navigation.navigate(CustomConstants.EMPLOYEE_SCREEN, {
                 fromMenu: true,
-                businessUnitId: businessUnitId,
+                businessUnitId,
               })
             }
           />
@@ -188,11 +210,10 @@ const MenuListScreen = ({ navigation }: any) => {
             onPress={() =>
               navigation.navigate(CustomConstants.SUPPILER_SCREEN, {
                 fromMenu: true,
-                businessUnitId: businessUnitId,
+                businessUnitId,
               })
             }
           />
-
           <MenuItem
             title="Settings"
             icon={Theme.icons.setting}
@@ -205,7 +226,7 @@ const MenuListScreen = ({ navigation }: any) => {
         </Section>
       </ScrollView>
 
-      {/* LOGOUT MODAL */}
+      {/* -------- Logout Modal -------- */}
       <ConfirmationModal
         type="logout"
         visible={showLogoutModal}
@@ -218,19 +239,16 @@ const MenuListScreen = ({ navigation }: any) => {
 };
 
 export default MenuListScreen;
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: Theme.colors.white,
   },
-
   section: {
     marginTop: 18,
   },
-
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 13,
     color: Theme.colors.settinglable,
     marginLeft: 16,
     fontWeight: 'bold',
@@ -241,14 +259,12 @@ const styles = StyleSheet.create({
     borderBottomColor: Theme.colors.settinglines,
     paddingBottom: 3,
   },
-
   headerTitle: {
     flex: 1,
     textAlign: 'left',
     marginTop: 16,
     marginLeft: 1,
   },
-
   item: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -258,13 +274,6 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.settinglines,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Theme.colors.sky,
-    marginVertical: 6,
-    marginLeft: 50,
-    marginRight: 16,
   },
   itemText: {
     marginLeft: 9,
@@ -276,36 +285,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   itemIcon: {
     width: 22,
     height: 22,
     marginRight: 10,
     tintColor: Theme.colors.success,
   },
-
   arrow: {
-    width: 15,
-    height: 15,
+    width: 13,
+    height: 14,
     tintColor: Theme.colors.greater,
   },
-
+  divider: {
+    height: 1,
+    backgroundColor: Theme.colors.sky,
+    marginVertical: 6,
+    marginLeft: 50,
+    marginRight: 16,
+  },
   dotsOverlayContainer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
+    ...StyleSheet.absoluteFill,
     zIndex: 999,
   },
-
   dotsOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'transparent',
+    ...StyleSheet.absoluteFill,
   },
 
   dotsMenu: {
@@ -316,30 +319,21 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.white,
     borderRadius: 8,
     paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 5,
     elevation: 5,
   },
-
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   menuItemIcon: {
     width: 15,
     height: 15,
-    resizeMode: 'contain',
     marginRight: 10,
   },
-
   dotsMenuItem: {
-    paddingVertical: 5,
-    paddingHorizontal: 9,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
-
   dotsMenuText: {
     fontSize: 16,
     color: Theme.colors.textPrimary,

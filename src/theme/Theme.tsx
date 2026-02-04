@@ -69,6 +69,7 @@ const icons = {
   logo: require('../resources/images/logo.png'),
   hidePassword: require('../resources/images/hidePassword.png'),
   showPassword: require('../resources/images/showPassword.png'),
+  poultrycloud: require('../resources/images/poultrycloud.png'),
 
   /* ===== Poultry dashboard ===== */
   dashboard: require('../resources/images/dashboard.png'),
