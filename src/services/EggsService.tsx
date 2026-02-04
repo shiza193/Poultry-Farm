@@ -1,14 +1,12 @@
 import api from '../api/Api';
-
 export interface EggSale {
   saleId: string;
   date: string;
   customer: string;
   price: number;
   quantity: number;
-  // add other fields if needed
+  unit:number;
 }
-
 export interface GetEggSalesPayload {
   businessUnitId: string;
   customerId?: string | null;
@@ -18,7 +16,6 @@ export interface GetEggSalesPayload {
   pageNumber: number;
   pageSize: number;
 }
-
 export const getEggSales = async (payload: GetEggSalesPayload): Promise<EggSale[]> => {
   try {
     const response = await api.post('api/Sale/get-sale-by-search-and-filter-with-pagination', payload);
@@ -29,6 +26,7 @@ export const getEggSales = async (payload: GetEggSalesPayload): Promise<EggSale[
         customer: item.customer,
         price: item.price,
         quantity: item.quantity,
+        unit: item.unit
       }));
     } else {
       return [];
@@ -38,7 +36,6 @@ export const getEggSales = async (payload: GetEggSalesPayload): Promise<EggSale[
     return [];
   }
 };
-
 
 export interface EggStock {
   unitId: number;
@@ -60,7 +57,6 @@ export const getEggStock = async (businessUnitId: string): Promise<EggStock[]> =
     return [];
   }
 };
-
 
 export interface EggProduction {
   eggProductionId: string;
@@ -213,6 +209,48 @@ export const addEggSale = async (payload: {
     return response.data.data;
   } catch (error: any) {
     console.log("Add Sale Error:", error?.response?.data || error);
+    throw error;
+  }
+};
+
+export const deleteEggProduction = async (eggProductionId: string) => {
+  try {
+    const response = await api.delete(`api/EggProduction/delete-eggProduction/${eggProductionId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Delete Egg Production Error:', error);
+    throw error;
+  }
+};
+
+export interface UpdateEggProductionPayload {
+  eggProductionId: string;
+  ref: string;
+  flockId: string;
+  businessUnitId: string;
+  unitId: number | null;
+  date: string;
+  fertileEggs: number;
+  brokenEggs: number;
+  totalEggs: number;
+  typeId?: string | null;
+  varietyId?: string | null;
+}
+
+export const updateEggProduction = async (
+  eggProductionId: string,
+  payload: UpdateEggProductionPayload
+) => {
+  try {
+    const response = await api.put(
+      `api/EggProduction/update-eggProduction/${eggProductionId}`,
+      payload
+    );
+
+    console.log(' Update Egg Production Response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.log(' Update Egg Production Error:', error?.response || error);
     throw error;
   }
 };

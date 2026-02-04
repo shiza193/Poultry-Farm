@@ -28,8 +28,10 @@ const EggSaleScreen: React.FC<Props> = ({
   openAddModal,
   onCloseAddModal,
 }) => {
-  const [eggSales, setEggSales] = useState<EggSale[]>([]);
+  // use context Api
   const { businessUnitId } = useBusinessUnit();
+  // States
+  const [eggSales, setEggSales] = useState<EggSale[]>([]);
   const [searchText, setSearchText] = useState<string>("");
   const [tempSearch, setTempSearch] = useState<string>("");
   const [CustomerValue, setCustomerValue] = useState<string | null>(null); const [customerOpen, setCustomerOpen] = useState(false);
@@ -59,7 +61,7 @@ const EggSaleScreen: React.FC<Props> = ({
       width: 140,
     },
     {
-      key: 'gram',
+      key: 'unit',
       title: 'GRAM',
       width: 100,
       render: (value) => <Text>{value || '-'}</Text>,
@@ -78,9 +80,7 @@ const EggSaleScreen: React.FC<Props> = ({
   ];
   const fetchEggSales = async () => {
     if (!businessUnitId) return;
-
     setGlobalLoading(true);
-
     const payload = {
       businessUnitId,
       customerId: CustomerValue,
@@ -90,12 +90,10 @@ const EggSaleScreen: React.FC<Props> = ({
       pageNumber: 1,
       pageSize: 10,
     };
-
     const data = await getEggSales(payload);
     setEggSales(data);
     setGlobalLoading(false);
   };
-
   useFocusEffect(
     useCallback(() => {
       fetchEggSales();
@@ -159,7 +157,9 @@ const EggSaleScreen: React.FC<Props> = ({
       showSuccessToast("Egg sale added successfully");
       fetchEggSales();
     } catch (error: any) {
-      showErrorToast("Failed to add Egg sale");
+      const backendMessage =
+        error?.response?.data?.message || "Failed to add Egg sale";
+      showErrorToast(backendMessage);
     } finally {
       setGlobalLoading(false);
     }
