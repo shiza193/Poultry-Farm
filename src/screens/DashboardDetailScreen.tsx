@@ -121,51 +121,77 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
   );
 
   // eggs = total eggs produced
-  // productionPercentage = API se aane wali % value (e.g. 66.67)
+  // productionPercentage = API se aane wali % value
   const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
-    //  Check: agar percentage null, undefined ya 0 ho
-    // is se hum safe rehte hain crash se
-    const isZero = !productionPercentage || productionPercentage <= 0;
+    const isAboveHundred = productionPercentage > 100;
 
-    //  Circle component percentage nahi leta
-    // wo 0 se 1 ke beech value leta hai
-    // is liye 66.67% → 0.6667 banane ke liye 100 se divide
-    // Math.min is liye taake value 1 (100%) se zyada na ho
-    const progress = isZero ? 0 : Math.min(productionPercentage / 100, 1);
+    // Graph progress (0–1)
+    const progress =
+      productionPercentage && productionPercentage > 0
+        ? Math.min(productionPercentage / 100, 1)
+        : 0;
 
-    //  Agar production 0 ho to blue color
-    // agar production > 0 ho to green color
-    const circleColor = isZero ? Theme.colors.grey : Theme.colors.success;
+    // Graph color
+    const circleColor = isAboveHundred
+      ? Theme.colors.blue
+      : Theme.colors.success;
 
     return (
-      //  Main card container
       <View style={styles.eggsProductionCard}>
-        {/* ===== LEFT SIDE : CIRCLE GRAPH ===== */}
+        {/* LEFT : GRAPH + LEGENDS */}
         <View style={styles.leftBlock}>
           <View style={styles.circleWrapper}>
-            {/* Progress circle */}
             <Circle
-              size={95} // Circle ka size
-              progress={progress} // 0–1 ke beech value (e.g. 0.6667)
-              thickness={6} // Circle ki line ki motai
-              showsText={false} // Default text hide
-              color={circleColor} // Filled part ka color
-              unfilledColor={Theme.colors.grey} // Empty part ka color
-              borderWidth={0} // Extra border disable
+              size={95}
+              progress={progress}
+              thickness={6}
+              showsText={false}
+              color={circleColor}
+              unfilledColor={Theme.colors.grey}
+              borderWidth={0}
             />
 
-            {/* Circle ke beech ka text */}
+            {/* CENTER TEXT */}
             <View style={styles.circleCenterContent}>
               <Text style={styles.productionLabel}>Production</Text>
-
-              {/* Percentage value show ho rahi hai (as it is API se) */}
               <Text style={[styles.productionValue, { color: circleColor }]}>
                 {productionPercentage ?? 0}%
               </Text>
             </View>
           </View>
+
+          <View
+            style={{
+              marginTop: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            {/* > 100 */}
+            <View style={[styles.statusRow, { marginRight: 14 }]}>
+              <View
+                style={[
+                  styles.statusBox,
+                  { backgroundColor: Theme.colors.blue },
+                ]}
+              />
+              <Text style={styles.statusText}>&gt; 100</Text>
+            </View>
+
+            {/* < 100 */}
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusBox,
+                  { backgroundColor: Theme.colors.success },
+                ]}
+              />
+              <Text style={styles.statusText}>&lt; 100</Text>
+            </View>
+          </View>
         </View>
 
+        {/* CENTER ICON */}
         <View style={styles.centerWrapper}>
           <View style={styles.verticalSeparator} />
           <View style={styles.centerBlock}>
@@ -173,11 +199,9 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
           </View>
         </View>
 
-        {/* ===== RIGHT SIDE : TOTAL EGGS ===== */}
+        {/* RIGHT : TOTAL EGGS */}
         <View style={styles.rightBlock}>
           <Text style={styles.eggsLabel}>Total Eggs</Text>
-
-          {/* Total eggs value */}
           <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
         </View>
       </View>
@@ -356,7 +380,6 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
                 if (event.type === 'set' && selectedDate) {
                   setFromDate(selectedDate);
                 }
-                // dismissed → kuch bhi mat karo
               } else {
                 // iOS
                 if (selectedDate) {
@@ -444,7 +467,6 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
               innerValue={data.totalFeedConsumed} // Graph value
               icon={Theme.icons.game} // Feed icon
             />
-
             <ProgressCircleCard
               title="Available Vaccine"
               value={data.totalAvailableVaccine} // Right side
@@ -471,13 +493,15 @@ export default DashboardDetailScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.white },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    marginVertical: 10,
-  },
+ dateRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  paddingLeft: 30,    // keep left padding
+  paddingRight: 90,  // add extra space on the right
+  marginVertical: 10,
+},
+
 
   dateRangeContainer: {
     flexDirection: 'row',
@@ -487,6 +511,25 @@ const styles = StyleSheet.create({
   resetInlineBtn: {
     paddingHorizontal: 10,
     paddingVertical: 1,
+  },
+
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+
+  statusBox: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Theme.colors.black,
   },
 
   resetInlineText: {
@@ -501,14 +544,14 @@ const styles = StyleSheet.create({
   },
 
   dateLabel: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#9CA3AF',
     marginRight: 6,
     fontWeight: '500',
   },
 
   dateValue: {
-    fontSize: 16,
+    fontSize: 13,
     color: Theme.colors.success,
     fontWeight: '700',
   },
@@ -527,7 +570,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 16,
+    borderRadius:20,
     marginBottom: 12,
     elevation: 3,
   },
@@ -696,7 +739,7 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: 1,
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: Theme.colors.sky },
   dividerText: {

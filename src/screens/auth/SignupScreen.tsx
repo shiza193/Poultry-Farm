@@ -94,7 +94,7 @@ const SignupScreen = ({ navigation }: any) => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         {/* Logo */}
-        <Image source={Theme.icons.logo} style={styles.logo} />
+        <Image source={Theme.icons.poultrycloud} style={styles.logo} />
 
         <Text style={styles.title}>Create an Account</Text>
 

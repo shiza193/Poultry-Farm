@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <View style={[styles.topHeader, containerStyle]}>
       {/* LOGO */}
-      <Image source={Theme.icons.logo2} style={styles.logo} />
+      <Image source={Theme.icons.poultrycloud} style={styles.logo} />
 
       {/* TITLE + SUBTITLE */}
       {alignWithLogo ? (
@@ -56,16 +56,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 1,
     height: 80,
   },
-
   logo: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
   },
-
   titleContainerWithLogo: {
     flex: 1,
     marginLeft: 4,

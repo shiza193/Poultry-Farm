@@ -37,7 +37,7 @@ export default PrimaryButton;
 const styles = StyleSheet.create({
   button: {
     width: "100%",
-    backgroundColor: Theme.colors.login,
+    backgroundColor: Theme.colors.haedercolor,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
