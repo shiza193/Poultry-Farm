@@ -29,10 +29,11 @@ export const CustomConstants = {
   EMPLOYEE_SCREEN: 'EmployeeScreen',
 
   ABOUT_US_SCREEN: 'AboutUsScreen',
-  VACCINATIONS_SCREEN: "VaccinationsScreen",
-  VACCINE_SCHEDULE_SCREEN: "VaccineScheduleScreen",
-  VACCINATION_STOCK_SCREEEN: "VaccinationStockScreen",
-SIGN_UP_SCREEN:"SignUpScreen",
+  VACCINATIONS_SCREEN: 'VaccinationsScreen',
+  VACCINE_SCHEDULE_SCREEN: 'VaccineScheduleScreen',
+  VACCINATION_STOCK_SCREEEN: 'VaccinationStockScreen',
+  SIGN_UP_SCREEN: 'SignUpScreen',
+  ACCOUNT_HEAD_SCREEN: 'AccountHeadScreen',
 } as const;
 
 // ScreenType only includes tabs that MainLayout handles
@@ -49,12 +50,9 @@ export type ScreenType =
   | typeof CustomConstants.EGG_STOCK_SCREEN
   | typeof CustomConstants.EGG_SALE_SCREEN
   | typeof CustomConstants.EGG_PRODUCTION_SCREEN
-   | typeof CustomConstants.CUSTOMER_SCREEN
-    | typeof CustomConstants.EMPLOYEE_SCREEN
-     | typeof CustomConstants.SUPPILER_SCREEN
+  | typeof CustomConstants.CUSTOMER_SCREEN
+  | typeof CustomConstants.EMPLOYEE_SCREEN
+  | typeof CustomConstants.SUPPILER_SCREEN
   | typeof CustomConstants.VACCINATIONS_SCREEN
   | typeof CustomConstants.VACCINATION_STOCK_SCREEEN
   | typeof CustomConstants.VACCINE_SCHEDULE_SCREEN;
-
-
-

@@ -56,16 +56,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 1,
     height: 80,
   },
-
   logo: {
     width: 100,
     height: 100,
     resizeMode: 'contain',
   },
-
   titleContainerWithLogo: {
     flex: 1,
     marginLeft: 4,

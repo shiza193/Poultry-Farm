@@ -159,7 +159,7 @@ const MenuListScreen = ({ navigation }: any) => {
           <MenuItem
             title="Account Head"
             icon={Theme.icons.moneys}
-            onPress={() => navigation.navigate('AccountHead')}
+            onPress={() =>    navigation.navigate(CustomConstants.ACCOUNT_HEAD_SCREEN)}
           />
           <MenuItem
             title="Vouchers"
