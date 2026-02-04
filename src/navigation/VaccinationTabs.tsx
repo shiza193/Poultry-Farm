@@ -8,6 +8,8 @@ import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen
 import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
 import LoadingOverlay from "../components/loading/LoadingOverlay";
 import { CustomConstants } from "../constants/CustomConstants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ConfirmationModal from "../components/customPopups/ConfirmationModal";
 
 type TabType = "vaccination" | "schedule" | "stock";
 
@@ -17,6 +19,7 @@ const VaccinationMainScreen = () => {
     const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
     const [openAddModal, setOpenAddModal] = useState(false);
     const [globalLoading, setGlobalLoading] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const renderScreen = () => {
         switch (activeTab) {
@@ -59,6 +62,18 @@ const VaccinationMainScreen = () => {
                 return "Vaccination Stock";
             default:
                 return "Vaccinations";
+        }
+    };
+    const handleLogout = async () => {
+        try {
+            await AsyncStorage.clear();
+
+            navigation.reset({
+                index: 0,
+                routes: [{ name: CustomConstants.LOGIN_SCREEN }],
+            });
+        } catch (error) {
+            console.log('Logout failed', error);
         }
     };
     const TabButton = ({
@@ -144,18 +159,12 @@ const VaccinationMainScreen = () => {
                             style={styles.dotsMenuItemCustom}
                             onPress={() => {
                                 setIsDotsMenuVisible(false);
-                                // 🔴 Logout logic
-                                // logout();
+                                setShowLogoutModal(true);
                             }}
                         >
                             <View style={styles.menuItemRowCustom}>
-                                <Image
-                                    source={Theme.icons.logout}
-                                    style={styles.logoutIcon}
-                                />
-                                <Text style={[styles.dotsMenuText, { color: Theme.colors.textPrimary }]}>
-                                    Logout
-                                </Text>
+                                <Image source={Theme.icons.logout} style={styles.logoutIcon} />
+                                <Text style={styles.dotsMenuText}>Logout</Text>
                             </View>
                         </TouchableOpacity>
                         <View style={styles.menuSeparator} />
@@ -204,6 +213,13 @@ const VaccinationMainScreen = () => {
             <View style={{ flex: 1 }}>
                 {renderScreen()}
             </View>
+            <ConfirmationModal
+                type="logout"
+                visible={showLogoutModal}
+                title="Are you sure you want to logout?"
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleLogout}
+            />
         </View>
     );
 };

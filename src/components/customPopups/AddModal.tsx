@@ -18,7 +18,7 @@ import DateTimePicker, {
 
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
-import { getFlockTotalEggs } from '../../services/EggsService';
+import { getEggProducedUnits, getFlockTotalEggs } from '../../services/EggsService';
 
 type ModalType =
   | 'user'
@@ -46,7 +46,7 @@ interface AddModalProps {
   setUnitItems?: React.Dispatch<
     React.SetStateAction<{ label: string; value: number }[]>
   >;
-hideBusinessUnit?: boolean;
+  hideBusinessUnit?: boolean;
   isEdit?: boolean;
   initialData?: any;
   hidePoultryFarm?: boolean;
@@ -67,10 +67,10 @@ const AddModal: React.FC<AddModalProps> = ({
   supplierItems,
   isEdit = false,
   initialData = null,
-   hidePoultryFarm = false,
-  hideBusinessUnit = false, 
+  hidePoultryFarm = false,
+  hideBusinessUnit = false,
   defaultBusinessUnitId = null,
- 
+
 }) => {
   /* ===== COMMON ===== */
   const [name, setName] = useState('');
@@ -163,8 +163,9 @@ const AddModal: React.FC<AddModalProps> = ({
   const [eggCount, setEggCount] = useState('');
   const [trayError, setTrayError] = useState('');
   const [eggError, setEggError] = useState('');
-  const [flockEggs, setFlockEggs] = useState<{ trays: number; eggs: number; patti: number } | null>(null);
+  const [flockEggs, setFlockEggs] = useState<{ tray: number; eggs: number; patti: number } | null>(null);
   const [loadingFlockEggs, setLoadingFlockEggs] = useState(false);
+  const [patti, setPatti] = useState('');
 
   useEffect(() => {
     const fetchFlockEggs = async () => {
@@ -180,6 +181,34 @@ const AddModal: React.FC<AddModalProps> = ({
 
     fetchFlockEggs();
   }, [selectedFlock]);
+  const [unitItemsLocal, setUnitItemsLocal] = useState<
+    { label: string; value: number }[]
+  >([]);
+
+  useEffect(() => {
+    const fetchUnits = async () => {
+      if (!selectedFlock) {
+        setUnitItemsLocal([]);
+        return;
+      }
+
+      try {
+        const data = await getEggProducedUnits(selectedFlock);
+        const items = data.map((u: any) => ({
+          label: u.name,
+          value: u.unitId,
+        }));
+        setUnitItemsLocal(items);
+      } catch (err) {
+        console.log('Unit fetch error', err);
+      }
+    };
+
+    if (type === 'Egg sale') {
+      fetchUnits();
+    }
+  }, [selectedFlock, type]);
+
   useEffect(() => {
     if (type === 'employee') {
       const fetchEmployeeTypes = async () => {
@@ -219,16 +248,16 @@ const AddModal: React.FC<AddModalProps> = ({
     }
 
     // ===== USER =====
-     if (type === 'user') {
-    const isValid =
-      name.trim().length > 0 &&
-      role !== null &&
-      isValidEmail(email) &&
-      isValidPassword(password);
+    if (type === 'user') {
+      const isValid =
+        name.trim().length > 0 &&
+        role !== null &&
+        isValidEmail(email) &&
+        isValidPassword(password);
 
-    setIsSaveEnabled(isValid);
-    return;
-  }
+      setIsSaveEnabled(isValid);
+      return;
+    }
     if (type === 'vaccination') {
       const isValid =
         vaccine !== null &&
@@ -239,12 +268,12 @@ const AddModal: React.FC<AddModalProps> = ({
       return;
     }
     // ===== CUSTOMER =====
-   if (type === 'customer') {
-  const isValid =
-    name.trim().length > 0 &&
-    (hideBusinessUnit ? true : businessUnit !== null);
-  setIsSaveEnabled(isValid);
-}
+    if (type === 'customer') {
+      const isValid =
+        name.trim().length > 0 &&
+        (hideBusinessUnit ? true : businessUnit !== null);
+      setIsSaveEnabled(isValid);
+    }
     // ADD THIS FOR VACCINATION SCHEDULE
     if (type === 'vaccination Schedule') {
       const isValid =
@@ -262,6 +291,7 @@ const AddModal: React.FC<AddModalProps> = ({
         endDate !== null;
 
       setIsSaveEnabled(isValid);
+      return;
     }
     if (type === 'Egg sale') {
       const tray = Number(trayCount);
@@ -291,6 +321,10 @@ const AddModal: React.FC<AddModalProps> = ({
         price.trim().length > 0 &&
         valid
       );
+      console.log("AddModal Save Data:", {
+        price,
+        eggs,
+      });
     }
   }, [
     type,
@@ -307,11 +341,11 @@ const AddModal: React.FC<AddModalProps> = ({
     quantity,
     vaccinationDate,
     selectedFlock,
+    selectedUnit,
     endDate,
     price,
     selectedCustomer,
   ]);
-
   const reset = () => {
     setName('');
     setEmail('');
@@ -398,7 +432,7 @@ const AddModal: React.FC<AddModalProps> = ({
         unitId: selectedUnit,
         trays: Number(trayCount),
         eggs: Number(eggCount),
-        pricePerTray: Number(price),
+        price: Number(price),
         date: endDate,
         note,
       });
@@ -441,6 +475,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   User Role<Text style={styles.required}>*</Text>
                 </Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
                   open={roleOpen}
                   value={role}
                   items={roleItems || []}
@@ -518,67 +553,68 @@ const AddModal: React.FC<AddModalProps> = ({
             )}
 
             {/* CUSTOMER */}
-          {type === 'customer' && (
-  <>
-    {!hideBusinessUnit && (
-      <>
-        <Text style={styles.label}>
-          Business Units<Text style={styles.required}>*</Text>
-        </Text>
-        <DropDownPicker
-          open={buOpen}
-          value={businessUnit}
-          items={buItems}
-          setOpen={setBuOpen}
-          setValue={setBusinessUnit}
-          setItems={setBuItems}
-          placeholder="Select business unit..."
-          style={styles.dropdown}
-          dropDownContainerStyle={styles.dropdownContainer}
-        />
-      </>
-    )}
+            {type === 'customer' && (
+              <>
+                {!hideBusinessUnit && (
+                  <>
+                    <Text style={styles.label}>
+                      Business Units<Text style={styles.required}>*</Text>
+                    </Text>
+                    <DropDownPicker
+                      listMode="SCROLLVIEW"
+                      open={buOpen}
+                      value={businessUnit}
+                      items={buItems}
+                      setOpen={setBuOpen}
+                      setValue={setBusinessUnit}
+                      setItems={setBuItems}
+                      placeholder="Select business unit..."
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                    />
+                  </>
+                )}
 
-    {/* PHONE */}
-    <Text style={styles.label}>Phone No</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="03XX-XXXXXXX"
-      keyboardType="phone-pad"
-      value={phone}
-      onChangeText={setPhone}
-    />
+                {/* PHONE */}
+                <Text style={styles.label}>Phone No</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="03XX-XXXXXXX"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                />
 
-    {/* EMAIL */}
-    <Text style={styles.label}>Email</Text>
-    <TextInput
-      style={styles.input}
-      placeholder="Enter email..."
-      value={email}
-      onChangeText={text => {
-        setEmail(text);
-        if (text && !isValidEmail(text)) {
-          setEmailError('Enter a valid email');
-        } else {
-          setEmailError('');
-        }
-      }}
-    />
-    {emailError ? (
-      <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
-    ) : null}
+                {/* EMAIL */}
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter email..."
+                  value={email}
+                  onChangeText={text => {
+                    setEmail(text);
+                    if (text && !isValidEmail(text)) {
+                      setEmailError('Enter a valid email');
+                    } else {
+                      setEmailError('');
+                    }
+                  }}
+                />
+                {emailError ? (
+                  <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
+                ) : null}
 
-    {/* ADDRESS */}
-    <Text style={styles.label}>Address</Text>
-    <TextInput
-      style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-      placeholder="Enter address..."
-      multiline
-      value={address}
-      onChangeText={setAddress}
-    />
-  </>
-)}
+                {/* ADDRESS */}
+                <Text style={styles.label}>Address</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  placeholder="Enter address..."
+                  multiline
+                  value={address}
+                  onChangeText={setAddress}
+                />
+              </>
+            )}
 
             {type === 'employee' && (
               <>
@@ -586,6 +622,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   Type<Text style={styles.required}>*</Text>
                 </Text>
                 <DropDownPicker
+                  listMode="SCROLLVIEW"
                   open={typeOpen}
                   value={selectedEmployeeTypeId} // ✅ ID
                   items={typeItems} // value = employeeTypeId
@@ -612,6 +649,7 @@ const AddModal: React.FC<AddModalProps> = ({
                       Poultry Farm<Text style={styles.required}>*</Text>
                     </Text>
                     <DropDownPicker
+                      listMode="SCROLLVIEW"
                       open={buOpen}
                       value={businessUnit}
                       items={buItems}
@@ -928,7 +966,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   keyboardType="numeric"
                   value={intactEggs}
                   onChangeText={setIntactEggs}
-                  placeholder="Enter intact eggs"
+                  placeholder="Enter intact eggs..."
                 />
 
                 {/* BROKEN EGGS */}
@@ -938,7 +976,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   keyboardType="numeric"
                   value={brokenEggs}
                   onChangeText={setBrokenEggs}
-                  placeholder="Enter broken eggs"
+                  placeholder="Enter broken eggs..."
                 />
 
                 {/* TOTAL EGGS (NON-EDITABLE) */}
@@ -1023,7 +1061,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   listMode="SCROLLVIEW"
                   open={unitOpen}
                   value={selectedUnit}
-                  items={unitItems || []}
+                  items={unitItemsLocal}
                   setOpen={setUnitOpen}
                   setValue={setSelectedUnit}
                   placeholder="Select unit"
@@ -1044,8 +1082,8 @@ const AddModal: React.FC<AddModalProps> = ({
                 <TextInput
                   style={styles.input}
                   placeholder="Enter patti..."
-                  value={price}
-                  onChangeText={setPrice}
+                  value={patti}
+                  onChangeText={setPatti}
                   keyboardType="numeric"
                 />
 
@@ -1055,7 +1093,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   {selectedFlock && (
                     <View style={styles.stockPill}>
                       <Text style={styles.stockPillText}>
-                        STOCK: {flockEggs?.trays || 0}
+                        STOCK: {flockEggs?.tray || 0}
                       </Text>
                     </View>
                   )}

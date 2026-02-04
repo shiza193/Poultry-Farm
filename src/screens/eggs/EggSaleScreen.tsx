@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, TextInput, Platform } from 'react-native';
 import Theme from '../../theme/Theme';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
-import { getEggSales, EggSale, getCustomers, getEggProducedUnits } from '../../services/EggsService';
+import { getEggSales, EggSale, getCustomers, addEggSale, } from '../../services/EggsService';
 import { useBusinessUnit } from "../../context/BusinessContext"
 import { useFocusEffect } from '@react-navigation/native';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -37,11 +37,7 @@ const EggSaleScreen: React.FC<Props> = ({
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
-  const [unitItems, setUnitItems] = useState<
-    { label: string; value: number }[]
-  >([]);
   const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
-  const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
   //TABLE COLUMNS
   const columns: TableColumn[] = [
     {
@@ -122,27 +118,7 @@ const EggSaleScreen: React.FC<Props> = ({
       fetchEggSales();
     }
   }, [CustomerValue, searchText, fromDate, toDate]);
-  useEffect(() => {
-    const fetchUnits = async () => {
-      if (!selectedFlock) {
-        setUnitItems([]); 
-        return;
-      }
 
-      try {
-        const data = await getEggProducedUnits(selectedFlock);
-        const items = data.map((unit: any) => ({
-          label: unit.name,
-          value: unit.unitId,
-        }));
-        setUnitItems(items);
-      } catch (error) {
-        console.log("Error fetching units", error);
-      }
-    };
-
-    fetchUnits();
-  }, [selectedFlock]);
   // ===== FETCH FLOCKS =====
   const fetchFlocks = async () => {
     if (!businessUnitId) return;
@@ -168,22 +144,22 @@ const EggSaleScreen: React.FC<Props> = ({
         customerId: data.customerId,
         flockId: data.flockId,
         unitId: data.unitId,
-        trays: Number(data.trays || 0),
-        eggs: Number(data.eggs || 0),
-        pricePerTray: Number(data.price || 0),
-        date: data.date.toISOString().split('T')[0],
-        note: data.note || null,
+        saleTypeId: 1,
+        price: Number(data.price),
+        quantity: null,
+        patti: null,
+        tray: data.trays ? Number(data.trays) : null,
+        eggs: data.eggs ? Number(data.eggs) : null,
+        date: data.date.toISOString().split("T")[0],
+        note: data.note || "",
       };
 
       console.log("Egg Sale Payload:", payload);
-
-      // 👉 yahan tumhari API call aayegi
-      // await addEggSale(payload);
-
+      await addEggSale(payload);
       showSuccessToast("Egg sale added successfully");
       fetchEggSales();
     } catch (error: any) {
-      showErrorToast(error.message || "Failed to add Egg sale");
+      showErrorToast("Failed to add Egg sale");
     } finally {
       setGlobalLoading(false);
     }
@@ -307,7 +283,7 @@ const EggSaleScreen: React.FC<Props> = ({
         <DataCard
           columns={columns}
           data={eggSales}
-          itemsPerPage={10}
+          itemsPerPage={5}
         />
       </View>
       <AddModal
@@ -316,7 +292,6 @@ const EggSaleScreen: React.FC<Props> = ({
         type="Egg sale"
         customerItems={customerItems}
         flockItems={flockItems}
-        unitItems={unitItems}
         onClose={onCloseAddModal}
         onSave={(data) => {
           handleAddEggSale(data);

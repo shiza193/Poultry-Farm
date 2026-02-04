@@ -45,7 +45,7 @@ type User = {
 const SupplierScreen = () => {
   const route = useRoute<any>();
   const fromMenu = route.params?.fromMenu === true;
-  const farmBU = route.params?.businessUnitId ?? null; // NEW: get farm BU if opened from menu
+  const farmBU = route.params?.businessUnitId ?? null; 
   const { businessUnitId } = useBusinessUnit();
   const insets = useSafeAreaInsets();
 
@@ -65,7 +65,7 @@ const SupplierScreen = () => {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [selectedBU, setSelectedBU] = useState<string | null>(fromMenu ? farmBU : null); // NEW: lock BU if fromMenu
+  const [selectedBU, setSelectedBU] = useState<string | null>(fromMenu ? farmBU : null); 
 
   // ================= FETCH SUPPLIERS =================
   const fetchUsers = async () => {
