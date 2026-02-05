@@ -151,59 +151,71 @@ const SettingsScreen = () => {
 
   // ===== TOGGLE STATUS =====
   const toggleStatus = async (id: number | string) => {
-    const tabItems = items[activeTab];
-    const current = tabItems.find(i => {
-      if ('unitId' in i) return i.unitId === id;
-      if ('feedId' in i) return i.feedId === id;
-      if ('empNo' in i) return i.id === id;
-      if ('vaccineNo' in i) return i.id === id;
-      return false;
-    });
-    if (!current) return;
+  // 1 Current tab ka saara data array me store karte hain
+  // Example: agar activeTab 'Egg Units' hai → tabItems = items['Egg Units']
+  const tabItems = items[activeTab];
+  
+  // 2 Current item find karte hain jisko toggle karna hai
+  // Har type me alag ID field hoti hai
+  const current = tabItems.find(i => {
+    if ('unitId' in i) return i.unitId === id;      
+    if ('feedId' in i) return i.feedId === id;       
+    if ('empNo' in i) return i.id === id;         
+    if ('vaccineNo' in i) return i.id === id;        
+    return false;
+  });
 
-    const prevItems = [...tabItems];
+  // 3 Agar current item nahi mila → function exit ho jaye
+  if (!current) return;
 
-    const newItems = tabItems.map(i => {
-      if (i === current) {
-        if ('isActive' in i) return { ...i, isActive: !i.isActive };
-        if ('status' in i)
-          return {
-            ...i,
-            status: i.status === 'Active' ? 'Inactive' : 'Active',
-          };
-      }
-      return i;
-    });
-    setItems(prev => ({
-      ...prev,
-      [activeTab as keyof AllItemsState]: newItems as ItemType[],
-    }));
+  // 4 Previous items ka copy bna lete hain (API fail hone par restore ke liye)
+  const prevItems = [...tabItems];
 
-    try {
-      if (activeTab === 'Egg Units')
-        await updateUnitIsActive(
-          (current as EggUnit).unitId,
-          !(current as EggUnit).isActive,
-        );
-      else if (activeTab === 'Feed Types')
-        await updateFeedIsActive(
-          (current as Feed).feedId,
-          !(current as Feed).isActive,
-        );
-      else if (activeTab === 'Employee Types')
-        await updateEmployeeTypeIsActive(
-          (current as EmployeeType).empNo,
-          (current as EmployeeType).status === 'Inactive',
-        );
-      else if (activeTab === 'Vaccines')
-        await updateVaccineIsActive(
-          Number((current as VaccineType).vaccineNo),
-          (current as VaccineType).status === 'Inactive',
-        );
-    } catch {
-      setItems(prev => ({ ...prev, [activeTab]: prevItems }));
+  const newItems = tabItems.map(i => {
+    if (i === current) {  // Sirf current item ko toggle karna
+      if ('isActive' in i) 
+        return { ...i, isActive: !i.isActive };      
+      if ('status' in i)
+        return {                                 
+          ...i,
+          status: i.status === 'Active' ? 'Inactive' : 'Active',
+        };
     }
-  };
+    return i; 
+  });
+
+  setItems(prev => ({
+    ...prev,
+    [activeTab as keyof AllItemsState]: newItems as ItemType[],
+  }));
+
+  try {
+    if (activeTab === 'Egg Units')
+      await updateUnitIsActive(
+        (current as EggUnit).unitId,
+        !(current as EggUnit).isActive, 
+      );
+    else if (activeTab === 'Feed Types')
+      await updateFeedIsActive(
+        (current as Feed).feedId,
+        !(current as Feed).isActive,
+      );
+    else if (activeTab === 'Employee Types')
+      await updateEmployeeTypeIsActive(
+        (current as EmployeeType).empNo,
+        (current as EmployeeType).status === 'Inactive', 
+      );
+    else if (activeTab === 'Vaccines')
+      await updateVaccineIsActive(
+        Number((current as VaccineType).vaccineNo),
+        (current as VaccineType).status === 'Inactive', 
+      );
+  } catch {
+    // 8 Agar API fail ho jaye → local state ko previous items se restore
+    setItems(prev => ({ ...prev, [activeTab]: prevItems }));
+  }
+};
+
 
   // ===== DELETE =====
   const onDeletePress = (id: number | string) => {

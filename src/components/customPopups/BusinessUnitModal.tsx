@@ -11,9 +11,17 @@ import Theme from '../../theme/Theme';
 import InputField from '../customInputs/Input';
 import DropDownPicker from 'react-native-dropdown-picker';
 
+
+type AccountHeadPayload = {
+  name: string;
+  accountType: string;
+  isActive: boolean;
+};
 interface BusinessUnitModalProps {
   visible: boolean;
   onClose: () => void;
+  accountTypeItems?: { label: string; value: string }[];
+
   onResetPassword?: (data: {
     newPassword: string;
     confirmPassword: string;
@@ -24,7 +32,9 @@ interface BusinessUnitModalProps {
   selectedSupplier?: string | null;
   onApplyFilter?: (flockId: string | null, supplierId: string | null) => void;
   // mode
-  mode?: 'add' | 'edit' | 'filter' | 'reset' | 'singleField';
+mode?: 'add' | 'edit' | 'filter' | 'reset' | 'singleField' | 'accountHead';
+
+
 
   // Add/Edit mode
   onSave?: (data: {
@@ -35,6 +45,9 @@ interface BusinessUnitModalProps {
 
   // SingleField mode
   onSaveSingleField?: (data: { value: string }) => void;
+
+    onSaveAccountHead?: (data: AccountHeadPayload) => void;
+
 
   initialData?: { name: string; location: string };
   modalTitle?: string;
@@ -47,6 +60,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   onClose,
   onSave,
   initialData,
+  onSaveAccountHead,
   onResetPassword,
   onSaveSingleField,
   mode = 'add',
@@ -58,6 +72,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   singleFieldLabel,
   singleFieldValue,
   modalTitle,
+   accountTypeItems = [],
 }) => {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
@@ -76,6 +91,17 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+
+/* ===== ACCOUNT HEAD ===== */
+const [accountName, setAccountName] = useState('');
+const [accountType, setAccountType] = useState<string | null>(null);
+const [accountTypeOpen, setAccountTypeOpen] = useState(false);
+
+const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
+
+
+
 
   useEffect(() => {
     if (initialData) {
@@ -118,6 +144,8 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     if (mode === 'edit') return 'Edit Poultry Farm';
     if (mode === 'filter') return 'Filter';
     if (mode === 'reset') return 'Reset Password';
+    if (mode === 'accountHead') return 'Add Account';
+
 
     return '';
   };
@@ -405,6 +433,91 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   </>
 )}
 
+
+
+
+{/* ===== ACCOUNT HEAD MODE ===== */}
+{mode === 'accountHead' && (
+  <>
+    {/* ACCOUNT NAME */}
+    <Text style={styles.inputLabel}>
+      Account Name<Text style={styles.required}>*</Text>
+    </Text>
+    <InputField
+      placeholder="Enter account name..."
+      value={accountName}
+      onChangeText={setAccountName}
+    />
+
+    {/* ACCOUNT TYPE / PARENT ACCOUNT */}
+    <Text style={styles.inputLabel}>
+      Parent Account<Text style={styles.required}>*</Text>
+    </Text>
+    <DropDownPicker
+      open={accountTypeOpen}
+      value={accountType}
+      items={accountTypeItems || []}
+      setOpen={setAccountTypeOpen}
+      setValue={setAccountType} // selected parent ID
+      placeholder="Select parent account..."
+      style={styles.dropdown}
+      dropDownContainerStyle={styles.dropdownContainer}
+    />
+
+    {/* STATUS */}
+    <Text style={styles.inputLabel}>Status</Text>
+    <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+      {(['Active', 'Inactive'] as const).map(status => (
+        <TouchableOpacity
+          key={status}
+          style={styles.radioContainer}
+          onPress={() => setIsActive(status)}
+        >
+          <View
+            style={[
+              styles.radioCircle,
+              isActive === status && styles.radioSelected,
+            ]}
+          >
+            {isActive === status && <View style={styles.radioTick} />}
+          </View>
+          <Text style={{ marginLeft: 8 }}>{status}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+
+    {/* BUTTONS */}
+    <View style={styles.buttonRow}>
+      <TouchableOpacity
+        style={[styles.button, styles.discardButton]}
+        onPress={onClose}
+      >
+        <Text style={styles.discardText}>Discard</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.button,
+          styles.saveButton,
+          (!accountName || !accountType) && styles.saveButtonDisabled,
+        ]}
+        disabled={!accountName || !accountType}
+        onPress={() => {
+          onSaveAccountHead?.({
+            name: accountName,
+            accountType: accountType!, // parentId
+            isActive: isActive === 'Active',
+          });
+          onClose();
+        }}
+      >
+        <Text style={styles.saveText}>Save</Text>
+      </TouchableOpacity>
+    </View>
+  </>
+)}
+
+
         </View>
       </View>
     </Modal>
@@ -456,6 +569,36 @@ const styles = StyleSheet.create({
     marginTop: 16,
     justifyContent: 'space-between',
   },
+  radioContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginRight: 15,
+},
+radioCircle: {
+  width: 20,
+  height: 20,
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: Theme.colors.black,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: Theme.colors.white,
+},
+ required: {
+    color: Theme.colors.primaryYellow,
+    fontWeight: 'bold',
+    fontSize: 20,
+  },
+radioSelected: {
+  backgroundColor: Theme.colors.primaryYellow,
+},
+radioTick: {
+  width: 10,
+  height: 10,
+  borderRadius: 5,
+  backgroundColor: Theme.colors.white,
+},
+
   resetButton: {
     flex: 1,
     padding: 12,
@@ -477,6 +620,30 @@ const styles = StyleSheet.create({
     color: Theme.colors.secondaryYellow,
     fontWeight: '600',
   },
+  statusButton: {
+  flex: 1,
+  paddingVertical: 10,
+  borderRadius: 8,
+  borderWidth: 1.5,
+  borderColor: Theme.colors.secondaryYellow,
+  alignItems: 'center',
+  marginHorizontal: 4,
+},
+statusActive: {
+  backgroundColor: Theme.colors.secondaryYellow,
+},
+statusInactive: {
+  backgroundColor: Theme.colors.white,
+},
+activeText: {
+  color: Theme.colors.white,
+  fontWeight: '700',
+},
+inactiveText: {
+  color: Theme.colors.secondaryYellow,
+  fontWeight: '700',
+},
+
   applyText: {
     color: Theme.colors.white,
     fontWeight: '600',
