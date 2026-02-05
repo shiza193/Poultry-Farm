@@ -1,126 +1,202 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, StyleSheet, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Theme from "../../theme/Theme";
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
-import BackArrow from "../../components/common/BackArrow";
-import SearchBar from "../../components/common/SearchBar";
-import DataCard, { TableColumn } from "../../components/customCards/DataCard";
+import Theme from '../../theme/Theme';
+import BackArrow from '../../components/common/BackArrow';
+import SearchBar from '../../components/common/SearchBar';
+import DataCard, { TableColumn } from '../../components/customCards/DataCard';
+import LoadingOverlay from '../../components/loading/LoadingOverlay';
+import { showErrorToast, showSuccessToast } from '../../utils/AppToast';
 
-import { getAccountHeads } from "../../services/AccountHeadService";
-import { useBusinessUnit } from "../../context/BusinessContext";
+import {
+  getAccountHeads,
+  getParentAccountHeads,
+  addAccountHead,
+} from '../../services/AccountHeadService';
+import { useBusinessUnit } from '../../context/BusinessContext';
+import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
 
-// AccountHead type
-export interface AccountHead {
-  accountHeadId: string;
-  name: string;
+/* ================= TYPES ================= */
+type AccountHead = {
+  id: string;
   code: string;
-  type: string | null;
+  name: string;
   createdBy: string;
   createdAt: string;
-}
+  type: string | null;
+  businessUnit: string;
+};
 
-// ================= MAIN SCREEN =================
+/* ================= SCREEN ================= */
 const AccountHeadScreen = () => {
+  const insets = useSafeAreaInsets();
+
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [accountHeads, setAccountHeads] = useState<AccountHead[]>([]);
+  const [showAccountHeadModal, setShowAccountHeadModal] = useState(false);
+  const [accountTypeItems, setAccountTypeItems] = useState<
+    { label: string; value: string }[]
+  >([]);
+
+  const pageSize = 1000;
   const { businessUnitId } = useBusinessUnit();
-  const [data, setData] = useState<AccountHead[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
 
-  const pageSize = 10; // show 10 per page
-
-  const loadData = useCallback(
-    async (search: string = "", pageNumber: number = 1) => {
-      if (!businessUnitId) return; // wait for BU ID
+  /* ================= FETCH ACCOUNT HEADS ================= */
+  const fetchAccountHeads = async () => {
+    try {
       setLoading(true);
 
-      try {
-        const response = await getAccountHeads({
-          search,
-          page: pageNumber,
-          pageSize,
-          filters: { businessUnitId },
-        });
+      const payload = {
+        searchKey: search || null,
+        businessUnitId,
+        pageNumber: 1,
+        pageSize,
+      };
 
-        console.log("Fetched page:", pageNumber, "Response:", response);
+      const res = await getAccountHeads(payload);
 
-        if (response.status === "Success") {
-          setData(response.list);
-          setTotalCount(response.totalCount);
-          setPage(pageNumber);
-        } else {
-          setData([]);
-          setTotalCount(0);
-          console.warn("API warning:", response.message);
-        }
-      } catch (error) {
-        console.error("Error fetching account heads:", error);
-        setData([]);
-        setTotalCount(0);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [businessUnitId]
+      setAccountHeads(
+        (res?.list || []).map((item: any) => ({
+          id: item.accountHeadId,
+          code: item.code,
+          name: item.name,
+          createdBy: item.createdBy,
+          createdAt: item.createdAt,
+          type: item.type ?? item.parentName ?? '—',
+          businessUnit: item.businessUnit,
+        })),
+      );
+    } catch {
+      showErrorToast('Failed to fetch account heads');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAccountHeads();
+    }, [search]),
   );
 
-  // Load first page initially
-  useEffect(() => {
-    loadData(searchText, 1);
-  }, [loadData]);
+  /* ================= FETCH PARENT ACCOUNT HEADS ================= */
+  const fetchParentAccountHeads = async () => {
+    if (!businessUnitId) return;
 
+    try {
+      const res = await getParentAccountHeads(businessUnitId);
+
+      const mapped = res.map((item: any) => ({
+        label: item.name,
+        value: item.parentAccountHeadId,
+      }));
+
+      setAccountTypeItems(mapped);
+    } catch {
+      showErrorToast('Failed to load account types');
+    }
+  };
+
+  /* ================= HANDLE SAVE ACCOUNT HEAD ================= */
+  const handleSaveAccountHead = async (data: {
+    name: string;
+    accountType: string;
+    isActive: boolean;
+  }) => {
+    if (!businessUnitId) return;
+
+    try {
+      // payload for API
+      const payload = {
+        name: data.name,
+        accountType: data.accountType, // parent account ID
+        parentId: data.accountType, // same as parent ID
+        isActive: data.isActive,
+        businessUnitId,
+      };
+
+      const res = await addAccountHead(payload);
+
+      showSuccessToast('Account added successfully!');
+      console.log('API Response:', res.data);
+
+      fetchAccountHeads(); // refresh list
+    } catch (err: any) {
+      console.error('Add Account Head Error:', err.response || err);
+      showErrorToast('Failed to add account');
+    }
+  };
+
+  /* ================= DATACARD DATA ================= */
+  const tableData = useMemo(
+    () =>
+      accountHeads.map(item => ({
+        code: item.code,
+        name: item.name,
+        createdBy: item.createdBy,
+        createdAt: item.createdAt.split('T')[0],
+        type: item.type,
+        raw: item,
+      })),
+    [accountHeads],
+  );
+
+  /* ================= COLUMNS ================= */
   const columns: TableColumn[] = [
-    { key: "code", title: "Code", width: 100 },
-    { key: "name", title: "Name", width: 150, isTitle: true },
-    { key: "createdBy", title: "Created By", width: 150 },
-    { key: "createdAt", title: "Created At", width: 220 },
-    { key: "type", title: "Type", width: 120 },
+    { key: 'code', title: 'CODE', width: 120, isTitle: true },
+    { key: 'name', title: 'NAME', width: 160 },
+    { key: 'createdBy', title: 'CREATED BY', width: 160 },
+    { key: 'createdAt', title: 'CREATED AT', width: 160 },
+    { key: 'type', title: 'TYPE', width: 120 },
   ];
 
+  /* ================= UI ================= */
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <BackArrow
-        title="Account Head"
+        title="Account Heads"
         showBack
-        onAddNewPress={() => console.log("Add New Pressed")}
+        onAddNewPress={() => {
+          fetchParentAccountHeads();
+          setShowAccountHeadModal(true);
+        }}
       />
 
-      <View style={styles.searchWrapper}>
+      <View style={styles.searchContainer}>
         <SearchBar
-          placeholder="Search Account Head..."
-          initialValue={searchText}
-          onSearch={(value: string) => {
-            setSearchText(value);
-            loadData(value, 1); // start search from page 1
-          }}
+          placeholder="Search Name..."
+          initialValue={search}
+          onSearch={setSearch}
         />
       </View>
 
-      <View style={styles.content}>
-        {loading ? (
-          <ActivityIndicator size="large" color={Theme.colors.success} />
-        ) : (
-          <DataCard
-            columns={columns}
-            data={data}
-            itemsPerPage={pageSize}
-          />
-        )}
-      </View>
-    </SafeAreaView>
+      <ScrollView>
+        <View style={styles.listContainer}>
+          <DataCard columns={columns} data={tableData} itemsPerPage={10} />
+        </View>
+      </ScrollView>
+
+      <LoadingOverlay visible={loading} />
+
+      {/* ===== BUSINESS UNIT MODAL ===== */}
+      <BusinessUnitModal
+        visible={showAccountHeadModal}
+        onClose={() => setShowAccountHeadModal(false)}
+        mode="accountHead"
+        accountTypeItems={accountTypeItems}
+        onSaveAccountHead={handleSaveAccountHead}
+      />
+    </View>
   );
 };
 
 export default AccountHeadScreen;
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Theme.colors.white },
-  searchWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: Theme.colors.white,
-  },
-  content: { flex: 1, paddingHorizontal: 10 },
+  container: { flex: 1, backgroundColor: Theme.colors.white },
+  searchContainer: { paddingHorizontal: 16, paddingVertical: 10 },
+  listContainer: { flex: 1, paddingHorizontal: 16 },
 });

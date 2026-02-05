@@ -158,8 +158,8 @@ const MenuListScreen = ({ navigation }: any) => {
         <Section title="Finance">
           <MenuItem
             title="Account Head"
-            icon={Theme.icons.moneys}
-            onPress={() =>    navigation.navigate(CustomConstants.ACCOUNT_HEAD_SCREEN)}
+            icon={Theme.icons.star}
+            onPress={() =>navigation.navigate(CustomConstants.ACCOUNT_HEAD_SCREEN)}
           />
           <MenuItem
             title="Vouchers"
@@ -169,7 +169,7 @@ const MenuListScreen = ({ navigation }: any) => {
           <MenuItem
             title="Ledger"
             icon={Theme.icons.ledger}
-            onPress={() => navigation.navigate('Ledger')}
+            onPress={() =>navigation.navigate(CustomConstants.LEDGER_SCREEN)}
           />
           <MenuItem
             title="Receivables"

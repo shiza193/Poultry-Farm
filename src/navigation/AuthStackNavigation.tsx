@@ -28,6 +28,7 @@ import PoultryDetailTab from "./PoultryDetailTab";
 import SettingsScreen from "../screens/more/SettingsScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
 import AccountHeadScreen from "../screens/more/AccountHeadScreen";
+import LedgerScreen from "../screens/more/LedgerScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -65,6 +66,10 @@ const AuthStackNavigation = () => {
        <Stack.Screen
         name={CustomConstants.ACCOUNT_HEAD_SCREEN}
         component={AccountHeadScreen}
+      />
+        <Stack.Screen
+        name={CustomConstants.LEDGER_SCREEN}
+        component={LedgerScreen}
       />
        <Stack.Screen
         name={CustomConstants.DASHBOARD_SCREEN}
