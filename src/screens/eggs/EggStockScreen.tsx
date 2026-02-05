@@ -14,7 +14,6 @@ type Props = {
 
 const EggStockScreen: React.FC<Props> = ({ setGlobalLoading }) => {
   const [eggStockData, setEggStockData] = useState<EggStock[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const { businessUnitId } = useBusinessUnit();
 
   const columns: TableColumn[] = [
@@ -40,7 +39,6 @@ const EggStockScreen: React.FC<Props> = ({ setGlobalLoading }) => {
 
   return (
     <View style={styles.container}>
-
       <View style={{ paddingHorizontal: 16 }}>
         <DataCard columns={columns} data={eggStockData} itemsPerPage={5} />
       </View>

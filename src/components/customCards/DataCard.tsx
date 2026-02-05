@@ -86,7 +86,7 @@ const DataCard: React.FC<DataCardProps> = ({
               style={{
                 alignItems: "flex-start",
                 justifyContent: "flex-start",
-                paddingVertical: 50,
+                paddingVertical: 20,
                 paddingLeft: 100,
                 width: columns.reduce((sum, c) => sum + (c.width || 120), 0),
               }}

@@ -101,6 +101,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const [salary, setSalary] = useState('');
   const [joiningDate, setJoiningDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [date, setDate] = useState<Date | null>(null);
 
   const [typeOpen, setTypeOpen] = useState(false);
   const [selectedEmployeeTypeId, setSelectedEmployeeTypeId] = useState<
@@ -126,7 +127,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
   const [flockOpen, setFlockOpen] = useState(false);
   const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
-  /* ===== 🟢 EDIT MODE PREFILL USEEFFECT (YAHAN) ===== */
+  /* =====  EDIT MODE PREFILL USEEFFECT (YAHAN) ===== */
   useEffect(() => {
     if (type === 'vaccination' && isEdit && initialData) {
       setVaccine(initialData.vaccineId);
@@ -150,14 +151,38 @@ const AddModal: React.FC<AddModalProps> = ({
   }, [type, isEdit, initialData, visible]);
   const [passwordError, setPasswordError] = useState('');
   /* ===== Eggs States ===== */
-  const [intactEggs, setIntactEggs] = useState<string>("");
-  const [brokenEggs, setBrokenEggs] = useState<string>("");
+  const [intactEggs, setIntactEggs] = useState<number>(0);
+  const [brokenEggs, setBrokenEggs] = useState<number>(0);
   const totalEggs =
     (Number(intactEggs) || 0) + (Number(brokenEggs) || 0);
   const [unitOpen, setUnitOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<number | null>(null);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+
+  // Fill fields when initialData changes
+  useEffect(() => {
+    if (initialData && visible) {
+      setSelectedFlock(initialData.flockId);
+      setSelectedUnit(
+        initialData.unitId !== null
+          ? Number(initialData.unitId)
+          : null
+      );
+      setEndDate(initialData.date ? new Date(initialData.date) : null);
+      setIntactEggs(initialData.fertileEggs ?? 0);
+      setBrokenEggs(initialData.brokenEggs ?? 0);
+    }
+  }, [initialData, visible]);
+  useEffect(() => {
+    if (!initialData && visible) {
+      setSelectedFlock(null);
+      setSelectedUnit(null);
+      setEndDate(null);
+      setIntactEggs(0);
+      setBrokenEggs(0);
+    }
+  }, [initialData, visible]);
   /* ===== Egg Sale ===== */
   const [trayCount, setTrayCount] = useState('');
   const [eggCount, setEggCount] = useState('');
@@ -166,7 +191,21 @@ const AddModal: React.FC<AddModalProps> = ({
   const [flockEggs, setFlockEggs] = useState<{ tray: number; eggs: number; patti: number } | null>(null);
   const [loadingFlockEggs, setLoadingFlockEggs] = useState(false);
   const [patti, setPatti] = useState('');
-
+  const [totalPrice, setTotalPrice] = useState(0);
+  const calculateTotalPrice = () => {
+    const pattiPrice = Number(price) || 0;
+    const eggs = Number(eggCount) || 0;
+    const pattis = Number(patti) || 0;
+    const trays = Number(trayCount) || 0;
+    const pricePerEgg = pattiPrice / 360;
+    const pricePerTray = pricePerEgg * 30;
+    const pricePerPatti = pricePerEgg * 360;
+    const total = eggs * pricePerEgg + pattis * pricePerPatti + trays * pricePerTray;
+    setTotalPrice(total);
+  };
+  useEffect(() => {
+    calculateTotalPrice();
+  }, [price, eggCount, patti, trayCount]);
   useEffect(() => {
     const fetchFlockEggs = async () => {
       if (selectedFlock) {
@@ -178,7 +217,6 @@ const AddModal: React.FC<AddModalProps> = ({
         setFlockEggs(null);
       }
     };
-
     fetchFlockEggs();
   }, [selectedFlock]);
   const [unitItemsLocal, setUnitItemsLocal] = useState<
@@ -319,6 +357,7 @@ const AddModal: React.FC<AddModalProps> = ({
         selectedFlock !== null &&
         endDate !== null &&
         price.trim().length > 0 &&
+        selectedUnit !== null &&
         valid
       );
       console.log("AddModal Save Data:", {
@@ -964,8 +1003,8 @@ const AddModal: React.FC<AddModalProps> = ({
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
-                  value={intactEggs}
-                  onChangeText={setIntactEggs}
+                  value={intactEggs.toString()} // convert number to string
+                  onChangeText={text => setIntactEggs(Number(text) || 0)} // convert string to number
                   placeholder="Enter intact eggs..."
                 />
 
@@ -974,8 +1013,8 @@ const AddModal: React.FC<AddModalProps> = ({
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
-                  value={brokenEggs}
-                  onChangeText={setBrokenEggs}
+                  value={brokenEggs.toString()}
+                  onChangeText={text => setBrokenEggs(Number(text) || 0)}
                   placeholder="Enter broken eggs..."
                 />
 
@@ -1156,6 +1195,11 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={note}
                   onChangeText={setNote}
                 />
+                {/* Total Price */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Total Price :</Text>
+                  <Text style={{ fontSize: 16, marginRight: 130 }}>Rs. {totalPrice.toFixed(2)}</Text>
+                </View>
               </>
             )}
           </ScrollView>
