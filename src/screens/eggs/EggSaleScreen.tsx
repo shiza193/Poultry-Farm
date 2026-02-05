@@ -33,7 +33,6 @@ const EggSaleScreen: React.FC<Props> = ({
   // States
   const [eggSales, setEggSales] = useState<EggSale[]>([]);
   const [searchText, setSearchText] = useState<string>("");
-  const [tempSearch, setTempSearch] = useState<string>("");
   const [CustomerValue, setCustomerValue] = useState<string | null>(null); const [customerOpen, setCustomerOpen] = useState(false);
   const [customerItems, setCustomerItems] = useState<any[]>([]);
   const [fromDate, setFromDate] = useState<Date | null>(null);
@@ -78,7 +77,7 @@ const EggSaleScreen: React.FC<Props> = ({
       width: 80,
     },
   ];
-  const fetchEggSales = async () => {
+  const fetchEggSales = async (overrideSearchKey?: string | null) => {
     if (!businessUnitId) return;
     setGlobalLoading(true);
     const payload = {
@@ -86,7 +85,7 @@ const EggSaleScreen: React.FC<Props> = ({
       customerId: CustomerValue,
       from: fromDate ? fromDate.toISOString() : null,
       to: toDate ? toDate.toISOString() : null,
-      searchKey: searchText || null,
+      searchKey: overrideSearchKey !== undefined ? overrideSearchKey : searchText || null,
       pageNumber: 1,
       pageSize: 10,
     };
@@ -115,7 +114,7 @@ const EggSaleScreen: React.FC<Props> = ({
     if (businessUnitId) {
       fetchEggSales();
     }
-  }, [CustomerValue, searchText, fromDate, toDate]);
+  }, [CustomerValue, fromDate, toDate]);
 
   // ===== FETCH FLOCKS =====
   const fetchFlocks = async () => {
@@ -168,20 +167,21 @@ const EggSaleScreen: React.FC<Props> = ({
     <View style={styles.container}>
       {/* ===== SEARCH + FLOCK DROPDOWN ===== */}
       <View style={styles.filterRow}>
+        {/* ===== SEARCH BAR ===== */}
         <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search Customer..."
             placeholderTextColor={Theme.colors.textSecondary}
-            value={tempSearch}
-            onChangeText={setTempSearch}
+            value={searchText}
+            onChangeText={setSearchText}
             style={styles.searchInput}
           />
-          {/*  CLEAR ICON */}
-          {tempSearch.length > 0 && (
+          {/* CLEAR ICON */}
+          {searchText.length > 0 && (
             <TouchableOpacity
               onPress={() => {
-                setTempSearch("");
                 setSearchText("");
+                fetchEggSales(null);
               }}
             >
               <Image
@@ -192,15 +192,14 @@ const EggSaleScreen: React.FC<Props> = ({
           )}
 
           {/* SEARCH ICON */}
-          <TouchableOpacity
-            onPress={() => setSearchText(tempSearch)}
-          >
+          <TouchableOpacity onPress={() => fetchEggSales(searchText)}>
             <Image
               source={Theme.icons.search}
               style={styles.searchIcon}
             />
           </TouchableOpacity>
         </View>
+
         <View style={styles.dropdownWrapper}>
           <DropDownPicker
             open={customerOpen}

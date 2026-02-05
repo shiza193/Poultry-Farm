@@ -33,7 +33,7 @@ const VaccinationsScreen: React.FC<Props> = ({
     const { businessUnitId } = useBusinessUnit();
     const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
     const [searchText, setSearchText] = useState("");
-    const [tempSearch, setTempSearch] = useState(""); const [supplierOpen, setSupplierOpen] = useState(false);
+    const [supplierOpen, setSupplierOpen] = useState(false);
     const [supplierValue, setSupplierValue] = useState<string | null>(null);
     const [supplierItems, setSupplierItems] = useState<any[]>([]);
     const [vaccineItems, setVaccineItems] = useState<{ label: string; value: number }[]>([]);
@@ -169,29 +169,24 @@ const VaccinationsScreen: React.FC<Props> = ({
                     <TextInput
                         placeholder="Search vaccine..."
                         placeholderTextColor={Theme.colors.textSecondary}
-                        value={tempSearch}
-                        onChangeText={setTempSearch}
+                        value={searchText}
+                        onChangeText={setSearchText}
                         style={styles.searchInput}
                     />
 
                     {/*  CLEAR ICON */}
-                    {tempSearch.length > 0 && (
+                    {searchText.length > 0 && (
                         <TouchableOpacity
                             onPress={() => {
-                                setTempSearch("");
                                 setSearchText("");
+                                fetchVaccinationsData();
                             }}
                         >
-                            <Image
-                                source={Theme.icons.close1}
-                                style={styles.clearIcon}
-                            />
+                            <Image source={Theme.icons.close1} style={styles.clearIcon} />
                         </TouchableOpacity>
                     )}
                     {/*  SEARCH ICON */}
-                    <TouchableOpacity
-                        onPress={() => setSearchText(tempSearch)}
-                    >
+                    <TouchableOpacity onPress={() => fetchVaccinationsData()}>
                         <Image
                             source={Theme.icons.search}
                             style={styles.searchIcon}
@@ -214,7 +209,7 @@ const VaccinationsScreen: React.FC<Props> = ({
                     />
                 </View>
             </View>
-            {(supplierValue || searchText) && (
+            {(supplierValue) && (
                 <View style={styles.resetRow}>
                     <TouchableOpacity onPress={() => {
                         setSupplierValue(null);

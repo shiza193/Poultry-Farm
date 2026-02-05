@@ -45,7 +45,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     const { businessUnitId } = useBusinessUnit();
     const [schedules, setSchedules] = useState<VaccinationSchedule[]>([]);
     const [searchText, setSearchText] = useState<string>("");
-    const [tempSearch, setTempSearch] = useState<string>(""); const [flockOpen, setFlockOpen] = useState<boolean>(false);
+    const [flockOpen, setFlockOpen] = useState<boolean>(false);
     const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
     const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
     const [vaccineItems, setVaccineItems] = useState<{ label: string; value: number }[]>([]);
@@ -54,12 +54,14 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     const [editingSchedule, setEditingSchedule] = useState<VaccinationSchedule | null>(null);
 
     // ===== FETCH SCHEDULES =====
-    const fetchSchedules = async (pageNumber = 1, pageSize = 10) => {
+    const fetchSchedules = async (pageNumber = 1, pageSize = 10,overrideSearchKey?:string) => {
         if (!businessUnitId) return;
         setGlobalLoading(true);
         try {
             const payload: VaccinationSchedulePayload = {
-                searchKey: searchText || null,
+                searchKey: overrideSearchKey !== undefined
+                    ? overrideSearchKey
+                    : searchText || null,
                 businessUnitId,
                 flockId: selectedFlock || null,
                 pageNumber,
@@ -81,7 +83,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
         useCallback(() => {
             fetchSchedules();
             setSelectedFlock(null);
-        }, [searchText, selectedFlock, businessUnitId])
+        }, [, selectedFlock, businessUnitId])
     );
 
     // ===== FETCH FLOCKS =====
@@ -145,7 +147,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     const handleEditSchedule = async (data: any) => {
         if (!editingSchedule || !businessUnitId) return;
         const payload = {
-            businessUnitId, 
+            businessUnitId,
             vaccineId: data.vaccineId,
             flockId: data.flockId,
             quantity: Number(data.quantity),
@@ -161,9 +163,9 @@ const VaccineScheduleScreen: React.FC<Props> = ({
 
             if (res.status === "Success") {
                 showSuccessToast("Schedule updated successfully");
-                fetchSchedules();        
+                fetchSchedules();
             } else {
-                showErrorToast( "Failed to update schedule");
+                showErrorToast("Failed to update schedule");
             }
         } catch (error: any) {
             showErrorToast(
@@ -273,30 +275,25 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                         <TextInput
                             placeholder="Search vaccine..."
                             placeholderTextColor={Theme.colors.textSecondary}
-                            value={tempSearch}
-                            onChangeText={setTempSearch}
+                            value={searchText}
+                            onChangeText={setSearchText}
                             style={vsstyles.searchInput}
                         />
 
                         {/*  CLEAR ICON */}
-                        {tempSearch.length > 0 && (
+                        {searchText.length > 0 && (
                             <TouchableOpacity
                                 onPress={() => {
-                                    setTempSearch("");
                                     setSearchText("");
+                                    fetchSchedules();
                                 }}
                             >
-                                <Image
-                                    source={Theme.icons.close1}
-                                    style={vsstyles.clearIcon}
-                                />
+                                <Image source={Theme.icons.close1} style={vsstyles.clearIcon} />
                             </TouchableOpacity>
                         )}
 
                         {/* SEARCH ICON */}
-                        <TouchableOpacity
-                            onPress={() => setSearchText(tempSearch)}
-                        >
+                        <TouchableOpacity onPress={() => fetchSchedules()}>
                             <Image
                                 source={Theme.icons.search}
                                 style={vsstyles.searchIcon}

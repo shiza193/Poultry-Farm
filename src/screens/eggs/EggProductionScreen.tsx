@@ -41,7 +41,6 @@ const EggProductionScreen: React.FC<Props> = ({
   const [eggProductionList, setEggProductionList] = useState<EggProduction[]>([]);
   const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
   const [searchText, setSearchText] = useState<string>("");
-  const [tempSearch, setTempSearch] = useState<string>("");
   const [flockOpen, setFlockOpen] = useState<boolean>(false);
   const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
   const [unitItems, setUnitItems] = useState<
@@ -74,16 +73,22 @@ const EggProductionScreen: React.FC<Props> = ({
     { key: 'brokenEggs', title: 'BROKEN', width: 80 },
   ];
   // FETCH DATA
-  const fetchEggProduction = async () => {
+  const fetchEggProduction = async (overrideSearchKey?: string | null) => {
     if (!businessUnitId) return;
+
     setGlobalLoading(true);
+
     const payload = {
       businessUnitId,
       flockId: selectedFlock,
-      searchKey: searchText || null,
+      searchKey:
+        overrideSearchKey !== undefined
+          ? overrideSearchKey
+          : searchText || null,
       pageNumber: 1,
       pageSize: 10,
     };
+
     const data = await getEggProduction(payload);
     setEggProductionList(data);
     setGlobalLoading(false);
@@ -116,7 +121,7 @@ const EggProductionScreen: React.FC<Props> = ({
     if (businessUnitId) {
       fetchEggProduction();
     }
-  }, [selectedFlock, searchText]);
+  }, [selectedFlock]);
   const fetchUnits = async () => {
     try {
       const units = await getUnitsByProductType(1);
@@ -212,30 +217,24 @@ const EggProductionScreen: React.FC<Props> = ({
           <TextInput
             placeholder="Search Ref/Flock..."
             placeholderTextColor={Theme.colors.textSecondary}
-            value={tempSearch}
-            onChangeText={setTempSearch}
+            value={searchText}
+            onChangeText={setSearchText}
             style={styles.searchInput}
           />
 
           {/*  CLEAR ICON */}
-          {tempSearch.length > 0 && (
+          {searchText.length > 0 && (
             <TouchableOpacity
               onPress={() => {
-                setTempSearch("");
                 setSearchText("");
+                fetchEggProduction(null);
               }}
             >
-              <Image
-                source={Theme.icons.close1}
-                style={styles.clearIcon}
-              />
+              <Image source={Theme.icons.close1} style={styles.clearIcon} />
             </TouchableOpacity>
           )}
-
           {/* SEARCH ICON */}
-          <TouchableOpacity
-            onPress={() => setSearchText(tempSearch)}
-          >
+          <TouchableOpacity onPress={() => fetchEggProduction()}>
             <Image
               source={Theme.icons.search}
               style={styles.searchIcon}
