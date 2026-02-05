@@ -103,3 +103,35 @@ export const deleteEmployee = async (employeeId: string) => {
     throw error;
   }
 };
+
+
+
+
+
+interface UpdateEmployeePayload {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  businessUnitId?: string | null;
+  // Other fields like employeeType, salary, joiningDate are read-only here
+}
+
+export const updateEmployee = async (
+  employeeId: string,
+  payload: UpdateEmployeePayload
+) => {
+  try {
+    const response = await api.put(
+      `api/Employee/update-employee/${employeeId}`,
+      payload
+    );
+
+    // Example API response:
+    // { status: "Success", message: "Updated Successfully", data: {...} }
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating employee:', error.response || error.message);
+    throw error;
+  }
+};

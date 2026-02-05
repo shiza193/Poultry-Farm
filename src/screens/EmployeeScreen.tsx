@@ -11,12 +11,15 @@ import LoadingOverlay from '../components/loading/LoadingOverlay';
 import Theme from '../theme/Theme';
 import StatusToggle from '../components/common/StatusToggle';
 import TopBarCard from '../components/customCards/TopBarCard';
-
+import ProfileModal, {
+  ProfileData,
+} from '../components/customPopups/ProfileModal';
 import {
   getEmployees,
   updateEmployeeIsActive,
   addEmployee,
   deleteEmployee,
+  updateEmployee,
 } from '../services/EmployeeService';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
 import BackArrow from '../components/common/BackArrow';
@@ -39,8 +42,13 @@ const EmployeeScreen = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   console.log('EmployeeScreen route params:', route.params);
-const fromMenu = route.params?.fromMenu === true;
+  const fromMenu = route.params?.fromMenu === true;
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<ProfileData | null>(
+    null,
+  );
+
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
@@ -49,7 +57,8 @@ const fromMenu = route.params?.fromMenu === true;
   const [showDotsMenu, setShowDotsMenu] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
     null,
-  );  const pageSize = 50;
+  );
+  const pageSize = 50;
 
   const routeBU = route.params?.businessUnitId ?? null;
   const [selectedBU, setSelectedBU] = useState<string | null>(routeBU);
@@ -95,11 +104,10 @@ const fromMenu = route.params?.fromMenu === true;
     }
   };
 
-
   useFocusEffect(
     useCallback(() => {
       fetchEmployees();
-    }, [selectedBU])
+    }, [selectedBU]),
   );
   // ================= FILTER =================
   const filteredEmployees = employees.filter(emp => {
@@ -130,7 +138,40 @@ const fromMenu = route.params?.fromMenu === true;
 
   // ================= TABLE COLUMNS =================
   const columns: TableColumn[] = [
-    { key: 'name', title: 'NAME', width: 120, isTitle: true, showDots: true },
+    {
+      key: 'name',
+      title: 'NAME',
+      width: 120,
+      isTitle: true,
+      showDots: true,
+      render: (value, row) => (
+        <TouchableOpacity
+          onPress={() => {
+            // Open ProfileModal for this employee
+            setSelectedEmployee({
+              id: row.employeeId!,
+              name: row.name,
+              phone: row.phone ?? '',
+              email: row.email ?? '',
+              address: row.address ?? '',
+              isActive: row.status === 'Active',
+              businessUnitId: row.poultryFarmId,
+              employeeType: row.type,
+              salary: row.salary,
+              joiningDate: row.joiningDate,
+              endDate: row.endDate,
+            });
+            setProfileModalVisible(true);
+          }}
+        >
+          <Text
+            style={{ color: Theme.colors.black, fontWeight: '600' }}
+          >
+            {value || 'N/A'}
+          </Text>
+        </TouchableOpacity>
+      ),
+    },
     { key: 'type', title: 'TYPE', width: 120 },
     { key: 'salary', title: 'SALARY', width: 120 },
     { key: 'poultryFarm', title: 'FARM', width: 140 },
@@ -218,9 +259,11 @@ const fromMenu = route.params?.fromMenu === true;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-    {fromMenu ? (
-        <BackArrow title="Employees" showBack={true} 
-         onAddNewPress={() => setIsAddModalVisible(true)}
+      {fromMenu ? (
+        <BackArrow
+          title="Employees"
+          showBack={true}
+          onAddNewPress={() => setIsAddModalVisible(true)}
         />
       ) : (
         <Header
@@ -250,7 +293,7 @@ const fromMenu = route.params?.fromMenu === true;
         value={selectedBU}
         onBusinessUnitChange={setSelectedBU}
         onReset={resetFilters}
-         hideBUDropdown={fromMenu} 
+        hideBUDropdown={fromMenu}
       />
 
       {tableData.length > 0 ? (
@@ -289,6 +332,8 @@ const fromMenu = route.params?.fromMenu === true;
         title="Add Employee"
         onClose={() => setIsAddModalVisible(false)}
         onSave={handleAddEmployee}
+        hidePoultryFarm={!!fromMenu}
+        defaultBusinessUnitId={selectedBU}
       />
 
       <ConfirmationModal
@@ -298,6 +343,50 @@ const fromMenu = route.params?.fromMenu === true;
         onConfirm={handleConfirmDelete}
         title="Are you sure you want to delete this employee?"
       />
+      {selectedEmployee && (
+        <ProfileModal
+          visible={profileModalVisible}
+          onClose={() => setProfileModalVisible(false)}
+          type="employee"
+          data={selectedEmployee}
+          onSave={async updatedData => {
+            try {
+              // Prepare payload for API
+              const payload = {
+                name: updatedData.name,
+                businessUnitId: updatedData.businessUnitId,
+              };
+
+              // Call API
+              const res = await updateEmployee(updatedData.id, payload);
+
+              // Update local employees state safely
+              setEmployees(prev =>
+                prev.map(emp =>
+                  emp.employeeId === updatedData.id
+                    ? {
+                        employeeId: updatedData.id,
+                        name: updatedData.name,
+                        type: updatedData.employeeType || emp.type,
+                        salary: updatedData.salary || emp.salary,
+                        poultryFarmId:
+                          updatedData.businessUnitId || emp.poultryFarmId,
+                        poultryFarm: emp.poultryFarm, // optional: you can map BU name if needed
+                        joiningDate: updatedData.joiningDate || emp.joiningDate,
+                        endDate: updatedData.endDate || emp.endDate,
+                        status: updatedData.isActive ? 'Active' : 'Inactive',
+                      }
+                    : emp,
+                ),
+              );
+              showSuccessToast(res.message || 'Employee updated successfully');
+              setProfileModalVisible(false);
+            } catch (error) {
+              showErrorToast('Failed to update employee');
+            }
+          }}
+        />
+      )}
 
       <LoadingOverlay visible={loading} />
     </View>

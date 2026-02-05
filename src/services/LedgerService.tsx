@@ -1,6 +1,7 @@
 import api from '../api/Api';
 
 export interface GetLedgersPayload {
+   businessUnitId: string;
   searchKey: string | null;
   fromDate: string | null;
   toDate: string | null;

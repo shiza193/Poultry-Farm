@@ -10,9 +10,12 @@ import {
   useWindowDimensions,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 import { getBusinessUnits } from '../../services/BusinessUnit';
 
 export type ProfileData = {
@@ -24,8 +27,12 @@ export type ProfileData = {
   createdAt?: string;
   isActive?: boolean;
   businessUnitId?: string | null;
-};
 
+  employeeType?: string;
+  salary?: number;
+  joiningDate?: string;
+  endDate?: string | null;
+};
 
 type ProfileModalProps = {
   visible: boolean;
@@ -63,6 +70,36 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
   const addressRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
 
+  const dateIcon = require('../../resources/images/date.png');
+
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [pickerDate, setPickerDate] = useState(new Date());
+  const [currentDateField, setCurrentDateField] = useState<
+    'joiningDate' | 'endDate' | null
+  >(null);
+
+  const showDatePicker = (field: 'joiningDate' | 'endDate') => {
+    if (!editMode) return; // Only open in edit mode
+
+    setCurrentDateField(field);
+
+    // Use current value if available, otherwise today
+    const existing = formData[field] ? new Date(formData[field]!) : new Date();
+    setPickerDate(existing);
+
+    setDatePickerVisible(true);
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setDatePickerVisible(false); // auto close on Android
+    if (selectedDate && currentDateField) {
+      setFormData(prev => ({
+        ...prev,
+        [currentDateField]: selectedDate.toISOString().split('T')[0], // YYYY-MM-DD
+      }));
+    }
+  };
+
   useEffect(() => {
     if (visible) {
       setFormData({ ...data });
@@ -86,46 +123,93 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     })();
   }, []);
 
- const handleSave = () => {
-  const updated =
-    type === 'user'
-      ? { ...formData, name: nameDraft }
-      : {
-          ...formData,
-          name: nameDraft,
-          phone: phoneDraft,
-          address: addressDraft,
-          email: emailDraft,
-        };
+  useEffect(() => {
+    if (visible) {
+      setFormData({ ...data });
+      setNameDraft(data.name ?? '');
+      // No edit for employee-specific fields (read-only)
+      setEditMode(false);
+    }
+  }, [visible, data]);
 
-  onSave?.(updated);
-  onClose();
-};
+  const handleSave = () => {
+    const updated =
+      type === 'user'
+        ? { ...formData, name: nameDraft }
+        : type === 'customer'
+        ? {
+            ...formData,
+            name: nameDraft,
+            phone: phoneDraft,
+            address: addressDraft,
+            email: emailDraft,
+          }
+        : {
+            ...formData,
+            name: nameDraft,
+          };
 
+    onSave?.(updated);
+    onClose();
+  };
 
-const renderField = (
-  label: string,
-  value: string,
-  setter?: (v: string) => void,
-  editable?: boolean,
-) => (
-  <View style={[styles.field, { width: fieldWidth }]}>
-    <Text style={styles.label}>{label}</Text>
+  const renderField = (
+    label: string,
+    value: string,
+    setter?: (v: string) => void,
+    editable?: boolean,
+  ) => (
+    <View style={[styles.field, { width: fieldWidth }]}>
+      <Text style={styles.label}>{label}</Text>
 
-    {editable ? (
-      <TextInput
-        value={value}
-        onChangeText={setter}
-        style={styles.input}
-        placeholder={value ? label : 'N/A'}
-        placeholderTextColor="#999"
-      />
-    ) : (
-      <Text style={styles.value}>{value || 'N/A'}</Text>
-    )}
-  </View>
-);
+      {editable ? (
+        <TextInput
+          value={value}
+          onChangeText={setter}
+          style={styles.input}
+          placeholder={value ? label : 'N/A'}
+          placeholderTextColor="#999"
+        />
+      ) : (
+        <Text style={styles.value}>{value || 'N/A'}</Text>
+      )}
+    </View>
+  );
 
+  const renderDateField = (
+    label: string,
+    value: string | undefined,
+    field: 'joiningDate' | 'endDate',
+  ) => (
+    <TouchableOpacity
+      style={[styles.field, { width: fieldWidth }]}
+      onPress={() => showDatePicker(field)}
+    >
+      <Text style={styles.label}>{label}</Text>
+      <View
+        style={[
+          styles.input,
+          {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          },
+        ]}
+      >
+        <Text style={{ color: value ? '#000' : '#999' }}>{value || 'N/A'}</Text>
+        {editMode && (
+          <Image
+            source={dateIcon}
+            style={{
+              width: 20,
+              height: 20,
+              tintColor: Theme.colors.buttonPrimary,
+            }}
+          />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -142,19 +226,18 @@ const renderField = (
               </View>
               <View style={{ flex: 1 }}>
                 {/* Name field without label */}
-               {editMode ? (
-  <TextInput
-    value={nameDraft}
-    onChangeText={setNameDraft}
-    style={styles.input}
-    placeholder={nameDraft ? 'Name' : 'N/A'}
-  />
-) : (
-  <Text style={[styles.value, { fontSize: 16 }]}>
-    {nameDraft || 'N/A'}
-  </Text>
-)}
-
+                {editMode ? (
+                  <TextInput
+                    value={nameDraft}
+                    onChangeText={setNameDraft}
+                    style={styles.input}
+                    placeholder={nameDraft ? 'Name' : 'N/A'}
+                  />
+                ) : (
+                  <Text style={[styles.value, { fontSize: 16 }]}>
+                    {nameDraft || 'N/A'}
+                  </Text>
+                )}
 
                 {formData.isActive !== undefined && (
                   <View
@@ -178,63 +261,125 @@ const renderField = (
             <View style={styles.divider} />
 
             {/* CONTENT */}
-           <ScrollView
-  style={{ maxHeight: '70%' }}
-  contentContainerStyle={styles.grid}
-  keyboardShouldPersistTaps="handled"
->
-  {/* USER SCREEN */}
-  {type === 'user' && (
-    <>
-      {renderField('Email Address', emailDraft)}
-      {renderField('Created At', formData.createdAt ?? '')}
-    </>
-  )}
+            {/* CONTENT */}
+            <ScrollView
+              style={{ maxHeight: '70%' }}
+              contentContainerStyle={styles.grid}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* USER SCREEN */}
+              {type === 'user' && (
+                <>
+                  {renderField('Email Address', emailDraft)}
+                  {renderField('Created At', formData.createdAt ?? '')}
+                </>
+              )}
 
-  {/* CUSTOMER / EMPLOYEE (OLD BEHAVIOUR) */}
-  {type !== 'user' && (
-    <>
-      {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
-      {renderField('Email', emailDraft, setEmailDraft, editMode)}
+              {/* CUSTOMER SCREEN */}
+              {type === 'customer' && (
+                <>
+                  {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
+                  {renderField('Email', emailDraft, setEmailDraft, editMode)}
+                  {renderField(
+                    'Address',
+                    addressDraft,
+                    setAddressDraft,
+                    editMode,
+                  )}
 
-      {(type === 'customer' || type === 'employee') && (
-        <View style={{ zIndex: 3000, width: fieldWidth }}>
-          <Text style={styles.label}>
-            {type === 'customer' ? 'Poultry Farm' : 'Department'}
-          </Text>
+                  <View style={{ zIndex: 3000, width: fieldWidth }}>
+                    <Text style={styles.label}>Poultry Farm</Text>
+                    {editMode ? (
+                      <DropDownPicker
+                        listMode="SCROLLVIEW"
+                        open={buOpen}
+                        value={formData.businessUnitId ?? null}
+                        items={buItems}
+                        setOpen={setBUOpen}
+                        setValue={cb =>
+                          setFormData(prev => ({
+                            ...prev,
+                            businessUnitId: cb(prev.businessUnitId),
+                          }))
+                        }
+                        setItems={setBUItems}
+                        style={styles.dropdown}
+                        dropDownContainerStyle={styles.dropdownContainer}
+                      />
+                    ) : (
+                      <Text style={styles.value}>
+                        {buItems.find(i => i.value === formData.businessUnitId)
+                          ?.label || 'N/A'}
+                      </Text>
+                    )}
+                  </View>
+                </>
+              )}
 
-          {editMode ? (
-            <DropDownPicker
-              listMode="SCROLLVIEW"
-              open={buOpen}
-              value={formData.businessUnitId ?? null}
-              items={buItems}
-              setOpen={setBUOpen}
-              setValue={cb =>
-                setFormData(prev => ({
-                  ...prev,
-                  businessUnitId: cb(prev.businessUnitId),
-                }))
-              }
-              setItems={setBUItems}
-              style={styles.dropdown}
-              dropDownContainerStyle={styles.dropdownContainer}
-            />
-          ) : (
-            <Text style={styles.value}>
-              {buItems.find(i => i.value === formData.businessUnitId)?.label ||
-                'N/A'}
-            </Text>
-          )}
-        </View>
-      )}
+              {type === 'employee' && (
+                <>
+                  {renderField(
+                    'Employee Type',
+                    formData.employeeType ?? 'N/A',
+                    undefined,
+                    false,
+                  )}
+                  {renderField(
+                    'Salary',
+                    formData.salary?.toString() ?? 'N/A',
+                    v => setFormData(prev => ({ ...prev, salary: Number(v) })),
+                    editMode,
+                  )}
 
-      {renderField('Address', addressDraft, setAddressDraft, editMode)}
-    </>
-  )}
-</ScrollView>
+                  {renderDateField(
+                    'Joining Date',
+                    formData.joiningDate,
+                    'joiningDate',
+                  )}
+                  {renderDateField(
+                    'End Date',
+                    formData.endDate ?? '',
+                    'endDate',
+                  )}
 
-
+                  {/* Department Dropdown */}
+                  <View style={{ zIndex: 3000, width: fieldWidth }}>
+                    <Text style={styles.label}>Department</Text>
+                    {editMode ? (
+                      <DropDownPicker
+                        listMode="SCROLLVIEW"
+                        open={buOpen}
+                        value={formData.businessUnitId ?? null}
+                        items={buItems}
+                        setOpen={setBUOpen}
+                        setValue={cb =>
+                          setFormData(prev => ({
+                            ...prev,
+                            businessUnitId: cb(prev.businessUnitId),
+                          }))
+                        }
+                        setItems={setBUItems}
+                        style={styles.dropdown}
+                        dropDownContainerStyle={styles.dropdownContainer}
+                      />
+                    ) : (
+                      <Text style={styles.value}>
+                        {buItems.find(i => i.value === formData.businessUnitId)
+                          ?.label || 'N/A'}
+                      </Text>
+                    )}
+                  </View>
+                </>
+              )}
+            </ScrollView>
+            {isDatePickerVisible && (
+              <DateTimePicker
+                value={pickerDate}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+              />
+            )}
             {/* ACTIONS */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.discardBtn} onPress={onClose}>

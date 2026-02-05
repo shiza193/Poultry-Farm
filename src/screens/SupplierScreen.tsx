@@ -330,6 +330,7 @@ const SupplierScreen = () => {
           title="Add Supplier"
           onClose={() => setShowAddModal(false)}
           onSave={handleAddSupplier}
+          hideBusinessUnit={fromMenu}
         />
 
         <ConfirmationModal

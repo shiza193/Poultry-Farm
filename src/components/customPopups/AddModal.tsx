@@ -435,6 +435,15 @@ const AddModal: React.FC<AddModalProps> = ({
     };
     fetchBusinessUnits();
   }, []);
+useEffect(() => {
+  if (type === 'employee') {
+    if (hidePoultryFarm && defaultBusinessUnitId) {
+      setBusinessUnit(defaultBusinessUnitId);
+    } else if (!hidePoultryFarm) {
+      setBusinessUnit(null); // Allow selection
+    }
+  }
+}, [type, hidePoultryFarm, defaultBusinessUnitId, visible]);
 
   /* ===== SAVE ===== */
   const handleSave = () => {
