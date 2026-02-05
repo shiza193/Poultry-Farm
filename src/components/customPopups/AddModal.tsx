@@ -149,6 +149,24 @@ const AddModal: React.FC<AddModalProps> = ({
       setPaymentStatus('Paid');
     }
   }, [type, isEdit, initialData, visible]);
+  useEffect(() => {
+    if (type === 'vaccination Schedule' && initialData && visible) {
+      setVaccine(initialData.vaccineId ?? null);
+      setSelectedFlock(initialData.flockId ?? null);
+      setQuantity(
+        initialData.quantity ? String(initialData.quantity) : ''
+      );
+      setVaccinationDate(
+        initialData.scheduledDate
+          ? new Date(initialData.scheduledDate)
+          : null
+      );
+    }
+
+    if (type === 'vaccination Schedule' && !initialData && visible) {
+      reset(); 
+    }
+  }, [type, initialData, visible]);
   const [passwordError, setPasswordError] = useState('');
   /* ===== Eggs States ===== */
   const [intactEggs, setIntactEggs] = useState<number>(0);

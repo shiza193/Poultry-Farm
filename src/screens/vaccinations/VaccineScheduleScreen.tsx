@@ -12,7 +12,8 @@ import DropDownPicker from "react-native-dropdown-picker";
 import {
     getVaccinationSchedule, VaccinationSchedule,
     VaccinationSchedulePayload, updateVaccinationStatus, getVaccines,
-    addVaccinationSchedule, deleteVaccinationSchedule
+    addVaccinationSchedule, deleteVaccinationSchedule,
+    updateVaccinationSchedule
 } from "../../services/VaccinationService";
 import { vsstyles } from "./style";
 import { getFlocks } from "../../services/FlockService";
@@ -32,12 +33,14 @@ interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
     setGlobalLoading: (val: boolean) => void;
+    onOpenAddModal: () => void;
 }
+
 const VaccineScheduleScreen: React.FC<Props> = ({
     openAddModal,
     onCloseAddModal,
     setGlobalLoading,
-
+    onOpenAddModal,
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [schedules, setSchedules] = useState<VaccinationSchedule[]>([]);
@@ -48,6 +51,8 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     const [vaccineItems, setVaccineItems] = useState<{ label: string; value: number }[]>([]);
     const [confirmationVisible, setConfirmationVisible] = useState(false);
     const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+    const [editingSchedule, setEditingSchedule] = useState<VaccinationSchedule | null>(null);
+
     // ===== FETCH SCHEDULES =====
     const fetchSchedules = async (pageNumber = 1, pageSize = 10) => {
         if (!businessUnitId) return;
@@ -137,7 +142,35 @@ const VaccineScheduleScreen: React.FC<Props> = ({
             showErrorToast(backendMsg);
         }
     };
+    const handleEditSchedule = async (data: any) => {
+        if (!editingSchedule || !businessUnitId) return;
+        const payload = {
+            businessUnitId, 
+            vaccineId: data.vaccineId,
+            flockId: data.flockId,
+            quantity: Number(data.quantity),
+            scheduledDate: data.scheduledDate
+                ? data.scheduledDate.toISOString().split("T")[0]
+                : null,
+        };
+        try {
+            const res = await updateVaccinationSchedule(
+                editingSchedule.vaccinationScheduleId,
+                payload
+            );
 
+            if (res.status === "Success") {
+                showSuccessToast("Schedule updated successfully");
+                fetchSchedules();        
+            } else {
+                showErrorToast( "Failed to update schedule");
+            }
+        } catch (error: any) {
+            showErrorToast(
+                error?.response?.data?.message || "Something went wrong"
+            );
+        }
+    };
     // ===== NEW DATA CARD COLUMNS =====
     const columns: TableColumn[] = [
         {
@@ -221,6 +254,8 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     ];
     const tableData = schedules.map(item => ({
         vaccinationScheduleId: item.vaccinationScheduleId,
+        vaccineId: item.vaccineId,
+        flockId: item.flockId,
         ref: item.ref,
         flockRef: item.flockRef,
         vaccine: item.vaccine,
@@ -297,22 +332,18 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                     <DataCard
                         columns={columns}
                         data={tableData}
-                        itemsPerPage={5} // optional
+                        itemsPerPage={5}
                         renderRowMenu={(row, closeMenu) => (
                             <View>
                                 <TouchableOpacity
                                     onPress={() => {
-                                        onCloseAddModal();
-                                        onCloseAddModal();
-                                        setTimeout(() => {
-                                            setTimeout(() => {
-                                                onCloseAddModal();
-                                            }, 0);
-                                        }, 0);
-
+                                        setEditingSchedule(row);
+                                        onOpenAddModal();
                                     }}
                                 >
-                                    <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>Edit </Text>
+                                    <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>
+                                        Edit
+                                    </Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
@@ -336,15 +367,25 @@ const VaccineScheduleScreen: React.FC<Props> = ({
             <AddModal
                 visible={openAddModal}
                 type="vaccination Schedule"
-                title="Add Vaccine Schedule"
-                onClose={onCloseAddModal}
+                title={editingSchedule ? "Edit Vaccine Schedule" : "Add Vaccine Schedule"}
+                onClose={() => {
+                    setEditingSchedule(null);
+                    onCloseAddModal();
+                }}
                 onSave={(data) => {
-                    handleAddSchedule(data);
+                    if (editingSchedule) {
+                        handleEditSchedule(data);
+                    } else {
+                        handleAddSchedule(data);
+                    }
+                    setEditingSchedule(null);
                     onCloseAddModal();
                 }}
                 vaccineItems={vaccineItems}
                 flockItems={flockItems}
+                initialData={editingSchedule}
             />
+
             <ConfirmationModal
                 visible={confirmationVisible}
                 type="delete"

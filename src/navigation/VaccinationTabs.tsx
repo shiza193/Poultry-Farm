@@ -28,7 +28,7 @@ const VaccinationMainScreen = () => {
                     <VaccineScheduleScreen
                         openAddModal={openAddModal}
                         onCloseAddModal={() => setOpenAddModal(false)}
-                        // onOpenAddModal={() => setOpenAddModal(true)}
+                        onOpenAddModal={() => setOpenAddModal(true)}
                         setGlobalLoading={setGlobalLoading}
                     />
                 );

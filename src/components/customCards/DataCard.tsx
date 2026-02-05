@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 999,
     minWidth: 80,
-    top: 25,
+    top: 20,
     left: 18,
   },
   paginationContainer: {

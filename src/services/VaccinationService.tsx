@@ -319,3 +319,23 @@ export const deleteVaccinationSchedule = async (scheduleId: string) => {
     };
   }
 };
+
+export interface UpdateVaccinationSchedulePayload {
+  businessUnitId: string;
+  vaccineId: number;
+  flockId: string;
+  quantity: number;
+  scheduledDate: string | null;
+}
+
+export const updateVaccinationSchedule = async (
+  vaccinationScheduleId: string,
+  payload: UpdateVaccinationSchedulePayload
+) => {
+  const response = await api.put(
+    `api/VaccinationSchedule/update-vaccination-schedule/${vaccinationScheduleId}`,
+    payload
+  );
+
+  return response.data;
+};
