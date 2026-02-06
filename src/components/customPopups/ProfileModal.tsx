@@ -15,20 +15,20 @@ import {
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
+import { getEmployeeTypes } from '../../services/EmployeeService';
 import { getBusinessUnits } from '../../services/BusinessUnit';
 
 export type ProfileData = {
   id: string;
   name: string;
-  phone?: string;
-  email?: string;
-  address?: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
   createdAt?: string;
   isActive?: boolean;
   businessUnitId?: string | null;
-
   employeeType?: string;
+  employeeTypeId?: number;
   salary?: number;
   joiningDate?: string;
   endDate?: string | null;
@@ -38,7 +38,7 @@ type ProfileModalProps = {
   visible: boolean;
   onClose: () => void;
   data: ProfileData;
-  type?: 'user' | 'customer' | 'employee';
+  type?: 'user' | 'customer' | 'employee' | 'supplier';
   onSave?: (updatedData: ProfileData) => void;
 };
 
@@ -65,6 +65,21 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     [],
   );
 
+  const [empTypeOpen, setEmpTypeOpen] = useState(false);
+  const [empTypeItems, setEmpTypeItems] = useState<
+    { label: string; value: number }[]
+  >([]);
+
+  const emptySupplier: ProfileData = {
+    id: '',
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    businessUnitId: null,
+    isActive: true,
+  };
+
   const nameRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
   const addressRef = useRef<TextInput>(null);
@@ -78,17 +93,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     'joiningDate' | 'endDate' | null
   >(null);
 
-  const showDatePicker = (field: 'joiningDate' | 'endDate') => {
-    if (!editMode) return; // Only open in edit mode
-
-    setCurrentDateField(field);
-
-    // Use current value if available, otherwise today
-    const existing = formData[field] ? new Date(formData[field]!) : new Date();
-    setPickerDate(existing);
-
-    setDatePickerVisible(true);
-  };
+  const [salaryDraft, setSalaryDraft] = useState<string>('');
+  const [joiningDateDraft, setJoiningDateDraft] = useState<string>('');
+  const [endDateDraft, setEndDateDraft] = useState<string>('');
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') setDatePickerVisible(false); // auto close on Android
@@ -124,80 +131,132 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
   }, []);
 
   useEffect(() => {
+    (async () => {
+      try {
+        const types = await getEmployeeTypes();
+        setEmpTypeItems(
+          types.map((t: any) => ({
+            label: t.name,
+            value: Number(t.employeeTypeId),
+          })),
+        );
+      } catch (err) {
+        console.error('Failed to fetch employee types', err);
+      }
+    })();
+  }, []);
+  useEffect(() => {
     if (visible) {
       setFormData({ ...data });
       setNameDraft(data.name ?? '');
-      // No edit for employee-specific fields (read-only)
+      setPhoneDraft(data.phone ?? '');
+      setAddressDraft(data.address ?? '');
+      setEmailDraft(data.email ?? '');
+      setSalaryDraft(data.salary?.toString() ?? '');
+      setJoiningDateDraft(data.joiningDate ?? '');
+      setEndDateDraft(data.endDate ?? '');
       setEditMode(false);
     }
   }, [visible, data]);
 
-  const handleSave = () => {
-    const updated =
-      type === 'user'
-        ? { ...formData, name: nameDraft }
-        : type === 'customer'
-        ? {
-            ...formData,
-            name: nameDraft,
-            phone: phoneDraft,
-            address: addressDraft,
-            email: emailDraft,
-          }
-        : {
-            ...formData,
-            name: nameDraft,
-          };
+const handleSave = () => {
+  if (type === 'employee') {
+    const updated: ProfileData = {
+      ...formData,
+      name: nameDraft || formData.name,
+      phone: phoneDraft ?? formData.phone,
+      email: emailDraft ?? formData.email,
+      address: addressDraft ?? formData.address,
+      salary: salaryDraft !== '' ? Number(salaryDraft) : formData.salary,
+      joiningDate: joiningDateDraft || formData.joiningDate,
+      endDate: endDateDraft ?? formData.endDate,
+    };
 
     onSave?.(updated);
     onClose();
+    return;
+  }
+
+  // fallback for other types
+  const updatedOther = {
+    ...formData,
+    name: nameDraft || formData.name,
+    phone: phoneDraft ?? formData.phone,
+    email: emailDraft ?? formData.email,
+    address: addressDraft ?? formData.address,
   };
+  onSave?.(updatedOther);
+  onClose();
+};
 
   const renderField = (
     label: string,
-    value: string,
+    value?: string | null,
     setter?: (v: string) => void,
     editable?: boolean,
-  ) => (
-    <View style={[styles.field, { width: fieldWidth }]}>
-      <Text style={styles.label}>{label}</Text>
+    readOnly?: boolean, 
+  ) => {
+    const displayValue = value && value.trim().length > 0 ? value : 'N/A';
 
-      {editable ? (
-        <TextInput
-          value={value}
-          onChangeText={setter}
-          style={styles.input}
-          placeholder={value ? label : 'N/A'}
-          placeholderTextColor="#999"
-        />
-      ) : (
-        <Text style={styles.value}>{value || 'N/A'}</Text>
-      )}
-    </View>
-  );
+    return (
+      <View style={[styles.field, { width: fieldWidth }]}>
+        <Text style={styles.label}>{label}</Text>
 
+        {editable ? (
+          <TextInput
+            value={value ?? ''}
+            onChangeText={readOnly ? undefined : setter}
+            editable={!readOnly} 
+            style={[
+              styles.input,
+              readOnly && { backgroundColor: '#f1f1f1' },
+            ]}
+            placeholder="N/A"
+            placeholderTextColor="#999"
+          />
+        ) : (
+          <Text style={styles.value}>{displayValue}</Text>
+        )}
+      </View>
+    );
+  };
+
+  const showDatePicker = (field: 'joiningDate' | 'endDate') => {
+    if (!editMode) return; // Only open in edit mode
+
+    setCurrentDateField(field);
+
+    // Use current value if available and valid, otherwise today
+    const existingDate = formData[field]
+      ? new Date(formData[field]!)
+      : new Date();
+    const validDate = isNaN(existingDate.getTime()) ? new Date() : existingDate;
+
+    setPickerDate(validDate);
+    setDatePickerVisible(true);
+  };
   const renderDateField = (
     label: string,
     value: string | undefined,
     field: 'joiningDate' | 'endDate',
   ) => (
-    <TouchableOpacity
-      style={[styles.field, { width: fieldWidth }]}
-      onPress={() => showDatePicker(field)}
-    >
+    <View style={[styles.field, { width: fieldWidth }]}>
       <Text style={styles.label}>{label}</Text>
-      <View
-        style={[
-          styles.input,
-          {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          },
-        ]}
-      >
-        <Text style={{ color: value ? '#000' : '#999' }}>{value || 'N/A'}</Text>
-        {editMode && (
+      {editMode ? (
+        <TouchableOpacity
+          style={[
+            styles.input,
+            {
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            },
+          ]}
+          onPress={() => showDatePicker(field)}
+        >
+          <Text style={{ color: value ? '#000' : '#999' }}>
+            {value || 'N/A'}
+          </Text>
           <Image
             source={dateIcon}
             style={{
@@ -206,9 +265,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               tintColor: Theme.colors.buttonPrimary,
             }}
           />
-        )}
-      </View>
-    </TouchableOpacity>
+        </TouchableOpacity>
+      ) : (
+        <Text style={styles.value}>{value || 'N/A'}</Text>
+      )}
+    </View>
   );
 
   return (
@@ -318,33 +379,48 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 
               {type === 'employee' && (
                 <>
-                  {renderField(
-                    'Employee Type',
-                    formData.employeeType ?? 'N/A',
-                    undefined,
-                    false,
-                  )}
+                  {/* Employee Type Dropdown */}
+                  {/* Employee Type Dropdown */}
+                  <View style={{ zIndex: 4000, width: fieldWidth }}>
+                    <Text style={styles.label}>Employee Type</Text>
+                    {editMode ? (
+                      <DropDownPicker
+                        listMode="SCROLLVIEW"
+                        open={empTypeOpen}
+                        value={formData.employeeTypeId ?? null} // number
+                        items={empTypeItems} // value is number
+                        setOpen={setEmpTypeOpen}
+                        setValue={cb =>
+                          setFormData(prev => ({
+                            ...prev,
+                            employeeTypeId: cb(prev.employeeTypeId), // number
+                          }))
+                        }
+                        setItems={setEmpTypeItems}
+                        style={styles.dropdown}
+                        dropDownContainerStyle={styles.dropdownContainer}
+                        placeholder="Select Employee Type"
+                      />
+                    ) : (
+                      <Text style={styles.value}>
+                        {empTypeItems.find(
+                          i => i.value === formData.employeeTypeId,
+                        )?.label || 'N/A'}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Salary Field */}
                   {renderField(
                     'Salary',
-                    formData.salary?.toString() ?? 'N/A',
-                    v => setFormData(prev => ({ ...prev, salary: Number(v) })),
+                    salaryDraft,
+                    v => setSalaryDraft(v),
                     editMode,
                   )}
 
-                  {renderDateField(
-                    'Joining Date',
-                    formData.joiningDate,
-                    'joiningDate',
-                  )}
-                  {renderDateField(
-                    'End Date',
-                    formData.endDate ?? '',
-                    'endDate',
-                  )}
-
-                  {/* Department Dropdown */}
+                  {/* Department / Business Unit */}
                   <View style={{ zIndex: 3000, width: fieldWidth }}>
-                    <Text style={styles.label}>Department</Text>
+                    <Text style={styles.label}>Poultry Fram</Text>
                     {editMode ? (
                       <DropDownPicker
                         listMode="SCROLLVIEW"
@@ -369,6 +445,18 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                       </Text>
                     )}
                   </View>
+
+                  {/* Joining / End Date fields */}
+                  {renderDateField(
+                    'Joining Date',
+                    formData.joiningDate,
+                    'joiningDate',
+                  )}
+                  {renderDateField(
+                    'End Date',
+                    formData.endDate ?? '',
+                    'endDate',
+                  )}
                 </>
               )}
             </ScrollView>
@@ -380,6 +468,62 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                 onChange={handleDateChange}
               />
             )}
+
+            {/* SUPPLIER SCREEN */}
+            {type === 'supplier' && (
+              <>
+                {renderField(
+                  'Phone Number',
+                  phoneDraft,
+                  setPhoneDraft,
+                  editMode,
+                )}
+                {renderField(
+                  'Email Address',
+                  emailDraft,
+                  setEmailDraft,
+                  editMode,
+                  true, // readOnly = true
+                )}
+
+                {renderField(
+                  'Address',
+                  addressDraft,
+                  setAddressDraft,
+                  editMode,
+                )}
+
+                {/* Poultry Farm */}
+                <View style={{ zIndex: 3000, width: fieldWidth }}>
+                  <Text style={styles.label}>Poultry Farm</Text>
+                  {editMode ? (
+                    <DropDownPicker
+                      listMode="SCROLLVIEW"
+                      open={buOpen}
+                      value={formData.businessUnitId ?? null}
+                      items={buItems}
+                      setOpen={setBUOpen}
+                      setValue={cb =>
+                        setFormData(prev => ({
+                          ...prev,
+                          businessUnitId: cb(prev.businessUnitId),
+                        }))
+                      }
+                      setItems={setBUItems}
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                      placeholder="Select Poultry Farm"
+                    />
+                  ) : (
+                    <Text style={styles.value}>
+                      {buItems.find(i => i.value === formData.businessUnitId)
+                        ?.label || 'N/A'}
+                    </Text>
+                  )}
+                </View>
+              </>
+            )}
+
             {/* ACTIONS */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.discardBtn} onPress={onClose}>

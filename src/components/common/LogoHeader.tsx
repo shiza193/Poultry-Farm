@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <View style={[styles.topHeader, containerStyle]}>
       {/* LOGO */}
-      <Image source={Theme.icons.poultrycloud} style={styles.logo} />
+      <Image source={Theme.icons.poultrycloud1} style={styles.logo} />
 
       {/* TITLE + SUBTITLE */}
       {alignWithLogo ? (
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     height: 80,
   },
   logo: {
-    width: 100,
+    width: 110,
     height: 100,
     resizeMode: 'contain',
   },

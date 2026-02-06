@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Theme from '../../theme/Theme';
-import Header from '../../components/common/Header';
+import Header from '../../components/common/LogoHeader';
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';

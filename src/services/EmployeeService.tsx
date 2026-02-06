@@ -54,18 +54,12 @@ export const getEmployeeTypes = async () => {
     const response = await api.get(
       `api/Master/get-employee-types`
     );
-
-    // API response structure:
-    // { status, message, data }
     return response.data?.data || [];
   } catch (error) {
     console.error('Failed to fetch employee types:', error);
     throw error;
   }
 };
-
-
-
 
 interface AddEmployeePayload {
   name: string;
@@ -135,3 +129,5 @@ export const updateEmployee = async (
     throw error;
   }
 };
+
+

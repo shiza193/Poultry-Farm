@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
-import Header from '../components/common/Header';
+import Header from '../components/common/LogoHeader';
 import TopBarCard from '../components/customCards/TopBarCard';
 
 import {
@@ -485,7 +485,7 @@ const UserScreen = () => {
               const res = await updateUser({
                 userId: updated.id,
                 fullName: updated.name,
-                email: updated.email, // backend required hai is liye bhej rahe
+                email: updated.email ?? '',
               });
 
               // UI update

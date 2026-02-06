@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 import InputField from '../../components/customInputs/Input';
-import PrimaryButton from '../../components/customButtons/customButtom';
+import PrimaryButton from '../../components/customButtons/customButton';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 

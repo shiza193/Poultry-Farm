@@ -8,17 +8,13 @@ import {
 } from 'react-native';
 import DataCard from '../../components/customCards/DataCard';
 import Theme from '../../theme/Theme';
-import PdfButton from '../../components/customButtons/PdfButton';
 import { getFlockStock, FlockStock } from '../../services/FlockService';
-import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
-import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
-import ScreenTipCard from '../../components/customCards/ScreenTipCard';
+import { CustomConstants } from '../../constants/CustomConstants';
+
 import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlockStockScreen = () => {
-  const [activeScreen, setActiveScreen] = useState<ScreenType>(
-    CustomConstants.FLOCK_STOCK_SCREEN,
-  );
+ 
   const [flockStock, setFlockStock] = useState<FlockStock[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,17 +49,10 @@ const FlockStockScreen = () => {
   };
 
   return (
-    <SidebarWrapper
-      activeScreen={activeScreen}
-      setActiveScreen={setActiveScreen}
-    >
+   
       <View style={styles.container}>
-        <ScreenTipCard screen={CustomConstants.FLOCK_STOCK_SCREEN} />
 
-        {/* PDF Button */}
-        <View style={styles.buttonContainer}>
-          <PdfButton title="Excel Report" onPress={handlePdfPress} />
-        </View>
+      
 
         {loading ? (
           <ActivityIndicator size="large" color={Theme.colors.buttonPrimary} />
@@ -99,7 +88,6 @@ const FlockStockScreen = () => {
           </ScrollView>
         )}
       </View>
-    </SidebarWrapper>
   );
 };
 

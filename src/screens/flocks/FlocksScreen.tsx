@@ -11,8 +11,6 @@ import {
   Alert,
 } from 'react-native';
 import Theme from '../../theme/Theme';
-import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
-import ScreenTipCard from '../../components/customCards/ScreenTipCard';
 import FlockTableComponent from '../../components/customCards/FlockCard';
 import AddFlockModal from '../../components/customPopups/AddFlockModal';
 import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
@@ -34,7 +32,7 @@ import {
   AutoFeedRecordPayload,
   CalculateFCRPayload,
 } from '../../services/FlockService';
-import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
+import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
 
 interface Flock {
@@ -61,10 +59,7 @@ const { businessUnitId } = useBusinessUnit();
   const [selectedFlockId, setSelectedFlockId] = useState<string | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
 
-  // ===== MAIN SCREEN STATES =====
-  const [activeScreen, setActiveScreen] = useState<ScreenType>(
-    CustomConstants.FLOCKS_SCREEN,
-  );
+
   const [flocks, setFlocks] = useState<Flock[]>([]);
   const [dropdownItems, setDropdownItems] = useState<
     { label: string; value: string }[]
@@ -159,10 +154,7 @@ useEffect(() => {
       style={{ flex: 1, backgroundColor: Theme.colors.white }}
       contentContainerStyle={{ flexGrow: 1 }}
     >
-      <SidebarWrapper
-        activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
-      >
+      
         <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
           {/* ===== TOP ROW: TITLE + DOTS MENU ===== */}
           <View style={styles.topRow}>
@@ -256,10 +248,7 @@ useEffect(() => {
             </TouchableOpacity>
           )}
 
-          {/* ===== TIP CARD ===== */}
-          <View style={styles.tipCardContainer}>
-            <ScreenTipCard screen={CustomConstants.FLOCKS_SCREEN} />
-          </View>
+       
 
           <View style={styles.mainContainer}>
             {/* ===== SEARCH + FILTER ROW ===== */}
@@ -514,7 +503,6 @@ useEffect(() => {
             }}
           />
         </View>
-      </SidebarWrapper>
     </ScrollView>
   );
 };

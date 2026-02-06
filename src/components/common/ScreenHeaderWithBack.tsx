@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface HeaderProps {
   title: string;
   showBack?: boolean;
-  onAddNewPress?: () => void; // optional callback for Add New
+  onAddNewPress?: () => void; 
 }
 
 const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPress }) => {

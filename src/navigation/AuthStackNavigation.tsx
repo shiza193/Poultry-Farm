@@ -7,21 +7,12 @@ import DashboardScreen from "../screens/DashboardScreen";
 import BootomTabNavigation from "./BootomTabNavigation";
 import UserScreen from "../screens/UserScreen";
 import CustomerScreen from "../screens/CustomerScreen";
-import DashboardDetailScreen from "../screens/DashboardDetailScreen";
-import MainLayout from "./MainLayout";
 import EggTabs from "./EggTabs";
 import FlocksScreen from "../screens/flocks/FlocksScreen";
 import FlockSaleScreen from "../screens/flocks/FlockSaleScreen";
 import FlocksMortalityScreen from "../screens/flocks/FlocksMortalityScreen";
 import FlockStockScreen from "../screens/flocks/FlockStockScreen";
 import HospitalityScreen from "../screens/flocks/HospitalityScreen";
-import EggProductionScreen from "../screens/eggs/EggProductionScreen";
-import EggSaleScreen from "../screens/eggs/EggSaleScreen";
-import EggStockScreen from "../screens/eggs/EggStockScreen";
-import AboutUsScreen from "../screens/AboutUsScreen";
-import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
-import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
-import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import EmployeeScreen from "../screens/EmployeeScreen";
 import SupplierScreen from "../screens/SupplierScreen";
 import PoultryDetailTab from "./PoultryDetailTab";
@@ -107,16 +98,6 @@ const AuthStackNavigation = () => {
         name={CustomConstants.HOSPITALITY_SCREEN}
         component={HospitalityScreen}
       />
-         <Stack.Screen
-        name={CustomConstants.MAIN_LAYOUT}
-        component={MainLayout}
-      />
-     
-        <Stack.Screen
-        name={CustomConstants.ABOUT_US_SCREEN}
-        component={AboutUsScreen}
-      />
-      
        <Stack.Screen
         name={CustomConstants.EMPLOYEE_SCREEN}
         component={EmployeeScreen}

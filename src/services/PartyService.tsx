@@ -101,10 +101,9 @@ interface UpdatePartyPayload {
   name: string;
   phone?: string | null;
   email?: string | null;
-  address?: string;
+ address?: string | null;
   partyTypeId: number;
   businessUnitId: string;
-  // You can add more fields if API supports them, e.g., accountHeadId
   accountHeadId?: string;
 }
 

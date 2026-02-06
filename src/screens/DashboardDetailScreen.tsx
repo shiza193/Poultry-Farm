@@ -14,7 +14,7 @@ import { Circle } from 'react-native-progress';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import Theme from '../theme/Theme';
-import Header from '../components/common/Header';
+import Header from '../components/common/LogoHeader';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { getPoultryFarmSummary } from '../services/BusinessUnit';
 import { useBusinessUnit } from '../context/BusinessContext';
@@ -133,9 +133,8 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
 
     // Graph color
     const circleColor = isAboveHundred
-      ? Theme.colors.blue
+      ? Theme.colors.lightblue
       : Theme.colors.success;
-
     return (
       <View style={styles.eggsProductionCard}>
         {/* LEFT : GRAPH + LEGENDS */}
@@ -172,10 +171,10 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
               <View
                 style={[
                   styles.statusBox,
-                  { backgroundColor: Theme.colors.blue },
+                  { backgroundColor: Theme.colors.lightblue },
                 ]}
               />
-              <Text style={styles.statusText}>&gt; 100</Text>
+              <Text style={styles.statusText}>&gt; 100%</Text>
             </View>
 
             {/* < 100 */}
@@ -186,7 +185,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
                   { backgroundColor: Theme.colors.success },
                 ]}
               />
-              <Text style={styles.statusText}>&lt; 100</Text>
+              <Text style={styles.statusText}>&lt; 100%</Text>
             </View>
           </View>
         </View>

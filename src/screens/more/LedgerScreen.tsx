@@ -7,13 +7,13 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Theme from '../../theme/Theme';
-import BackArrow from '../../components/common/BackArrow';
+import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import SearchBar from '../../components/common/SearchBar';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import LoadingOverlay from '../../components/loading/LoadingOverlay';
@@ -37,7 +37,6 @@ type LedgerItem = {
 };
 
 const LedgerScreen = () => {
-  const insets = useSafeAreaInsets();
   const { businessUnitId } = useBusinessUnit();
 
   const [search, setSearch] = useState('');
@@ -193,39 +192,41 @@ const LedgerScreen = () => {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, zIndex: 0 }]}>
+    <SafeAreaView style={styles.safeArea}>
       <BackArrow title="Ledger" showBack />
 
       {/* Search + Dropdown Row */}
-      <View style={styles.searchRow}>
-        <View style={styles.searchWrapper}>
-          <SearchBar
-            placeholder="Search Voucher..."
-            initialValue={search}
-            onSearch={setSearch}
-          />
-        </View>
-
-        <View style={[styles.dropdownWrapper, { zIndex: 1 }]}>
-          <DropDownPicker
-            open={openDropdown}
-            value={selectedParty}
-            items={dropdownItems}
-            setOpen={setOpenDropdown}
-            setValue={setSelectedParty}
-            placeholder="Select Party"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownList}
-            textStyle={styles.dropdownText}
-            arrowIconStyle={styles.dropdownArrow}
-          />
-        </View>
+      {/* Search Row (FULL WIDTH) */}
+      <View style={styles.searchOnlyRow}>
+        <SearchBar
+          placeholder="Search Voucher..."
+          initialValue={search}
+          onSearch={setSearch}
+        />
       </View>
 
-      {/* Date Filter Row */}
+      {/* Filter Row */}
+      {/* Date + Party Row (same as old style) */}
       <View style={styles.dateFilterRow}>
         <View style={styles.dateFilterInner}>
-          <Text style={styles.dateLabel}>Date:</Text>
+          <View style={[styles.dropdownWrapper]}>
+            <DropDownPicker
+              open={openDropdown}
+              value={selectedParty}
+              items={dropdownItems}
+              setOpen={setOpenDropdown}
+              listMode="SCROLLVIEW"
+              setValue={setSelectedParty}
+              placeholder="Select Party"
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownList}
+              textStyle={styles.dropdownText}
+              arrowIconStyle={styles.dropdownArrow}
+            />
+          </View>
+
+          <Text style={[styles.dateLabel, { marginLeft: 7 }]}>Date:</Text>
+
           <TouchableOpacity
             style={styles.dateFilterBtn}
             onPress={() => setShowPicker(true)}
@@ -246,7 +247,7 @@ const LedgerScreen = () => {
               setFilterDate(null);
             }}
           >
-            <Text style={styles.resetText}>Reset Filters</Text>
+            <Text style={styles.resetText}>Reset</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -271,26 +272,96 @@ const LedgerScreen = () => {
       </ScrollView>
 
       <LoadingOverlay visible={loading} />
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default LedgerScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.white },
+  safeArea: { flex: 1, backgroundColor: Theme.colors.white },
   listContainer: { flex: 1, paddingHorizontal: 16, paddingBottom: 20 },
   searchWrapper: {
     flex: 0.7,
     marginRight: 8,
     height: 42,
   },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    gap: 10,
+  },
 
+  partyWrapper: {
+    width: 160,
+    height: 42,
+    zIndex: 10,
+  },
+
+  dropdown: {
+    height: 42,
+    minHeight: 42,
+    backgroundColor: Theme.colors.white,
+    borderColor: Theme.colors.success,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
+
+  dropdownList: {
+    backgroundColor: Theme.colors.white,
+    borderColor: Theme.colors.success,
+    borderRadius: 12,
+  },
+
+  dropdownText: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+
+  dateLabelBtn: {
+    height: 42,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: Theme.colors.white,
+    justifyContent: 'center',
+  },
+
+  dateLabelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Theme.colors.success,
+  },
+
+  resetBtn: {
+    height: 42,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    justifyContent: 'center',
+  },
+
+  resetText: {
+    color: Theme.colors.error,
+    fontWeight: '700',
+  },
   dropdownWrapper: {
-    flex: 0.3,
+    width: 170,
     height: 42,
   },
 
+  searchOnlyRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  dateFilterBtn: {
+    paddingHorizontal: 1,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: Theme.colors.white,
+    justifyContent: 'center',
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -304,39 +375,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 3,
     marginBottom: 6,
   },
   dropdownContainer: {
     height: 42,
   },
-
-  dropdown: {
-    height: 42,
-    minHeight: 42,
-    maxHeight: 42,
-    backgroundColor: Theme.colors.white,
-    borderColor: Theme.colors.success,
-    borderRadius: 12,
-    paddingVertical: 0,
-    paddingHorizontal: 10,
-    justifyContent: 'center',
-  },
-
-  dropdownText: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-
   dropdownArrow: {
     width: 18,
     height: 18,
-  },
-
-  dropdownList: {
-    backgroundColor: Theme.colors.white,
-    borderColor: Theme.colors.success,
-    borderRadius: 12,
   },
 
   dateFilterInner: { flexDirection: 'row', alignItems: 'center' },
@@ -344,14 +391,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#9CA3AF',
-    marginRight: 8,
   },
-  dateFilterBtn: { borderRadius: 12, backgroundColor: Theme.colors.white },
   dateFilterText: { color: Theme.colors.success, fontWeight: '600' },
-  resetBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  resetText: { color: Theme.colors.error, fontWeight: '700' },
 });

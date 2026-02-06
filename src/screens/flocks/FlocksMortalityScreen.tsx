@@ -19,15 +19,11 @@ import {
   deleteFlockHealthRecord,
   FlockHealthRecord,
 } from '../../services/FlockService';
-import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
-import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
-import ScreenTipCard from '../../components/customCards/ScreenTipCard';
+import { CustomConstants } from '../../constants/CustomConstants';
+
 import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlocksMortalityScreen: React.FC = () => {
-  const [activeScreen, setActiveScreen] = useState<ScreenType>(
-    CustomConstants.FLOCKS_MORTALITY_SCREEN,
-  );
   const [healthRecords, setHealthRecords] = useState<FlockHealthRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -102,12 +98,8 @@ const FlocksMortalityScreen: React.FC = () => {
   };
 
   return (
-    <SidebarWrapper
-      activeScreen={activeScreen}
-      setActiveScreen={setActiveScreen}
-    >
+    
       <SafeAreaView style={styles.container}>
-        <ScreenTipCard screen={CustomConstants.FLOCKS_MORTALITY_SCREEN} />
         <View style={styles.topRow}>
           <TouchableOpacity style={styles.dropdownSmall}>
             <Text style={styles.dropdownTextSmall}>Select flock</Text>
@@ -185,7 +177,6 @@ const FlocksMortalityScreen: React.FC = () => {
           title={`Are you sure you want to delete flock "${selectedRecordName}"?`}
         />
       </SafeAreaView>
-    </SidebarWrapper>
   );
 };
 
