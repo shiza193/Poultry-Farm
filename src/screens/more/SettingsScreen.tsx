@@ -12,7 +12,7 @@ import Theme from '../../theme/Theme';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import StatusToggle from '../../components/common/StatusToggle';
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
-import BackArrow from '../../components/common/BackArrow';
+import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
 import LoadingOverlay from '../../components/loading/LoadingOverlay';
 import {

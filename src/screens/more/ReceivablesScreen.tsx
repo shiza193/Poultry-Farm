@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
-import BackArrow from "../../components/common/BackArrow";
+import BackArrow from "../../components/common/ScreenHeaderWithBack";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import {
     getPayablesAndReceivables,

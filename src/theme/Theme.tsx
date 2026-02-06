@@ -1,4 +1,3 @@
-
 const colors = {
   /* ===== Primary Theme ===== */
   primaryYellow: '#F9C74F',
@@ -17,7 +16,7 @@ const colors = {
   background: '#FFFFFF',
   screenBackground: '#fcfcfc',
   cardBackground: '#FFFFFF',
-  borderColor: "#ccc",
+  borderColor: '#ccc',
 
   /* ===== Status Colors ===== */
   success: '#16A34A',
@@ -30,7 +29,7 @@ const colors = {
   borderYellow: '#F9C74F',
   grey: '#B0B0B0',
   lightGrey: '#f5f5f5',
-  SeparatorColor:"#E3E3E3",
+  SeparatorColor: '#E3E3E3',
   /* ===== Poultry ===== */
   eggYellow: '#FFD60A',
   chickenBrown: '#8D5524',
@@ -40,7 +39,7 @@ const colors = {
   buttonPrimary: '#F9C74F',
   buttonSecondary: '#FFFFFF',
   buttonDisabled: '#D1D5DB',
-  mainButton: "#7A7A7A",
+  mainButton: '#7A7A7A',
   /* ===== Icons ===== */
   iconPrimary: '#F9C74F',
   iconSecondary: '#EFEDE7',
@@ -55,13 +54,12 @@ const colors = {
   dark: '#000000',
   blue: '#0A285A',
   sky: '#cfdffc',
-  greater:'#2E7D32',
-   settinglable:'#524B6B',
-   settinglines:'#DFF7E2',
-
-   haedercolor:'#F4C430',
-    lightgreen: '#f0fff0',
-
+  greater: '#2E7D32',
+  settinglable: '#524B6B',
+  settinglines: '#DFF7E2',
+  haedercolor: '#F4C430',
+  lightgreen: '#f0fff0',
+  lightblue: '#2d8ddb',
 };
 
 const icons = {
@@ -70,6 +68,7 @@ const icons = {
   hidePassword: require('../resources/images/hidePassword.png'),
   showPassword: require('../resources/images/showPassword.png'),
   poultrycloud: require('../resources/images/poultrycloud.png'),
+  poultrycloud1: require('../resources/images/poultrycloud1.png'),
 
   /* ===== Poultry dashboard ===== */
   dashboard: require('../resources/images/dashboard.png'),
@@ -157,7 +156,6 @@ const icons = {
   report: require('../resources/images/report.png'),
   happy: require('../resources/images/happy.png'),
   anger: require('../resources/images/anger.png'),
-
 };
 
 const Theme = {

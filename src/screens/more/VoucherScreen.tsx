@@ -6,7 +6,7 @@ import { getAccounts, getVouchers, Voucher, VoucherPayload, getVoucherTypes } fr
 import { useBusinessUnit } from "../../context/BusinessContext";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import { useFocusEffect } from "@react-navigation/native";
-import BackArrow from "../../components/common/BackArrow";
+import BackArrow from "../../components/common/ScreenHeaderWithBack";
 import SearchBar from "../../components/common/SearchBar";
 import BusinessUnitModal from "../../components/customPopups/BusinessUnitModal";
 import ReusableDetailsModal from "../../components/customPopups/VoucherDetailPopup";

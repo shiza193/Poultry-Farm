@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
-import BackArrow from "../../components/common/BackArrow";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import {
     getPayablesAndReceivables,
@@ -19,6 +18,7 @@ import { useBusinessUnit } from "../../context/BusinessContext";
 import { useFocusEffect } from "@react-navigation/native";
 import SearchBar from "../../components/common/SearchBar";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import BackArrow from "../../components/common/ScreenHeaderWithBack";
 
 const PayablesScreen = () => {
     const { businessUnitId } = useBusinessUnit();

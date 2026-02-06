@@ -18,23 +18,18 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import DataCard from '../../components/customCards/DataCard';
 import Theme from '../../theme/Theme';
 import { getParties, GetSaleFilters } from '../../services/FlockService';
-import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
+import { CustomConstants } from '../../constants/CustomConstants';
 import {
   getSalesByFilter,
   SaleRecord,
   addSale,
   AddSalePayload,
 } from '../../services/FlockService';
-import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
-import ScreenTipCard from '../../components/customCards/ScreenTipCard';
+
 import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
 import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlockSaleScreen = () => {
-  const [activeScreen, setActiveScreen] = useState<ScreenType>(
-    CustomConstants.FLOCK_SALE_SCREEN,
-  );
-
   const [salesData, setSalesData] = useState<SaleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,14 +130,7 @@ const FlockSaleScreen = () => {
   };
 
   return (
-    <SidebarWrapper
-      activeScreen={activeScreen}
-      setActiveScreen={setActiveScreen}
-    >
-      <View style={styles.tipCardContainer}>
-        <ScreenTipCard screen={CustomConstants.FLOCK_SALE_SCREEN} />
-      </View>
-
+   <>
       <View style={styles.screen}>
         {/* SEARCH ROW */}
         <View style={styles.searchRow}>
@@ -336,7 +324,7 @@ const FlockSaleScreen = () => {
           }
         }}
       />
-    </SidebarWrapper>
+   </>
   );
 };
 

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import InputField from '../../components/customInputs/Input';
-import PrimaryButton from '../../components/customButtons/customButtom';
+import PrimaryButton from '../../components/customButtons/customButton';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -78,7 +78,7 @@ const handleLogin = async () => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         {/* Logo */}
-        <Image source={Theme.icons.poultrycloud} style={styles.logo} />
+        <Image source={Theme.icons.poultrycloud1} style={styles.logo} />
 
         <Text style={styles.title}>Welcome Back !</Text>
 

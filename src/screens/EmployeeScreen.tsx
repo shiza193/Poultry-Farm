@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 
-import Header from '../components/common/Header';
+import Header from '../components/common/LogoHeader';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import AddModal from '../components/customPopups/AddModal';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
@@ -22,7 +22,7 @@ import {
   updateEmployee,
 } from '../services/EmployeeService';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
-import BackArrow from '../components/common/BackArrow';
+import BackArrow from '../components/common/ScreenHeaderWithBack';
 
 type EmployeeStatus = 'Active' | 'Inactive';
 
@@ -30,6 +30,7 @@ interface Employee {
   employeeId?: string;
   name: string;
   type: string;
+  employeeTypeId: number;
   salary: number;
   poultryFarmId: string; // Add ID
   poultryFarm: string; // Name
@@ -88,6 +89,7 @@ const EmployeeScreen = () => {
         employeeId: emp.employeeId,
         name: emp.name,
         type: emp.employeeType,
+        employeeTypeId: emp.employeeTypeId,
         salary: emp.salary,
         poultryFarmId: emp.businessUnitId,
         poultryFarm: emp.businessUnit,
@@ -151,9 +153,7 @@ const EmployeeScreen = () => {
             setSelectedEmployee({
               id: row.employeeId!,
               name: row.name,
-              phone: row.phone ?? '',
-              email: row.email ?? '',
-              address: row.address ?? '',
+              employeeTypeId: row.employeeTypeId,
               isActive: row.status === 'Active',
               businessUnitId: row.poultryFarmId,
               employeeType: row.type,
@@ -164,9 +164,7 @@ const EmployeeScreen = () => {
             setProfileModalVisible(true);
           }}
         >
-          <Text
-            style={{ color: Theme.colors.black, fontWeight: '600' }}
-          >
+          <Text style={{ color: Theme.colors.black, fontWeight: '600' }}>
             {value || 'N/A'}
           </Text>
         </TouchableOpacity>
@@ -258,7 +256,7 @@ const EmployeeScreen = () => {
   const tableData = filteredEmployees.map(emp => ({ ...emp }));
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.safeArea}>
       {fromMenu ? (
         <BackArrow
           title="Employees"
@@ -349,54 +347,56 @@ const EmployeeScreen = () => {
           onClose={() => setProfileModalVisible(false)}
           type="employee"
           data={selectedEmployee}
-          onSave={async updatedData => {
-            try {
-              // Prepare payload for API
-              const payload = {
-                name: updatedData.name,
-                businessUnitId: updatedData.businessUnitId,
-              };
+         onSave={async updatedData => {
+  try {
+    // Prepare payload for backend
+    const payload = {
+      name: updatedData.name,
+      businessUnitId: updatedData.businessUnitId,
+      employeeTypeId: updatedData.employeeTypeId,
+    };
 
-              // Call API
-              const res = await updateEmployee(updatedData.id, payload);
+    await updateEmployee(updatedData.id!, payload);
 
-              // Update local employees state safely
-              setEmployees(prev =>
-                prev.map(emp =>
-                  emp.employeeId === updatedData.id
-                    ? {
-                        employeeId: updatedData.id,
-                        name: updatedData.name,
-                        type: updatedData.employeeType || emp.type,
-                        salary: updatedData.salary || emp.salary,
-                        poultryFarmId:
-                          updatedData.businessUnitId || emp.poultryFarmId,
-                        poultryFarm: emp.poultryFarm, // optional: you can map BU name if needed
-                        joiningDate: updatedData.joiningDate || emp.joiningDate,
-                        endDate: updatedData.endDate || emp.endDate,
-                        status: updatedData.isActive ? 'Active' : 'Inactive',
-                      }
-                    : emp,
-                ),
-              );
-              showSuccessToast(res.message || 'Employee updated successfully');
-              setProfileModalVisible(false);
-            } catch (error) {
-              showErrorToast('Failed to update employee');
-            }
-          }}
+    // Update local state
+   setEmployees(prev =>
+  prev.map(emp =>
+    emp.employeeId === updatedData.id
+      ? {
+          ...emp,
+          name: updatedData.name!,
+          poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
+          employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
+          type: updatedData.employeeType || emp.type,
+          salary: updatedData.salary ?? emp.salary,
+          joiningDate: updatedData.joiningDate ?? emp.joiningDate,
+          endDate: updatedData.endDate ?? emp.endDate,
+        }
+      : emp,
+  ),
+);
+
+
+    showSuccessToast('Employee updated successfully');
+    setProfileModalVisible(false);
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    showErrorToast('Failed to update employee');
+  }
+}}
+
         />
       )}
 
       <LoadingOverlay visible={loading} />
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default EmployeeScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.white },
+  safeArea: { flex: 1, backgroundColor: Theme.colors.white },
   noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
   noDataImage: {
     width: 290,

@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
 import Theme from '../../theme/Theme';
-import BackArrow from '../../components/common/BackArrow';
+import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import SearchBar from '../../components/common/SearchBar';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import LoadingOverlay from '../../components/loading/LoadingOverlay';

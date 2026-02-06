@@ -17,6 +17,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <View style={styles.container}>
+      
+      {/* LEFT SEARCH ICON */}
+      <TouchableOpacity onPress={() => onSearch(tempSearch)}>
+        <Image source={Theme.icons.search} style={styles.icon} />
+      </TouchableOpacity>
+
+      {/* INPUT */}
       <TextInput
         placeholder={placeholder}
         placeholderTextColor={Theme.colors.textSecondary}
@@ -25,7 +32,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         style={styles.input}
       />
 
-      {/* CLEAR ICON */}
+      {/* RIGHT CLEAR ICON */}
       {tempSearch.length > 0 && (
         <TouchableOpacity
           onPress={() => {
@@ -36,16 +43,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
           <Image source={Theme.icons.close1} style={styles.icon} />
         </TouchableOpacity>
       )}
-
-      {/* SEARCH ICON */}
-      <TouchableOpacity onPress={() => onSearch(tempSearch)}>
-        <Image source={Theme.icons.search} style={styles.icon} />
-      </TouchableOpacity>
     </View>
   );
 };
 
 export default SearchBar;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -62,11 +65,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Theme.colors.black,
+    paddingHorizontal: 8, // space between text & icons
   },
   icon: {
     width: 18,
     height: 18,
     tintColor: Theme.colors.success,
-    marginLeft: 6,
   },
 });

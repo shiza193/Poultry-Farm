@@ -87,35 +87,39 @@ const TopBarCard: React.FC<Props> = ({
       {/* ===== TOP ROW ===== */}
       <View style={styles.row}>
         {/* SEARCH (LONGER) */}
-        <View
-          style={[
-            styles.searchBox,
-            hideBUDropdown && { flex: 1 }, // dynamically override flex if dropdown hidden
-          ]}
-        >
-          <TextInput
-            placeholder="Search"
-            placeholderTextColor={Theme.colors.grey}
-            style={styles.searchInput}
-            value={tempSearch}
-            onChangeText={setTempSearch}
-          />
+      <View
+  style={[
+    styles.searchBox,
+    hideBUDropdown && { flex: 1 },
+  ]}
+>
+  {/* LEFT SEARCH ICON */}
+  <TouchableOpacity onPress={() => onSearchChange?.(tempSearch)}>
+    <Image source={Theme.icons.search} style={styles.searchIcon} />
+  </TouchableOpacity>
 
-          {tempSearch.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                setTempSearch('');
-                onSearchChange?.('');
-              }}
-            >
-              <Image source={Theme.icons.close1} style={styles.clearIcon} />
-            </TouchableOpacity>
-          )}
+  {/* INPUT */}
+  <TextInput
+    placeholder="Search"
+    placeholderTextColor={Theme.colors.grey}
+    style={styles.searchInput}
+    value={tempSearch}
+    onChangeText={setTempSearch}
+  />
 
-          <TouchableOpacity onPress={() => onSearchChange?.(tempSearch)}>
-            <Image source={Theme.icons.search} style={styles.searchIcon} />
-          </TouchableOpacity>
-        </View>
+  {/* RIGHT CLEAR ICON */}
+  {tempSearch.length > 0 && (
+    <TouchableOpacity
+      onPress={() => {
+        setTempSearch('');
+        onSearchChange?.('');
+      }}
+    >
+      <Image source={Theme.icons.close1} style={styles.clearIcon} />
+    </TouchableOpacity>
+  )}
+</View>
+
 
         {/* BUSINESS UNIT (SMALLER) */}
         {/* BUSINESS UNIT (SMALLER) */}
@@ -189,6 +193,24 @@ const styles = StyleSheet.create({
     padding: 12,
   },
 
+  searchInput: {
+  flex: 1,
+  fontSize: 15,
+  paddingHorizontal: 8,
+},
+
+searchIcon: {
+  width: 20,
+  height: 20,
+  tintColor: Theme.colors.success,
+},
+
+clearIcon: {
+  width: 20,
+  height: 20,
+  tintColor: Theme.colors.success,
+},
+
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -212,14 +234,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 42,
   },
-  searchInput: { flex: 1, fontSize: 15 },
-  searchIcon: { width: 22, height: 22, tintColor: Theme.colors.success },
-  clearIcon: {
-    width: 18,
-    height: 18,
-    marginRight: 6,
-    tintColor: Theme.colors.success,
-  },
+ 
 
   /* DROPDOWN */
   businessDropdown: { width: 90, zIndex: 2000 }, // decreased from 110 → smaller dropdown

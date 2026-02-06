@@ -7,13 +7,11 @@ import DashboardScreen from "../screens/DashboardScreen";
 import BootomTabNavigation from "./BootomTabNavigation";
 import UserScreen from "../screens/UserScreen";
 import CustomerScreen from "../screens/CustomerScreen";
-import MainLayout from "./MainLayout";
 import FlocksScreen from "../screens/flocks/FlocksScreen";
 import FlockSaleScreen from "../screens/flocks/FlockSaleScreen";
 import FlocksMortalityScreen from "../screens/flocks/FlocksMortalityScreen";
 import FlockStockScreen from "../screens/flocks/FlockStockScreen";
 import HospitalityScreen from "../screens/flocks/HospitalityScreen";
-import AboutUsScreen from "../screens/AboutUsScreen";
 import EmployeeScreen from "../screens/EmployeeScreen";
 import SupplierScreen from "../screens/SupplierScreen";
 import PoultryDetailTab from "./PoultryDetailTab";
@@ -113,16 +111,6 @@ const AuthStackNavigation = () => {
         name={CustomConstants.HOSPITALITY_SCREEN}
         component={HospitalityScreen}
       />
-         <Stack.Screen
-        name={CustomConstants.MAIN_LAYOUT}
-        component={MainLayout}
-      />
-     
-        <Stack.Screen
-        name={CustomConstants.ABOUT_US_SCREEN}
-        component={AboutUsScreen}
-      />
-      
        <Stack.Screen
         name={CustomConstants.EMPLOYEE_SCREEN}
         component={EmployeeScreen}

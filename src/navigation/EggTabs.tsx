@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import Theme from "../theme/Theme";
-import Header from "../components/common/Header";
+import Header from "../components/common/LogoHeader";
 import { useNavigation } from "@react-navigation/native";
 import LoadingOverlay from "../components/loading/LoadingOverlay";
 import { CustomConstants } from "../constants/CustomConstants";

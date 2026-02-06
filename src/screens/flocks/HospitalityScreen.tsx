@@ -10,12 +10,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import DataCard from '../../components/customCards/DataCard';
-import PdfButton from '../../components/customButtons/PdfButton';
 import Theme from '../../theme/Theme';
-import { CustomConstants, ScreenType } from '../../constants/CustomConstants';
-
-import SidebarWrapper from '../../components/customButtons/SidebarWrapper';
-import ScreenTipCard from '../../components/customCards/ScreenTipCard';
+import { CustomConstants } from '../../constants/CustomConstants';
 import {
   getHospitalityByFilter,
   HospitalityRecord,
@@ -23,9 +19,7 @@ import {
 import { useBusinessUnit } from '../../context/BusinessContext';
 
 const HospitalityScreen = () => {
-  const [activeScreen, setActiveScreen] = useState<ScreenType>(
-    CustomConstants.FLOCK_STOCK_SCREEN,
-  );
+
   const [hospitalityData, setHospitalityData] = useState<HospitalityRecord[]>(
     [],
   );
@@ -68,13 +62,8 @@ const HospitalityScreen = () => {
   };
 
   return (
-    <SidebarWrapper
-      activeScreen={activeScreen}
-      setActiveScreen={setActiveScreen}
-    >
-      <View style={styles.tipCardContainer}>
-        <ScreenTipCard screen={CustomConstants.HOSPITALITY_SCREEN} />
-      </View>
+  
+
 
       <View style={styles.container}>
         {/* Search Row */}
@@ -98,10 +87,7 @@ const HospitalityScreen = () => {
             <Text style={styles.newButtonText}> + New Hospitality</Text>
           </TouchableOpacity>
 
-          <PdfButton
-            title="Export Report"
-            onPress={() => console.log('PDF Export')}
-          />
+        
         </View>
 
         {/* Table */}
@@ -150,7 +136,6 @@ const HospitalityScreen = () => {
           </ScrollView>
         )}
       </View>
-    </SidebarWrapper>
   );
 };
 

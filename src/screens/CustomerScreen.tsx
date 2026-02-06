@@ -4,8 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 
-import Header from '../components/common/Header';
-import BackArrow from '../components/common/BackArrow';
+import Header from '../components/common/LogoHeader';
+import BackArrow from '../components/common/ScreenHeaderWithBack';
 import TopBarCard from '../components/customCards/TopBarCard';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import AddModal from '../components/customPopups/AddModal';
@@ -61,7 +61,7 @@ const CustomerScreen = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 100;
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 

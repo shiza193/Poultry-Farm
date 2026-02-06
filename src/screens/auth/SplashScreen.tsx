@@ -27,7 +27,7 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
-      <Image source={Theme.icons.poultrycloud} style={styles.logo} />
+      <Image source={Theme.icons.poultrycloud1} style={styles.logo} />
     </View>
   );
 };
