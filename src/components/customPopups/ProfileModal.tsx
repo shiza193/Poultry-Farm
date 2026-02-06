@@ -345,15 +345,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               {type === 'customer' && (
                 <>
                   {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
-                  {renderField('Email', emailDraft, setEmailDraft, editMode)}
-                  {renderField(
-                    'Address',
-                    addressDraft,
-                    setAddressDraft,
-                    editMode,
-                  )}
-
-                  <View style={{ zIndex: 3000, width: fieldWidth }}>
+                   <View style={{ zIndex: 3000, width: fieldWidth }}>
                     <Text style={styles.label}>Poultry Farm</Text>
                     {editMode ? (
                       <DropDownPicker
@@ -379,6 +371,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                       </Text>
                     )}
                   </View>
+                  {renderField('Email', emailDraft, setEmailDraft, editMode)}
+                  {renderField(
+                    'Address',
+                    addressDraft,
+                    setAddressDraft,
+                    editMode,
+                  )}
+
+                 
                 </>
               )}
 

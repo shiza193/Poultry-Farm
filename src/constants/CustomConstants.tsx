@@ -31,6 +31,9 @@ export const CustomConstants = {
   VACCINATION_STOCK_SCREEEN: 'VaccinationStockScreen',
   SIGN_UP_SCREEN: 'SignUpScreen',
   ACCOUNT_HEAD_SCREEN: 'AccountHeadScreen',
-
+  PAYABLES_SCREEN: 'PayablesScreen',
   LEDGER_SCREEN: 'LedgerScreen',
+  RECEIVEABLES_SCREEN: "ReceivablesScreen",
+  VOUCHER_SCREEN:"VoucherScreen",
+
 } as const;

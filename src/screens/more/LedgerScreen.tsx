@@ -52,7 +52,6 @@ const LedgerScreen = () => {
     { label: string; value: string }[]
   >([]);
 
-  const pageSize = 50;
 
   const fetchLedgerData = async () => {
     try {
@@ -61,14 +60,13 @@ const LedgerScreen = () => {
       const selectedPartyName = selectedParty
         ? parties.find(p => p.partyId === selectedParty)?.name
         : null;
-
       const payload = {
         businessUnitId,
         searchKey: search || null,
         fromDate: filterDate ? filterDate.toISOString() : null,
         toDate: filterDate ? filterDate.toISOString() : null,
         pageNumber: 1,
-        pageSize,
+        pageSize:50,
         accountHeadId: selectedParty || null,
         accountHeadName: selectedPartyName || null,
       };

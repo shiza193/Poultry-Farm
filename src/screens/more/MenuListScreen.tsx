@@ -164,7 +164,7 @@ const MenuListScreen = ({ navigation }: any) => {
           <MenuItem
             title="Vouchers"
             icon={Theme.icons.voucture}
-            onPress={() => navigation.navigate('Vouchers')}
+            onPress={() => navigation.navigate(CustomConstants.VOUCHER_SCREEN)}
           />
           <MenuItem
             title="Ledger"
@@ -174,12 +174,12 @@ const MenuListScreen = ({ navigation }: any) => {
           <MenuItem
             title="Receivables"
             icon={Theme.icons.receivables}
-            onPress={() => navigation.navigate('Receivables')}
+            onPress={() => navigation.navigate(CustomConstants.RECEIVEABLES_SCREEN)}
           />
           <MenuItem
             title="Payables"
             icon={Theme.icons.payable}
-            onPress={() => navigation.navigate('Payables')}
+            onPress={() => navigation.navigate(CustomConstants.PAYABLES_SCREEN)}
           />
         </Section>
 
