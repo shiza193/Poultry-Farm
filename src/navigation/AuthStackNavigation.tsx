@@ -7,21 +7,13 @@ import DashboardScreen from "../screens/DashboardScreen";
 import BootomTabNavigation from "./BootomTabNavigation";
 import UserScreen from "../screens/UserScreen";
 import CustomerScreen from "../screens/CustomerScreen";
-import DashboardDetailScreen from "../screens/DashboardDetailScreen";
 import MainLayout from "./MainLayout";
-import EggTabs from "./EggTabs";
 import FlocksScreen from "../screens/flocks/FlocksScreen";
 import FlockSaleScreen from "../screens/flocks/FlockSaleScreen";
 import FlocksMortalityScreen from "../screens/flocks/FlocksMortalityScreen";
 import FlockStockScreen from "../screens/flocks/FlockStockScreen";
 import HospitalityScreen from "../screens/flocks/HospitalityScreen";
-import EggProductionScreen from "../screens/eggs/EggProductionScreen";
-import EggSaleScreen from "../screens/eggs/EggSaleScreen";
-import EggStockScreen from "../screens/eggs/EggStockScreen";
 import AboutUsScreen from "../screens/AboutUsScreen";
-import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
-import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
-import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import EmployeeScreen from "../screens/EmployeeScreen";
 import SupplierScreen from "../screens/SupplierScreen";
 import PoultryDetailTab from "./PoultryDetailTab";
@@ -29,7 +21,9 @@ import SettingsScreen from "../screens/more/SettingsScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
 import AccountHeadScreen from "../screens/more/AccountHeadScreen";
 import LedgerScreen from "../screens/more/LedgerScreen";
-
+import PayablesScreen from "../screens/more/PayablesScreen";
+import ReceivablesScreen from "../screens/more/ReceivablesScreen";
+import VoucherScreen from "../screens/more/VoucherScreen";
 const Stack = createNativeStackNavigator();
 
 const AuthStackNavigation = () => {
@@ -70,6 +64,18 @@ const AuthStackNavigation = () => {
         <Stack.Screen
         name={CustomConstants.LEDGER_SCREEN}
         component={LedgerScreen}
+      />
+          <Stack.Screen
+        name={CustomConstants.PAYABLES_SCREEN}
+        component={PayablesScreen}
+      />
+         <Stack.Screen
+        name={CustomConstants.RECEIVEABLES_SCREEN}
+        component={ReceivablesScreen}
+      />
+         <Stack.Screen
+        name={CustomConstants.VOUCHER_SCREEN}
+        component={VoucherScreen}
       />
        <Stack.Screen
         name={CustomConstants.DASHBOARD_SCREEN}

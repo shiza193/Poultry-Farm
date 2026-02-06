@@ -23,8 +23,6 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
   const [showDots, setShowDots] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-
-  
   const handleLogout = async () => {
     try {
       await AsyncStorage.clear();
@@ -68,7 +66,23 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
           onPress={() => setShowDots(false)}
         >
           <View style={styles.menu}>
+            {/* ===== ADD NEW (conditionally) ===== */}
+            {onAddNewPress && (
+              <>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setShowDots(false);
+                    onAddNewPress();
+                  }}
+                >
+                  <Image source={Theme.icons.add} style={styles.menuIcon} />
+                  <Text style={styles.menuText}>Add New</Text>
+                </TouchableOpacity>
+              </>
+            )}
             {/* LOGOUT */}
+            <View style={styles.divider} />
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => {
@@ -94,22 +108,7 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
               <Text style={styles.menuText}>Admin Portal</Text>
             </TouchableOpacity>
 
-            {/* ===== ADD NEW (conditionally) ===== */}
-            {onAddNewPress && (
-              <>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => {
-                    setShowDots(false);
-                    onAddNewPress();
-                  }}
-                >
-                  <Image source={Theme.icons.add} style={styles.menuIcon} />
-                  <Text style={styles.menuText}>Add New</Text>
-                </TouchableOpacity>
-              </>
-            )}
+
           </View>
         </TouchableOpacity>
       )}
@@ -120,7 +119,7 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
         visible={showLogoutModal}
         title="Are you sure you want to logout?"
         onClose={() => setShowLogoutModal(false)}
-         onConfirm={handleLogout}
+        onConfirm={handleLogout}
       />
     </>
   );
@@ -133,12 +132,12 @@ const styles = StyleSheet.create({
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', 
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: Theme.colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.sky,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Theme.colors.settinglines,
   },
 
   leftSection: {
@@ -150,7 +149,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: Theme.colors.textPrimary,
-    marginLeft: 23, 
+    marginLeft: 23,
   },
 
   icons: { width: 25, height: 20, resizeMode: 'contain' },
@@ -166,10 +165,9 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 999,
   },
-
   menu: {
     position: 'absolute',
-    top: 67,
+    top: 40,
     right: 16,
     backgroundColor: Theme.colors.white,
     borderRadius: 8,

@@ -10,8 +10,10 @@ import {
 import Theme from '../../theme/Theme';
 import InputField from '../customInputs/Input';
 import DropDownPicker from 'react-native-dropdown-picker';
-
-
+import { Dropdown } from 'react-native-element-dropdown';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 type AccountHeadPayload = {
   name: string;
   accountType: string;
@@ -21,6 +23,8 @@ interface BusinessUnitModalProps {
   visible: boolean;
   onClose: () => void;
   accountTypeItems?: { label: string; value: string }[];
+  accountOptions?: { label: string; value: string }[];
+  voucherTypeOptions?: { label: string; value: number }[];
 
   onResetPassword?: (data: {
     newPassword: string;
@@ -31,8 +35,14 @@ interface BusinessUnitModalProps {
   selectedFlockId?: string | null;
   selectedSupplier?: string | null;
   onApplyFilter?: (flockId: string | null, supplierId: string | null) => void;
+  onApplyvoucherFilter?: (
+    fromDate: Date | null,
+    toDate: Date | null,
+    accountId: string | null,
+    voucherTypeId: number | null
+  ) => void;
   // mode
-mode?: 'add' | 'edit' | 'filter' | 'reset' | 'singleField' | 'accountHead';
+  mode?: 'add' | 'edit' | 'filter' | 'reset' | 'singleField' | 'accountHead' | 'voucher';
 
 
 
@@ -46,7 +56,7 @@ mode?: 'add' | 'edit' | 'filter' | 'reset' | 'singleField' | 'accountHead';
   // SingleField mode
   onSaveSingleField?: (data: { value: string }) => void;
 
-    onSaveAccountHead?: (data: AccountHeadPayload) => void;
+  onSaveAccountHead?: (data: AccountHeadPayload) => void;
 
 
   initialData?: { name: string; location: string };
@@ -69,10 +79,15 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   selectedFlockId: initialFlockId,
   selectedSupplier: initialSupplier,
   onApplyFilter,
+  onApplyvoucherFilter, // ✅ ADD THIS
   singleFieldLabel,
   singleFieldValue,
   modalTitle,
-   accountTypeItems = [],
+  accountTypeItems = [],
+  accountOptions = [],
+  voucherTypeOptions = [],
+
+
 }) => {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
@@ -93,15 +108,21 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 
-/* ===== ACCOUNT HEAD ===== */
-const [accountName, setAccountName] = useState('');
-const [accountType, setAccountType] = useState<string | null>(null);
-const [accountTypeOpen, setAccountTypeOpen] = useState(false);
+  /* ===== ACCOUNT HEAD ===== */
+  const [accountName, setAccountName] = useState('');
+  const [accountType, setAccountType] = useState<string | null>(null);
+  const [accountTypeOpen, setAccountTypeOpen] = useState(false);
 
-const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
+  const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
+  /* ===== Voucher ===== */
 
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
 
-
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [voucherTypeId, setVoucherTypeId] = useState<number | null>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -145,7 +166,7 @@ const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
     if (mode === 'filter') return 'Filter';
     if (mode === 'reset') return 'Reset Password';
     if (mode === 'accountHead') return 'Add Account';
-
+    if (mode === 'voucher') return 'Voucher Filters';
 
     return '';
   };
@@ -184,12 +205,30 @@ const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
     onClose();
   };
 
+  const handleResetVoucherFilter = () => {
+    setFromDate(null);
+    setToDate(null);
+    setAccountId(null);
+    setVoucherTypeId(null);
 
+    onApplyvoucherFilter?.(null, null, null, null);
+    onClose();
+  };
+
+  const handleApplyVoucherFilter = () => {
+    onApplyvoucherFilter?.(
+      fromDate,
+      toDate,
+      accountId,
+      voucherTypeId
+    );
+    onClose();
+  };
   useEffect(() => {
-  if (mode === 'singleField') {
-    setName(singleFieldValue || '');
-  }
-}, [mode, singleFieldValue, visible]);
+    if (mode === 'singleField') {
+      setName(singleFieldValue || '');
+    }
+  }, [mode, singleFieldValue, visible]);
 
   return (
     <Modal
@@ -214,7 +253,7 @@ const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
                 items={flockItems}
                 setOpen={setDropdownOpen}
                 setValue={setSelectedFlockId}
-                setItems={() => {}}
+                setItems={() => { }}
                 placeholder="Select flock"
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
@@ -230,7 +269,7 @@ const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
                 items={supplierItems}
                 setOpen={setSupplierDropdownOpen}
                 setValue={setSelectedSupplier}
-                setItems={() => {}}
+                setItems={() => { }}
                 placeholder="Select supplier"
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
@@ -247,6 +286,104 @@ const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
                 <TouchableOpacity
                   style={styles.applyButton}
                   onPress={handleApplyFilter}
+                >
+                  <Text style={styles.applyText}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+
+          {/* ===== Voucher MODE ===== */}
+          {mode === 'voucher' && (
+            <>
+              <View style={styles.dateRangeContainer}>
+                <TouchableOpacity
+                  style={styles.dateItem}
+                  onPress={() => setShowFromPicker(true)}
+                >
+                  <Text style={styles.dateLabel}>From:</Text>
+                  <Text style={styles.dateValue}>
+                    {fromDate ? fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={styles.dateDash}>—</Text>
+
+                <TouchableOpacity
+                  style={styles.dateItem}
+                  onPress={() => setShowFromPicker(true)}
+                >
+                  <Text style={styles.dateLabel}>To:</Text>
+                  <Text style={styles.dateValue}>
+                    {fromDate ? fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Dropdown
+                style={styles.dropdown}
+                containerStyle={styles.dropdownContainer}
+                data={accountOptions}
+                labelField="label"
+                valueField="value"
+                placeholder="Select Account"
+                value={accountId}
+                placeholderStyle={styles.dropdownPlaceholder}
+                selectedTextStyle={styles.dropdownText}
+                onChange={item => setAccountId(item.value)}
+              />
+
+              <Dropdown
+                style={styles.dropdown}
+                containerStyle={styles.dropdownContainer}
+                data={voucherTypeOptions}
+                labelField="label"
+                valueField="value"
+                placeholder="Select Voucher Type"
+                value={voucherTypeId}
+                placeholderStyle={styles.dropdownPlaceholder}
+                selectedTextStyle={styles.dropdownText}
+                onChange={item => setVoucherTypeId(item.value)}
+              />
+              {showFromPicker && (
+                <DateTimePicker
+                  value={fromDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowFromPicker(false);
+
+                    if (event.type === 'set' && date) {
+                      setFromDate(date);
+                    }
+                  }}
+                />
+              )}
+
+              {showToPicker && (
+                <DateTimePicker
+                  value={toDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowFromPicker(false);
+
+                    if (event.type === 'set' && date) {
+                      setFromDate(date);
+                    }
+                  }}
+                />
+              )}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={styles.resetButton}
+                  onPress={handleResetVoucherFilter}
+                >
+                  <Text style={styles.resetText}>Reset</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.applyButton}
+                  onPress={handleApplyVoucherFilter}
                 >
                   <Text style={styles.applyText}>Apply</Text>
                 </TouchableOpacity>
@@ -322,7 +459,7 @@ const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
                     styles.saveButton,
                     (newPassword.trim() === '' ||
                       confirmPassword.trim() === '') &&
-                      styles.saveButtonDisabled,
+                    styles.saveButtonDisabled,
                   ]}
                   disabled={
                     newPassword.trim() === '' || confirmPassword.trim() === ''
@@ -395,129 +532,127 @@ const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
           )}
 
           {/* ===== SINGLE FIELD MODE ===== */}
-     {/* ===== SINGLE FIELD MODE ===== */}
-{mode === 'singleField' && (
-  <>
-    {/* INPUT LABEL */}
-    <Text style={styles.inputLabel}>
-      {singleFieldLabel || 'Value'}
-    </Text>
+          {/* ===== SINGLE FIELD MODE ===== */}
+          {mode === 'singleField' && (
+            <>
+              {/* INPUT LABEL */}
+              <Text style={styles.inputLabel}>
+                {singleFieldLabel || 'Value'}
+              </Text>
 
-    {/* INPUT FIELD */}
-    <InputField
-      placeholder={`Enter ${singleFieldLabel?.toLowerCase() || 'value'}...`}
-      value={name}
-      onChangeText={setName}
-    />
+              {/* INPUT FIELD */}
+              <InputField
+                placeholder={`Enter ${singleFieldLabel?.toLowerCase() || 'value'}...`}
+                value={name}
+                onChangeText={setName}
+              />
 
-    <View style={styles.buttonRow}>
-      <TouchableOpacity
-        style={[styles.button, styles.discardButton]}
-        onPress={onClose}
-      >
-        <Text style={styles.discardText}>Discard</Text>
-      </TouchableOpacity>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.discardButton]}
+                  onPress={onClose}
+                >
+                  <Text style={styles.discardText}>Discard</Text>
+                </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.button,
-          styles.saveButton,
-          name.trim() === '' && styles.saveButtonDisabled,
-        ]}
-        disabled={name.trim() === ''}
-        onPress={handleSave}
-      >
-        <Text style={styles.saveText}>Save</Text>
-      </TouchableOpacity>
-    </View>
-  </>
-)}
-
-
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    styles.saveButton,
+                    name.trim() === '' && styles.saveButtonDisabled,
+                  ]}
+                  disabled={name.trim() === ''}
+                  onPress={handleSave}
+                >
+                  <Text style={styles.saveText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
 
 
-{/* ===== ACCOUNT HEAD MODE ===== */}
-{mode === 'accountHead' && (
-  <>
-    {/* ACCOUNT NAME */}
-    <Text style={styles.inputLabel}>
-      Account Name<Text style={styles.required}>*</Text>
-    </Text>
-    <InputField
-      placeholder="Enter account name..."
-      value={accountName}
-      onChangeText={setAccountName}
-    />
-
-    {/* ACCOUNT TYPE / PARENT ACCOUNT */}
-    <Text style={styles.inputLabel}>
-      Parent Account<Text style={styles.required}>*</Text>
-    </Text>
-    <DropDownPicker
-      open={accountTypeOpen}
-      value={accountType}
-      items={accountTypeItems || []}
-      setOpen={setAccountTypeOpen}
-      setValue={setAccountType} // selected parent ID
-      placeholder="Select parent account..."
-      style={styles.dropdown}
-      dropDownContainerStyle={styles.dropdownContainer}
-    />
-
-    {/* STATUS */}
-    <Text style={styles.inputLabel}>Status</Text>
-    <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-      {(['Active', 'Inactive'] as const).map(status => (
-        <TouchableOpacity
-          key={status}
-          style={styles.radioContainer}
-          onPress={() => setIsActive(status)}
-        >
-          <View
-            style={[
-              styles.radioCircle,
-              isActive === status && styles.radioSelected,
-            ]}
-          >
-            {isActive === status && <View style={styles.radioTick} />}
-          </View>
-          <Text style={{ marginLeft: 8 }}>{status}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-
-    {/* BUTTONS */}
-    <View style={styles.buttonRow}>
-      <TouchableOpacity
-        style={[styles.button, styles.discardButton]}
-        onPress={onClose}
-      >
-        <Text style={styles.discardText}>Discard</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.button,
-          styles.saveButton,
-          (!accountName || !accountType) && styles.saveButtonDisabled,
-        ]}
-        disabled={!accountName || !accountType}
-        onPress={() => {
-          onSaveAccountHead?.({
-            name: accountName,
-            accountType: accountType!, // parentId
-            isActive: isActive === 'Active',
-          });
-          onClose();
-        }}
-      >
-        <Text style={styles.saveText}>Save</Text>
-      </TouchableOpacity>
-    </View>
-  </>
-)}
 
 
+          {/* ===== ACCOUNT HEAD MODE ===== */}
+          {mode === 'accountHead' && (
+            <>
+              {/* ACCOUNT NAME */}
+              <Text style={styles.inputLabel}>
+                Account Name<Text style={styles.required}>*</Text>
+              </Text>
+              <InputField
+                placeholder="Enter account name..."
+                value={accountName}
+                onChangeText={setAccountName}
+              />
+
+              {/* ACCOUNT TYPE / PARENT ACCOUNT */}
+              <Text style={styles.inputLabel}>
+                Parent Account<Text style={styles.required}>*</Text>
+              </Text>
+              <DropDownPicker
+                open={accountTypeOpen}
+                value={accountType}
+                items={accountTypeItems || []}
+                setOpen={setAccountTypeOpen}
+                setValue={setAccountType}
+                placeholder="Select parent account..."
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
+
+              {/* STATUS */}
+              <Text style={styles.inputLabel}>Status</Text>
+              <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                {(['Active', 'Inactive'] as const).map(status => (
+                  <TouchableOpacity
+                    key={status}
+                    style={styles.radioContainer}
+                    onPress={() => setIsActive(status)}
+                  >
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        isActive === status && styles.radioSelected,
+                      ]}
+                    >
+                      {isActive === status && <View style={styles.radioTick} />}
+                    </View>
+                    <Text style={{ marginLeft: 8 }}>{status}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* BUTTONS */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.discardButton]}
+                  onPress={onClose}
+                >
+                  <Text style={styles.discardText}>Discard</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    styles.saveButton,
+                    (!accountName || !accountType) && styles.saveButtonDisabled,
+                  ]}
+                  disabled={!accountName || !accountType}
+                  onPress={() => {
+                    onSaveAccountHead?.({
+                      name: accountName,
+                      accountType: accountType!, // parentId
+                      isActive: isActive === 'Active',
+                    });
+                    onClose();
+                  }}
+                >
+                  <Text style={styles.saveText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </View>
     </Modal>
@@ -555,49 +690,60 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Theme.colors.success,
     borderRadius: 8,
     minHeight: 45,
     marginBottom: 12,
   },
   dropdownContainer: {
-    borderColor: '#ccc',
+    borderColor: Theme.colors.success,
     borderRadius: 8,
   },
+  dropdownPlaceholder: {
+    color: Theme.colors.black,
+    fontSize: 14,
+    marginLeft: 10
+  },
+
+  dropdownText: {
+    color: '#000',
+    fontSize: 14,
+  },
+
   buttonRow: {
     flexDirection: 'row',
     marginTop: 16,
     justifyContent: 'space-between',
   },
   radioContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginRight: 15,
-},
-radioCircle: {
-  width: 20,
-  height: 20,
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: Theme.colors.black,
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: Theme.colors.white,
-},
- required: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Theme.colors.black,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.white,
+  },
+  required: {
     color: Theme.colors.primaryYellow,
     fontWeight: 'bold',
     fontSize: 20,
   },
-radioSelected: {
-  backgroundColor: Theme.colors.primaryYellow,
-},
-radioTick: {
-  width: 10,
-  height: 10,
-  borderRadius: 5,
-  backgroundColor: Theme.colors.white,
-},
+  radioSelected: {
+    backgroundColor: Theme.colors.primaryYellow,
+  },
+  radioTick: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Theme.colors.white,
+  },
 
   resetButton: {
     flex: 1,
@@ -621,28 +767,28 @@ radioTick: {
     fontWeight: '600',
   },
   statusButton: {
-  flex: 1,
-  paddingVertical: 10,
-  borderRadius: 8,
-  borderWidth: 1.5,
-  borderColor: Theme.colors.secondaryYellow,
-  alignItems: 'center',
-  marginHorizontal: 4,
-},
-statusActive: {
-  backgroundColor: Theme.colors.secondaryYellow,
-},
-statusInactive: {
-  backgroundColor: Theme.colors.white,
-},
-activeText: {
-  color: Theme.colors.white,
-  fontWeight: '700',
-},
-inactiveText: {
-  color: Theme.colors.secondaryYellow,
-  fontWeight: '700',
-},
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.secondaryYellow,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  statusActive: {
+    backgroundColor: Theme.colors.secondaryYellow,
+  },
+  statusInactive: {
+    backgroundColor: Theme.colors.white,
+  },
+  activeText: {
+    color: Theme.colors.white,
+    fontWeight: '700',
+  },
+  inactiveText: {
+    color: Theme.colors.secondaryYellow,
+    fontWeight: '700',
+  },
 
   applyText: {
     color: Theme.colors.white,
@@ -674,6 +820,36 @@ inactiveText: {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  dateRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+
+  dateItem: {
+    flexDirection: 'row',        // 🔥 SAME ROW
+
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minWidth: 90,
+  },
+
+  dateLabel: {
+    fontSize: 13,
+    color: Theme.colors.black,
+  },
+
+  dateValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Theme.colors.success
+  },
+
+  dateDash: {
+    marginHorizontal: 8,
+    fontSize: 18,
+  },
+
   discardButton: {
     backgroundColor: Theme.colors.white,
     borderWidth: 1.5,
