@@ -22,6 +22,9 @@ import LedgerScreen from "../screens/more/LedgerScreen";
 import PayablesScreen from "../screens/more/PayablesScreen";
 import ReceivablesScreen from "../screens/more/ReceivablesScreen";
 import VoucherScreen from "../screens/more/VoucherScreen";
+import FeedRecordScreen from "../screens/more/feed/FeedRecordScreen";
+import FeedConsumptionScreen from "../screens/more/feed/FeedConsumptionScreen";
+import FeedStockScreen from "../screens/more/feed/FeedStockScreen";
 const Stack = createNativeStackNavigator();
 
 const AuthStackNavigation = () => {
@@ -119,6 +122,19 @@ const AuthStackNavigation = () => {
        <Stack.Screen
         name={CustomConstants.SETTINGS_SCREEN}
         component={SettingsScreen}
+      />
+      
+       <Stack.Screen
+        name={CustomConstants.FEED_RECORD_SCREEN}
+        component={FeedRecordScreen}
+      />
+       <Stack.Screen
+        name={CustomConstants.FEED_CONSUMPTION_SCREEN}
+        component={FeedConsumptionScreen}
+      />
+        <Stack.Screen
+        name={CustomConstants.FEED_STOCK_SCREEN}
+        component={FeedStockScreen}
       />
     </Stack.Navigator>
   );

@@ -156,6 +156,8 @@ const icons = {
   report: require('../resources/images/report.png'),
   happy: require('../resources/images/happy.png'),
   anger: require('../resources/images/anger.png'),
+  cross: require('../resources/images/cross.png'),
+  cross1: require('../resources/images/cross1.png'),
 };
 
 const Theme = {

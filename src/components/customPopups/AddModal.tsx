@@ -19,6 +19,7 @@ import DateTimePicker, {
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 import { getEggProducedUnits, getFlockTotalEggs } from '../../services/EggsService';
+import { Dropdown } from 'react-native-element-dropdown';
 
 type ModalType =
   | 'user'
@@ -27,8 +28,9 @@ type ModalType =
   | 'vaccination'
   | 'vaccination Schedule'
   | 'Egg production'
-  | 'Egg sale';
-
+  | 'Egg sale'
+  | 'Feed Record'
+  | 'Feed Consumption';
 interface AddModalProps {
   visible: boolean;
   type: ModalType;
@@ -41,6 +43,8 @@ interface AddModalProps {
   flockItems?: { label: string; value: string }[];
   customerItems?: { label: string; value: string }[];
   unitItems?: { label: string; value: number }[];
+  feedItems?: { label: string; value: number }[];
+  feedTypeItems: { label: string; value: number }[];
 
   // ✅ Add this line
   setUnitItems?: React.Dispatch<
@@ -63,6 +67,8 @@ const AddModal: React.FC<AddModalProps> = ({
   vaccineItems,
   flockItems,
   unitItems,
+  feedItems,
+  feedTypeItems,
   customerItems,
   supplierItems,
   isEdit = false,
@@ -164,7 +170,7 @@ const AddModal: React.FC<AddModalProps> = ({
     }
 
     if (type === 'vaccination Schedule' && !initialData && visible) {
-      reset(); 
+      reset();
     }
   }, [type, initialData, visible]);
   const [passwordError, setPasswordError] = useState('');
@@ -201,6 +207,15 @@ const AddModal: React.FC<AddModalProps> = ({
       setBrokenEggs(0);
     }
   }, [initialData, visible]);
+  /* ===== FEED RECORD ===== */
+  const [selectedFeedId, setSelectedFeedId] = useState<number | null>(null);
+  const [selectedFeedTypeId, setSelectedFeedTypeId] = useState<number | null>(null);
+  const [feedDate, setFeedDate] = useState<Date | null>(null);
+  const [showFeedDatePicker, setShowFeedDatePicker] = useState(false);
+  const [feedOpen, setFeedOpen] = useState(false);
+  const [feedtypeOpen, setFeedTypeOpen] = useState(false);
+  const [bag, setbag] = useState('');
+
   /* ===== Egg Sale ===== */
   const [trayCount, setTrayCount] = useState('');
   const [eggCount, setEggCount] = useState('');
@@ -383,6 +398,16 @@ const AddModal: React.FC<AddModalProps> = ({
         eggs,
       });
     }
+    if (type === 'Feed Record') {
+      const isValid =
+        selectedFeedId !== null &&
+        selectedFeedTypeId !== null &&
+        quantity.trim().length > 0 &&
+        feedDate !== null &&
+        supplier !== null;
+
+      setIsSaveEnabled(isValid);
+    }
   }, [
     type,
     name,
@@ -435,15 +460,15 @@ const AddModal: React.FC<AddModalProps> = ({
     };
     fetchBusinessUnits();
   }, []);
-useEffect(() => {
-  if (type === 'employee') {
-    if (hidePoultryFarm && defaultBusinessUnitId) {
-      setBusinessUnit(defaultBusinessUnitId);
-    } else if (!hidePoultryFarm) {
-      setBusinessUnit(null); // Allow selection
+  useEffect(() => {
+    if (type === 'employee') {
+      if (hidePoultryFarm && defaultBusinessUnitId) {
+        setBusinessUnit(defaultBusinessUnitId);
+      } else if (!hidePoultryFarm) {
+        setBusinessUnit(null); // Allow selection
+      }
     }
-  }
-}, [type, hidePoultryFarm, defaultBusinessUnitId, visible]);
+  }, [type, hidePoultryFarm, defaultBusinessUnitId, visible]);
 
   /* ===== SAVE ===== */
   const handleSave = () => {
@@ -503,6 +528,17 @@ useEffect(() => {
         note,
       });
     }
+    else if (type === 'Feed Record') {
+      onSave({
+        feedId: selectedFeedId,
+        feedTypeId: selectedFeedTypeId,
+        quantity,
+        date: feedDate,
+        supplierId: supplier,
+        price,
+        note,
+      });
+    }
     reset();
     onClose();
   };
@@ -520,7 +556,7 @@ useEffect(() => {
           >
             {/* NAME */}
             {type !== 'vaccination' && type !== 'vaccination Schedule' &&
-              type !== 'Egg production' && type !== 'Egg sale' && (
+              type !== 'Egg production' && type !== 'Egg sale' && type !== 'Feed Record' && (
                 <>
                   <Text style={styles.label}>
                     Name<Text style={styles.required}>*</Text>
@@ -1229,6 +1265,207 @@ useEffect(() => {
                 </View>
               </>
             )}
+            {type === 'Feed Record' && (
+              <>
+                {/* FEED */}
+                <Text style={styles.label}>
+                  Feed<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={feedOpen}
+                  value={selectedFeedId}
+                  items={feedItems || []}
+                  setOpen={setFeedOpen}
+                  setValue={setSelectedFeedId}
+                  placeholder="Select feed..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* QUANTITY */}
+                <Text style={styles.label}>
+                  Quantity<Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter quantity..."
+                  value={quantity}
+                  keyboardType="numeric"
+                  onChangeText={setQuantity}
+                />
+
+                {/* TYPE */}
+                <Text style={styles.label}>
+                  Type<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={feedtypeOpen}
+                  value={selectedFeedTypeId}
+                  items={feedTypeItems || []}
+                  setOpen={setFeedTypeOpen}
+                  setValue={setSelectedFeedTypeId}
+                  placeholder="Select type..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                {/* DATE */}
+                <Text style={styles.label}>
+                  Date<Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowFeedDatePicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {feedDate ? feedDate.toLocaleDateString('en-GB') : 'DD/MM/YYYY'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+
+                {showFeedDatePicker && (
+                  <DateTimePicker
+                    value={feedDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowFeedDatePicker(false);
+                      if (event.type === 'set' && date) setFeedDate(date);
+                    }}
+                  />
+                )}
+
+                {/* SUPPLIER */}
+                <Text style={styles.label}>
+                  Supplier<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={supplierOpen}
+                  value={supplier}
+                  items={supplierItems || []}
+                  setOpen={setSupplierOpen}
+                  setValue={setSupplier}
+                  placeholder="Select supplier..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+
+                {/* PRICE */}
+                <Text style={styles.label}>Price</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  value={price}
+                  keyboardType="numeric"
+                  onChangeText={setPrice}
+                />
+
+                {/* NOTE */}
+                <Text style={styles.label}>Note</Text>
+                <TextInput
+                  style={[styles.input, { height: 70, textAlignVertical: 'top' }]}
+                  placeholder="Enter note..."
+                  multiline
+                  value={note}
+                  onChangeText={setNote}
+                />
+                {/* PAYMENT STATUS */}
+                <View style={styles.radioRow}>
+                  {['Paid', 'Unpaid'].map((status) => (
+                    <TouchableOpacity
+                      key={status}
+                      style={styles.radioContainer}
+                      onPress={() => setPaymentStatus(status as 'Paid' | 'Unpaid')}
+                    >
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          paymentStatus === status && styles.radioSelectedOuter,
+                        ]}
+                      >
+                        {paymentStatus === status && (
+                          <Text style={styles.radioCheck}>✔</Text>
+                        )}
+                      </View>
+                      <Text style={styles.radioLabel}>{status}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {type === 'Feed Consumption' && (
+              <>
+                 {/* FLOCK */}
+                <Text style={styles.label}>
+                  Flock<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={flockOpen}
+                  value={selectedFlock}
+                  items={flockItems || []}
+                  setOpen={setFlockOpen}
+                  setValue={setSelectedFlock}
+                  placeholder="Select flock..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+                  {/* DATE */}
+                <Text style={styles.label}>
+                  Date<Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={styles.inputWithIcon}
+                  onPress={() => setShowFeedDatePicker(true)}
+                >
+                  <Text style={{ flex: 1 }}>
+                    {feedDate ? feedDate.toLocaleDateString('en-GB') : 'DD/MM/YYYY'}
+                  </Text>
+                  <Image source={Theme.icons.date} style={styles.dateIcon} />
+                </TouchableOpacity>
+
+                {showFeedDatePicker && (
+                  <DateTimePicker
+                    value={feedDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowFeedDatePicker(false);
+                      if (event.type === 'set' && date) setFeedDate(date);
+                    }}
+                  />
+                )}
+
+                {/* FEED */}
+                <Text style={styles.label}>
+                  Feed<Text style={styles.required}>*</Text>
+                </Text>
+                <DropDownPicker
+                  listMode="SCROLLVIEW"
+                  open={feedOpen}
+                  value={selectedFeedId}
+                  items={feedItems || []}
+                  setOpen={setFeedOpen}
+                  setValue={setSelectedFeedId}
+                  placeholder="Select feed..."
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropdownContainer}
+                />
+             
+                {/* PRICE */}
+                <Text style={styles.label}>Price</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter bag..."
+                  value={bag}
+                  keyboardType="numeric"
+                  onChangeText={setbag}
+                />
+              </>
+            )}
+
           </ScrollView>
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>
@@ -1396,4 +1633,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 12,
   },
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    gap: 20,
+  },
+
+  pillradioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Theme.colors.grey,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    backgroundColor: 'transparent',
+  },
+
+  radioSelectedOuter: {
+    backgroundColor: Theme.colors.primaryYellow,
+    borderColor: Theme.colors.primaryYellow,
+  },
+  radioCheck: {
+    color: Theme.colors.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+
+  radioLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Theme.colors.black,
+  },
+
+
 });

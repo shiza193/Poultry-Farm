@@ -141,17 +141,17 @@ const MenuListScreen = ({ navigation }: any) => {
           <MenuItem
             title="Feed Record"
             icon={Theme.icons.feedc}
-            onPress={() => navigation.navigate('FeedRecord')}
+            onPress={() => navigation.navigate(CustomConstants.FEED_RECORD_SCREEN)}
           />
           <MenuItem
             title="Feed Consumption"
             icon={Theme.icons.feeds}
-            onPress={() => navigation.navigate('FeedConsumption')}
+            onPress={() => navigation.navigate(CustomConstants.FEED_CONSUMPTION_SCREEN)}
           />
           <MenuItem
             title="Feed Stock"
             icon={Theme.icons.feedGreen}
-            onPress={() => navigation.navigate('FeedStock')}
+            onPress={() => navigation.navigate(CustomConstants.FEED_STOCK_SCREEN)}
           />
         </Section>
 

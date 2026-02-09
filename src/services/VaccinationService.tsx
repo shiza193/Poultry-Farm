@@ -92,7 +92,7 @@ export const getVaccines = async () => {
     if (response.data && response.data.status === 'Success') {
       return response.data.data.map((v: any) => ({
         label: v.name,
-        value: Number(v.vaccineId), // ✅ number
+        value: Number(v.vaccineId), 
       }));
     }
     return [];

@@ -15,10 +15,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface HeaderProps {
   title: string;
   showBack?: boolean;
-  onAddNewPress?: () => void; 
+  onAddNewPress?: () => void;
+  onReportPress?: () => void;
 }
 
-const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPress }) => {
+const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPress, onReportPress }) => {
   const navigation = useNavigation<any>();
   const [showDots, setShowDots] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -79,8 +80,36 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
                   <Image source={Theme.icons.add} style={styles.menuIcon} />
                   <Text style={styles.menuText}>Add New</Text>
                 </TouchableOpacity>
+                <View style={styles.divider} />
               </>
             )}
+            {/* ===== Report (conditionally) ===== */}
+            {onReportPress && (
+              <>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setShowDots(false);
+                    onReportPress();
+                  }}
+                >
+                  <Image source={Theme.icons.report} style={styles.menuIcon} />
+                  <Text style={styles.menuText}>Report</Text>
+                </TouchableOpacity>
+                <View style={styles.divider} />
+              </>
+            )}
+            {/* ADMIN PORTAL */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setShowDots(false);
+                navigation.navigate(CustomConstants.DASHBOARD_TABS);
+              }}
+            >
+              <Image source={Theme.icons.back} style={styles.menuIcon} />
+              <Text style={styles.menuText}>Admin Portal</Text>
+            </TouchableOpacity>
             {/* LOGOUT */}
             <View style={styles.divider} />
             <TouchableOpacity
@@ -93,26 +122,9 @@ const BackArrow: React.FC<HeaderProps> = ({ title, showBack = false, onAddNewPre
               <Image source={Theme.icons.logout} style={styles.menuIcon} />
               <Text style={styles.menuText}>Logout</Text>
             </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            {/* ADMIN PORTAL */}
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowDots(false);
-                navigation.navigate(CustomConstants.DASHBOARD_TABS);
-              }}
-            >
-              <Image source={Theme.icons.back} style={styles.menuIcon} />
-              <Text style={styles.menuText}>Admin Portal</Text>
-            </TouchableOpacity>
-
-
           </View>
         </TouchableOpacity>
       )}
-
       {/* ===== LOGOUT MODAL ===== */}
       <ConfirmationModal
         type="logout"
@@ -171,17 +183,15 @@ const styles = StyleSheet.create({
     right: 16,
     backgroundColor: Theme.colors.white,
     borderRadius: 8,
-    paddingVertical: 4,
+    paddingVertical: 2,
     elevation: 5,
   },
-
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 9,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
-
   menuIcon: {
     width: 15,
     height: 15,

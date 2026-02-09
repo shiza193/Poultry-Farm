@@ -35,5 +35,7 @@ export const CustomConstants = {
   LEDGER_SCREEN: 'LedgerScreen',
   RECEIVEABLES_SCREEN: "ReceivablesScreen",
   VOUCHER_SCREEN:"VoucherScreen",
-
+FEED_RECORD_SCREEN:"FeedRecordScreen",
+FEED_CONSUMPTION_SCREEN:"FeedConsumptionScreen",
+FEED_STOCK_SCREEN:"FeedStockScreen",
 } as const;
