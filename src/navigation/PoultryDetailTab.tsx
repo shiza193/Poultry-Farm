@@ -7,6 +7,8 @@ import DashboardDetailScreen from '../screens/DashboardDetailScreen';
 import VaccinationMainScreen from './VaccinationTabs';
 import MenuListScreen from '../screens/more/MenuListScreen';
 import EggMainScreen from './EggTabs';
+import FlocksScreen from '../screens/flocks/FlocksScreen';
+import FlockMainScreen from './FlockMainTab';
 
 const Tab = createBottomTabNavigator();
 
@@ -58,10 +60,9 @@ const PoultryDetailTab = () => (
         tabBarIcon: ({ focused }) => renderIcon(Theme.icons.home, focused),
       }}
     />
-
     <Tab.Screen
       name="Flock"
-      children={() => <EmptyScreen name="Flock" />}
+      component={FlockMainScreen}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text

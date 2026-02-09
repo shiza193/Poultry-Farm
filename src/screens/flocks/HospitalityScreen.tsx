@@ -1,211 +1,157 @@
 import React, { useEffect, useState } from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
-  TextInput,
-  TouchableOpacity,
   Text,
   Image,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
-import DataCard from '../../components/customCards/DataCard';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import Theme from '../../theme/Theme';
-import { CustomConstants } from '../../constants/CustomConstants';
+import DataCard, { TableColumn } from '../../components/customCards/DataCard';
+import SearchBar from '../../components/common/SearchBar';
+
 import {
   getHospitalityByFilter,
   HospitalityRecord,
 } from '../../services/FlockService';
+
 import { useBusinessUnit } from '../../context/BusinessContext';
 
 const HospitalityScreen = () => {
-
-  const [hospitalityData, setHospitalityData] = useState<HospitalityRecord[]>(
-    [],
-  );
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
   const { businessUnitId } = useBusinessUnit();
 
-  const fetchHospitalityData = async () => {
-     if (!businessUnitId) {
-      console.warn('Business Unit ID is not set');
-      return;
-    }
+  const [data, setData] = useState<HospitalityRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  // ================= FETCH =================
+  const fetchHospitality = async () => {
+    if (!businessUnitId) return;
+
     try {
       setLoading(true);
-      const data = await getHospitalityByFilter({
+      const res = await getHospitalityByFilter({
         businessUnitId,
         pageNumber: 1,
-        pageSize: 50,
+        pageSize: 100,
       });
-      setHospitalityData(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch hospitality data');
+      setData(res ?? []);
+    } catch (err) {
+      console.error('Fetch hospitality error:', err);
+      setData([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHospitalityData();
-  }, []);
+    fetchHospitality();
+  }, [businessUnitId]);
 
-  
-
-  // Optional: format date to DD/MM/YYYY
-  const formatDate = (isoDate: string) => {
-    const d = new Date(isoDate);
+  const formatDate = (date?: string) => {
+    if (!date) return '—';
+    const d = new Date(date);
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
   };
 
+  // ================= FILTER =================
+  const filtered = data.filter(item => {
+    if (!search) return true;
+    return (
+      item.flock?.toLowerCase().includes(search.toLowerCase()) ||
+      item.vetName?.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
+  const tableData = filtered.map(item => ({
+    flock: item.flock,
+    date: formatDate(item.date),
+    quantity: item.quantity,
+    diagnosis: item.diagnosis,
+    medication: item.medication,
+    days: item.treatmentDays,
+    vet: item.vetName,
+    raw: item,
+  }));
+
+  const columns: TableColumn[] = [
+    { key: 'flock', title: 'FLOCK', width: 140, isTitle: true },
+    { key: 'date', title: 'DATE', width: 110 },
+    { key: 'quantity', title: 'QTY', width: 80 },
+    { key: 'diagnosis', title: 'DIAGNOSIS', width: 140 },
+    { key: 'medication', title: 'MEDICATION', width: 140 },
+    { key: 'days', title: 'DAYS', width: 90 },
+    { key: 'vet', title: 'VET', width: 120 },
+  ];
+
+  // ================= UI =================
   return (
-  
+    <SafeAreaView style={styles.safeArea}>
 
+            {/* <BackArrow title="Hospitality" showBack /> */}
 
-      <View style={styles.container}>
-        {/* Search Row */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchWrapper}>
-            <Image source={Theme.icons.search} style={styles.searchIcon} />
-            <TextInput
-              placeholder="Search..."
-              style={styles.searchInput}
-              placeholderTextColor={Theme.colors.grey}
-            />
-          </View>
+      {/* SEARCH + ACTION */}
+      <View style={styles.searchRow}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <SearchBar
+            placeholder="Search Flock..."
+            initialValue={search}
+            onSearch={setSearch}
+          />
         </View>
 
-        {/* Action Row */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.newButton}
-            onPress={() => console.log('New Record')}
-          >
-            <Text style={styles.newButtonText}> + New Hospitality</Text>
-          </TouchableOpacity>
-
-        
-        </View>
-
-        {/* Table */}
-        {loading ? (
-          <ActivityIndicator size="large" color={Theme.colors.buttonPrimary} />
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : hospitalityData.length === 0 ? (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-          </View>
-        ) : (
-          <ScrollView horizontal style={styles.tableWrapper}>
-            <View>
-              {/* Header */}
-              <DataCard
-                isHeader
-                showHospitality
-                labels={{
-                  flock: 'FLOCK',
-                  hospDate: 'Date',
-                  hospQuantity: 'Quantity',
-                  hospDiagnosis: 'Diagnosis',
-                  hospMedication: 'Medication',
-                  hospTreatmentDays: 'Treatment Days',
-                  hospVetName: 'Vet Name',
-                  hospActions: 'Actions',
-                }}
-              />
-
-              {/* Data Rows */}
-              {hospitalityData.map(item => (
-                <DataCard
-                  key={item.hospitalityId}
-                  showHospitality
-                  flockValue={item.flock}
-                  hospDateValue={item.date ? formatDate(item.date) : ''}
-                  hospQuantityValue={item.quantity}
-                  hospDiagnosisValue={item.diagnosis}
-                  hospMedicationValue={item.medication}
-                  hospTreatmentDaysValue={item.treatmentDays}
-                  hospVetNameValue={item.vetName}
-                />
-              ))}
-            </View>
-          </ScrollView>
-        )}
+        {/* <TouchableOpacity
+          style={styles.newButton}
+          onPress={() => console.log('Add Hospitality')}
+        >
+          <Text style={styles.newButtonText}>+ New</Text>
+        </TouchableOpacity> */}
       </View>
+
+      {loading ? (
+        <ActivityIndicator size="large" />
+      ) : tableData.length > 0 ? (
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+          <DataCard columns={columns} data={tableData} />
+        </View>
+      ) : (
+        <View style={styles.noDataContainer}>
+          <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+        </View>
+      )}
+    </SafeAreaView>
   );
 };
 
 export default HospitalityScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: Theme.colors.screenBackground,
-    padding: 10,
-  },
-
-  tipCardContainer: {
-    marginTop: 36,
+    backgroundColor: Theme.colors.white,
   },
 
   searchRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 10,
-  },
-  searchWrapper: {
-    flexDirection: 'row',
     alignItems: 'center',
-    position: 'relative',
-    width: 380,
-    height: 45,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    backgroundColor: Theme.colors.white,
-    paddingLeft: 40,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 16,
-    color: Theme.colors.textPrimary,
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: 10,
-    width: 20,
-    height: 20,
-    tintColor: Theme.colors.grey,
-  },
-
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  newButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Theme.colors.buttonPrimary,
-    paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  newButtonText: {
-    color: Theme.colors.black,
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
+    marginVertical: 10,
   },
 
-  tableWrapper: {
-    flex: 1,
+  newButton: {
+    backgroundColor: Theme.colors.primaryYellow,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
+
+  newButtonText: {
+    fontWeight: '600',
+    color: Theme.colors.black,
   },
 
   noDataContainer: {
@@ -213,15 +159,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   noDataImage: {
-    width: 150,
-    height: 150,
+    width: 200,
+    height: 200,
     resizeMode: 'contain',
-    marginBottom: 16,
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
   },
 });

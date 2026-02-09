@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Image,
@@ -11,327 +10,197 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-
-import DateTimePicker from '@react-native-community/datetimepicker';
-import DropDownPicker from 'react-native-dropdown-picker';
-
-import DataCard from '../../components/customCards/DataCard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Theme from '../../theme/Theme';
-import { getParties, GetSaleFilters } from '../../services/FlockService';
-import { CustomConstants } from '../../constants/CustomConstants';
+import BackArrow from '../../components/common/ScreenHeaderWithBack';
+import DataCard, { TableColumn } from '../../components/customCards/DataCard';
+import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
+
 import {
   getSalesByFilter,
   SaleRecord,
   addSale,
   AddSalePayload,
+  getParties,
+  GetSaleFilters,
 } from '../../services/FlockService';
 
-import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
 import { useBusinessUnit } from '../../context/BusinessContext';
+import SearchBar from '../../components/common/SearchBar';
+import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
 
-const FlockSaleScreen = () => {
+const FlockSaleScreen= () => {
+  const insets = useSafeAreaInsets();
+  const { businessUnitId } = useBusinessUnit();
+
   const [salesData, setSalesData] = useState<SaleRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [customerOpen, setCustomerOpen] = useState(false);
-  const [isFlockSaleModalVisible, setIsFlockSaleModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [search, setSearch] = useState('');
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-
-  // FILTER STATES
-  const [fromDate, setFromDate] = useState<Date | null>(null);
-  const [toDate, setToDate] = useState<Date | null>(null);
-  const [showFromPicker, setShowFromPicker] = useState(false);
-  const [showToPicker, setShowToPicker] = useState(false);
-  const [customer, setCustomer] = useState<string>('');
+  const [isSaleModalVisible, setIsSaleModalVisible] = useState(false);
 
   const [customerItems, setCustomerItems] = useState<
     { label: string; value: string }[]
   >([]);
 
-  const { businessUnitId } = useBusinessUnit();
-
-  const fetchSalesData = async (filters?: GetSaleFilters) => {
-    // Check if businessUnitId exists
-    if (!businessUnitId) {
-      console.warn('Business Unit ID is not set');
-      return;
-    }
+  // ================= FETCH =================
+  const fetchSales = async (filters?: GetSaleFilters) => {
+    if (!businessUnitId) return;
 
     try {
       setLoading(true);
-      const data = await getSalesByFilter({
+      const res = await getSalesByFilter({
         businessUnitId,
         pageNumber: 1,
-        pageSize: 50,
+        pageSize: 100,
         ...filters,
       });
-      setSalesData(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch sales data');
+      setSalesData(res ?? []);
+    } catch (err) {
+      console.error('Fetch sale error:', err);
+      setSalesData([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!businessUnitId) return;
-    fetchSalesData();
+    fetchSales();
+  }, [businessUnitId]);
+
+  // ================= CUSTOMERS =================
+  useEffect(() => {
+    const loadCustomers = async () => {
+      if (!businessUnitId) return;
+      const list = await getParties(businessUnitId, 0);
+      setCustomerItems(list.map(p => ({ label: p.name, value: p.partyId })));
+    };
+    loadCustomers();
   }, [businessUnitId]);
 
   const formatDate = (date?: Date | string) => {
-    if (!date) return '';
+    if (!date) return '—';
     const d = new Date(date);
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
   };
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      if (!businessUnitId) return; // don't call API if null
+  // ================= TABLE =================
+  const tableData = salesData.map(item => ({
+    date: formatDate(item.date),
+    customer: item.customer,
+    flock: item.flock,
+    quantity: item.quantity,
+    price: item.price,
+    raw: item,
+  }));
 
-      try {
-        const parties = await getParties(businessUnitId, 0);
-        const customerDropdown = parties.map(p => ({
-          label: p.name,
-          value: p.partyId,
-        }));
-        setCustomerItems([...customerDropdown]);
-      } catch (err) {
-        console.error('Failed to fetch customers:', err);
-      }
-    };
+  const columns: TableColumn[] = [
+    { key: 'date', title: 'DATE', width: 110 },
+    { key: 'customer', title: 'CUSTOMER', width: 140, },
+    { key: 'flock', title: 'FLOCK', width: 120 },
+    { key: 'quantity', title: 'QTY', width: 90 },
+    { key: 'price', title: 'PRICE', width: 90 },
+  ];
 
-    fetchCustomers();
-  }, [businessUnitId]); // dependency array ensures effect runs when ID changes
-
-  const applyFilter = () => {
-    const filters: GetSaleFilters = {};
-
-    if (fromDate) filters.startDate = fromDate.toISOString().split('T')[0];
-    if (toDate) filters.endDate = toDate.toISOString().split('T')[0];
-    if (customer) filters.partyId = customer;
-    if (search) filters.searchKey = search;
-
-    console.log('Applying filters:', filters);
-
-    fetchSalesData(filters);
-    setIsFilterModalVisible(false);
-  };
-
-  const resetFilter = () => {
-    setFromDate(null);
-    setToDate(null);
-    setCustomer('');
-    setSearch('');
-    fetchSalesData();
-    setIsFilterModalVisible(false);
-  };
-
+  // ================= UI =================
   return (
-   <>
-      <View style={styles.screen}>
-        {/* SEARCH ROW */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchBoxSmall}>
-            <Image source={Theme.icons.search} style={styles.icon} />
-            <TextInput
-              placeholder="Search Flock..."
-              value={search}
-              onChangeText={setSearch}
-              style={styles.searchInput}
-            />
-          </View>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* <BackArrow title="Flock Sale" showBack /> */}
 
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setIsFilterModalVisible(true)}
-          >
-            <Image source={Theme.icons.filter} style={styles.filterIcon} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.newBtn}
-            onPress={() => setIsFlockSaleModalVisible(true)}
-          >
-            <Text style={styles.newText}>+ New Sale</Text>
-          </TouchableOpacity>
+      {/* ROW 1 : SEARCH + FILTER */}
+      <View style={styles.topRow}>
+        <View style={{ flex: 1 }}>
+          <SearchBar
+            placeholder="Search sales..."
+            initialValue={search}
+            onSearch={value => setSearch(value)}
+          />
         </View>
 
-        {/* DATA */}
-        {loading ? (
-          <ActivityIndicator size="large" color={Theme.colors.buttonPrimary} />
-        ) : salesData.length === 0 ? (
+        <TouchableOpacity
+          style={styles.filterBtn}
+          onPress={() => setIsFilterModalVisible(true)}
+        >
+          <Image source={Theme.icons.filter} style={styles.filterIcon} />
+        </TouchableOpacity>
+      </View>
+
+      {/* ROW 2 : NEW BUTTON */}
+      <View style={styles.newRow}>
+        <TouchableOpacity
+          style={styles.newBtn}
+          onPress={() => setIsSaleModalVisible(true)}
+        >
+          <Text style={styles.newText}>+ New</Text>
+        </TouchableOpacity>
+      </View>
+
+      {tableData.length > 0 ? (
+        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+          <DataCard columns={columns} data={tableData} />
+        </View>
+      ) : (
+        !loading && (
           <View style={styles.noDataContainer}>
             <Image source={Theme.icons.nodata} style={styles.noDataImage} />
           </View>
-        ) : (
-          <ScrollView horizontal>
-            <ScrollView contentContainerStyle={styles.tableContent}>
-              <DataCard
-                isHeader
-                showFlockSale
-                labels={{
-                  date: 'DATE',
-                  customerName: 'Customer Name',
-                  flock: 'Flock',
-                  price: 'Price',
-                  quantity: 'Quantity',
-                }}
-              />
+        )
+      )}
 
-              {salesData.map(item => (
-                <DataCard
-                  key={item.saleId}
-                  showFlockSale
-                  dateValue={formatDate(item.date)}
-                  customerNameValue={item.customer}
-                  flockValue={item.flock}
-                  priceValue={item.price}
-                  quantityValue={item.quantity}
-                />
-              ))}
-            </ScrollView>
-          </ScrollView>
-        )}
-      </View>
+      {loading && <ActivityIndicator size="large" />}
 
       {/* ================= FILTER MODAL ================= */}
-      <Modal visible={isFilterModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            {/* HEADER */}
-            <Text style={styles.modalHeader}>Flock Sale</Text>
+      <BusinessUnitModal
+        visible={isFilterModalVisible}
+        mode="saleFilter"
+        customerItems={customerItems}
+        onClose={() => setIsFilterModalVisible(false)}
+        onApplySaleFilter={filters => {
+          const apiFilters: GetSaleFilters = {};
 
-            {/* FROM DATE */}
-            <Text style={styles.inputLabel}>From Date</Text>
-            <Pressable
-              style={styles.dateField}
-              onPress={() => setShowFromPicker(true)}
-            >
-              <Text style={styles.dateText}>
-                {fromDate ? formatDate(fromDate) : 'dd/mm/yyyy'}
-              </Text>
-              <Image source={Theme.icons.date} style={styles.dateIcon} />
-            </Pressable>
+          if (filters.fromDate)
+            apiFilters.startDate = filters.fromDate.toISOString().split('T')[0];
 
-            {/* TO DATE */}
-            <Text style={styles.inputLabel}>To Date</Text>
-            <Pressable
-              style={styles.dateField}
-              onPress={() => setShowToPicker(true)}
-            >
-              <Text style={styles.dateText}>
-                {toDate ? formatDate(toDate) : 'dd/mm/yyyy'}
-              </Text>
-              <Image source={Theme.icons.date} style={styles.dateIcon} />
-            </Pressable>
+          if (filters.toDate)
+            apiFilters.endDate = filters.toDate.toISOString().split('T')[0];
 
-            {/* CUSTOMER */}
-            <Text style={styles.inputLabel}>Customer</Text>
-            <View style={{ zIndex: 1000, marginBottom: 16 }}>
-              <DropDownPicker
-                open={customerOpen}
-                value={customer}
-                items={customerItems}
-                setOpen={setCustomerOpen}
-                setValue={setCustomer} // partyId
-                setItems={setCustomerItems}
-                placeholder="Select customer"
-                style={{
-                  borderColor: '#ccc',
-                  borderRadius: 8,
-                  minHeight: 45,
-                }}
-                dropDownContainerStyle={{
-                  borderColor: '#ccc',
-                }}
-              />
-            </View>
+          if (filters.customerId) apiFilters.partyId = filters.customerId;
 
-            {/* BUTTONS */}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.resetBtn} onPress={resetFilter}>
-                <Text style={styles.btnText}>Reset</Text>
-              </TouchableOpacity>
+          if (search) apiFilters.searchKey = search;
 
-              <TouchableOpacity style={styles.applyBtn} onPress={applyFilter}>
-                <Text style={styles.btnText}>Apply</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {showFromPicker && (
-          <DateTimePicker
-            value={fromDate || new Date()}
-            mode="date"
-            display="default"
-            onChange={(_, date) => {
-              setShowFromPicker(false);
-              if (date) setFromDate(date);
-            }}
-          />
-        )}
-
-        {showToPicker && (
-          <DateTimePicker
-            value={toDate || new Date()}
-            mode="date"
-            display="default"
-            onChange={(_, date) => {
-              setShowToPicker(false);
-              if (date) setToDate(date);
-            }}
-          />
-        )}
-      </Modal>
-      <ItemEntryModal
-        visible={isFlockSaleModalVisible}
-        type="flockSale"
-        onClose={() => setIsFlockSaleModalVisible(false)}
-        onSave={async data => {
-          try {
-            // Construct payload
-            const payload: AddSalePayload = {
-              customerId: data.customerName,
-              flockId: data.flockName,
-              quantity: Number(data.quantity),
-              price: Number(data.price),
-              date: data.saleDate
-                ? data.saleDate.toISOString()
-                : new Date().toISOString(),
-              note: data.remarks || '',
-              businessUnitId: businessUnitId!,
-            };
-
-            console.log('Sending Flock Sale Payload:', payload);
-
-            const result = await addSale(payload);
-
-            if (result.status === 'Success') {
-              console.log('Sale added successfully:', result.data);
-              // Close modal
-              setIsFlockSaleModalVisible(false);
-              // Refresh sales list
-              fetchSalesData();
-            } else {
-              console.warn('Failed to add sale:', result.message);
-            }
-          } catch (error) {
-            console.error('Error adding sale:', error);
-          }
+          fetchSales(apiFilters);
         }}
       />
-   </>
+      {/* ================= ADD SALE ================= */}
+      <ItemEntryModal
+        visible={isSaleModalVisible}
+        type="flockSale"
+        onClose={() => setIsSaleModalVisible(false)}
+        onSave={async data => {
+          const payload: AddSalePayload = {
+            customerId: data.customerName,
+            flockId: data.flockName,
+            quantity: Number(data.quantity),
+            price: Number(data.price),
+            date: data.saleDate?.toISOString() ?? new Date().toISOString(),
+            note: data.remarks || '',
+            businessUnitId: businessUnitId!,
+          };
+
+          await addSale(payload);
+          setIsSaleModalVisible(false);
+          fetchSales();
+        }}
+      />
+    </View>
   );
 };
 
 export default FlockSaleScreen;
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
     backgroundColor: Theme.colors.white,
   },
@@ -346,6 +215,21 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     marginTop: -20,
   },
+  searchBox: { paddingHorizontal: 16, paddingVertical: 10 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+
+  newRow: {
+    paddingHorizontal: 16,
+    marginTop: 10,
+    alignItems: 'flex-end',
+    marginBottom: 6,
+  },
+
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -392,9 +276,9 @@ const styles = StyleSheet.create({
     padding: 8,
     borderWidth: 1,
     borderRadius: 10,
-    borderColor: '#ccc',
+    borderColor: Theme.colors.success,
   },
-  filterIcon: { width: 22, height: 22 },
+  filterIcon: { width: 22, height: 22, tintColor: Theme.colors.success },
   tableContent: {
     paddingHorizontal: 16,
     paddingTop: 9,

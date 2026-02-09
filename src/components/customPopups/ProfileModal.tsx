@@ -159,35 +159,40 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     }
   }, [visible, data]);
 
-const handleSave = () => {
-  if (type === 'employee') {
-    const updated: ProfileData = {
-      ...formData,
-      name: nameDraft || formData.name,
-      phone: phoneDraft ?? formData.phone,
-      email: emailDraft ?? formData.email,
-      address: addressDraft ?? formData.address,
-      salary: salaryDraft !== '' ? Number(salaryDraft) : formData.salary,
-      joiningDate: joiningDateDraft || formData.joiningDate,
-      endDate: endDateDraft ?? formData.endDate,
-    };
+  const handleSave = () => {
+    const updated =
+      type === 'user'
+        ? { ...formData, name: nameDraft }
+        : type === 'customer'
+        ? {
+            ...formData,
+            name: nameDraft,
+            phone: phoneDraft,
+            address: addressDraft,
+            email: emailDraft,
+          }
+        : type === 'supplier'
+        ? {
+            ...formData,
+            name: nameDraft,
+            phone: phoneDraft,
+            email: emailDraft,
+            address: addressDraft,
+          }
+        : {
+            ...formData,
+            name: nameDraft,
+            phone: phoneDraft,
+            email: emailDraft,
+            address: addressDraft,
+            salary: Number(salaryDraft),
+            joiningDate: joiningDateDraft,
+            endDate: endDateDraft,
+          };
 
     onSave?.(updated);
     onClose();
-    return;
-  }
-
-  // fallback for other types
-  const updatedOther = {
-    ...formData,
-    name: nameDraft || formData.name,
-    phone: phoneDraft ?? formData.phone,
-    email: emailDraft ?? formData.email,
-    address: addressDraft ?? formData.address,
   };
-  onSave?.(updatedOther);
-  onClose();
-};
 
   const renderField = (
     label: string,
