@@ -60,6 +60,10 @@ const colors = {
   haedercolor: '#F4C430',
   lightgreen: '#f0fff0',
   lightblue: '#2d8ddb',
+    green: '#96cf96',
+      expand: '#5ee2dc',
+
+pink:'#f88585',
 };
 
 const icons = {
@@ -92,7 +96,7 @@ const icons = {
   dash1: require('../resources/images/dash1.png'),
   game: require('../resources/images/game.png'),
   health: require('../resources/images/health.png'),
-
+cross: require('../resources/images/cross.png'),
   hospital: require('../resources/images/hospital.png'),
 
   injection: require('../resources/images/injection.png'),
@@ -157,8 +161,6 @@ const icons = {
   report: require('../resources/images/report.png'),
   happy: require('../resources/images/happy.png'),
   anger: require('../resources/images/anger.png'),
-  cross: require('../resources/images/cross.png'),
-  cross1: require('../resources/images/cross1.png'),
 };
 
 const Theme = {

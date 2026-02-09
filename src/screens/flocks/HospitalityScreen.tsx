@@ -154,15 +154,14 @@ const styles = StyleSheet.create({
     color: Theme.colors.black,
   },
 
-  noDataContainer: {
+ noDataContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   noDataImage: {
-    width: 200,
-    height: 200,
+    width: 290,
+    height: 290,
     resizeMode: 'contain',
   },
 });

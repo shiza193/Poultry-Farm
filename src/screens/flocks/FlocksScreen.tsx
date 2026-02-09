@@ -56,7 +56,6 @@ interface Flock {
   isEnded: boolean;
 }
 
-
 const FlocksScreen = () => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
@@ -177,7 +176,7 @@ const FlocksScreen = () => {
       title: 'FLOCK NAME',
       width: 140,
       isTitle: true,
-      showDots: true,
+      // showDots: true,
       render: (value, row) => (
         <TouchableOpacity
           onPress={() =>
@@ -186,7 +185,7 @@ const FlocksScreen = () => {
             })
           }
         >
-          <Text style={{ fontWeight: '700', color: Theme.colors.blue }}>
+          <Text style={{ fontWeight: '700', color: Theme.colors.black }}>
             {value}
           </Text>
         </TouchableOpacity>
@@ -211,7 +210,7 @@ const FlocksScreen = () => {
             })
           }
         >
-          <Text style={{ fontWeight: '700', color: Theme.colors.blue }}>
+          <Text style={{ fontWeight: '700', color: Theme.colors.black }}>
             {value}
           </Text>
         </TouchableOpacity>
@@ -229,7 +228,7 @@ const FlocksScreen = () => {
             })
           }
         >
-          <Text style={{ fontWeight: '700', color: Theme.colors.blue }}>
+          <Text style={{ fontWeight: '700', color: Theme.colors.black }}>
             {value}
           </Text>
         </TouchableOpacity>
@@ -238,6 +237,16 @@ const FlocksScreen = () => {
     { key: 'currentQty', title: 'CURRENT', width: 110 },
     { key: 'saleQty', title: 'SALE', width: 100 },
     { key: 'arrivalDate', title: 'ARRIVAL DATE', width: 130 },
+    {
+      key: 'actions',
+      title: 'ACTIONS',
+      width: 90,
+      render: (_v, _r, index, toggleExpand) => (
+        <TouchableOpacity onPress={() => toggleExpand(index)}>
+          <Text style={styles.actionLabel}>Actions</Text>
+        </TouchableOpacity>
+      ),
+    },
   ];
 
   useEffect(() => {
@@ -257,7 +266,6 @@ const FlocksScreen = () => {
     };
     fetchSuppliers();
   }, [businessUnitId]);
-
 
   const AddFlock = async (data: any) => {
     const payload: AddFlockPayload = {
@@ -475,26 +483,19 @@ const FlocksScreen = () => {
               color={Theme.colors.primaryYellow}
             />
           ) : flocks.length === 0 ? (
-            <Image
-              source={Theme.icons.nodata}
-              style={{
-                width: 290,
-                height: 290,
-                resizeMode: 'contain',
-                marginBottom: 12,
-              }}
-            />
+            <View style={styles.noDataContainer}>
+              <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+            </View>
           ) : (
-            <View style={{ flex: 1, paddingHorizontal: 16 }}>
-              <DataCard
+            <View style={{ flex: 1, paddingHorizontal: 9 }}>
+              {/* <DataCard
                 columns={columns}
                 data={tableData}
                 renderRowMenu={(row, closeMenu) => {
                   const f = row.raw;
-
                   return (
-                    <View>
-                      {/* Feed */}
+                    <ScrollView>
+                 
                       {!f.isEnded && (
                         <TouchableOpacity
                           onPress={() => {
@@ -507,7 +508,7 @@ const FlocksScreen = () => {
                         </TouchableOpacity>
                       )}
 
-                      {/* FCR */}
+             
                       {!f.isEnded && f.remainingQuantity > 0 && (
                         <TouchableOpacity
                           onPress={() => {
@@ -520,7 +521,7 @@ const FlocksScreen = () => {
                         </TouchableOpacity>
                       )}
 
-                      {/* Mortality */}
+          
                       {!f.isEnded && f.remainingQuantity > 0 && (
                         <TouchableOpacity
                           onPress={() => {
@@ -533,7 +534,7 @@ const FlocksScreen = () => {
                         </TouchableOpacity>
                       )}
 
-                      {/* Hospitality */}
+        
                       {!f.isEnded && f.remainingQuantity > 0 && (
                         <TouchableOpacity
                           onPress={() => {
@@ -546,7 +547,7 @@ const FlocksScreen = () => {
                         </TouchableOpacity>
                       )}
 
-                      {/* Complete */}
+           
                       {!f.isEnded && (
                         <TouchableOpacity
                           onPress={async () => {
@@ -559,7 +560,7 @@ const FlocksScreen = () => {
                         </TouchableOpacity>
                       )}
 
-                      {/* Delete (ALWAYS) */}
+        
                       <TouchableOpacity
                         onPress={() => {
                           setFlockToDelete(f);
@@ -571,7 +572,105 @@ const FlocksScreen = () => {
                           Delete
                         </Text>
                       </TouchableOpacity>
-                    </View>
+                    </ScrollView>
+                  );
+                }}
+              /> */}
+              <DataCard
+                columns={columns}
+                data={tableData}
+                renderExpandedRow={row => {
+                  const f = row.raw;
+                  const actions = [
+                    {
+                      label: 'Feed',
+                      icon: Theme.icons.feedGreen,
+                      color: Theme.colors.green,
+                      show: !f.isEnded,
+                      onPress: () => {
+                        setSelectedFlock(f);
+                        setIsFeedModalVisible(true);
+                      },
+                    },
+                    {
+                      label: 'FCR',
+                      icon: Theme.icons.trend,
+                      color: Theme.colors.warning,
+                      show: !f.isEnded && f.remainingQuantity > 0,
+                      onPress: () => {
+                        setSelectedFlock(f);
+                        setIsFCRModalVisible(true);
+                      },
+                    },
+                    {
+                      label: 'Mortality',
+                      icon: Theme.icons.motality,
+                      color: Theme.colors.motalitycolor,
+                      show: !f.isEnded && f.remainingQuantity > 0,
+                      onPress: () => {
+                        setSelectedFlock(f);
+                        setIsMortalityModalVisible(true);
+                      },
+                    },
+                    {
+                      label: 'Hospitality',
+                      icon: Theme.icons.hospital,
+                      color: Theme.colors.expand,
+                      show: !f.isEnded && f.remainingQuantity > 0,
+                      onPress: () => {
+                        setSelectedFlock(f);
+                        setIsHospitalityModalVisible(true);
+                      },
+                    },
+                    {
+                      label: 'Complete',
+                      icon: Theme.icons.tick,
+                      color: Theme.colors.primaryYellow,
+                      show: !f.isEnded,
+                      onPress: async () => {
+                        await updateFlockIsEnded(f.flockId, true);
+                        fetchFlocks();
+                      },
+                    },
+                    {
+                      label: 'Delete',
+                      icon: Theme.icons.delete,
+                      color: Theme.colors.pink,
+                      show: true,
+                      onPress: () => {
+                        setFlockToDelete(f);
+                        setIsConfirmModalVisible(true);
+                      },
+                    },
+                  ];
+
+                  return (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.expandedRow}
+                    >
+                      {actions
+                        .filter(a => a.show)
+                        .map((action, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            onPress={action.onPress}
+                            style={[
+                              styles.actionButton,
+                              { backgroundColor: action.color },
+                            ]}
+                          >
+                            <Image
+                              source={action.icon}
+                              style={styles.actionIcon}
+                            />
+                            <Text style={styles.actionText}>
+                              {action.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </ScrollView>
                   );
                 }}
               />
@@ -669,6 +768,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: Theme.colors.white,
+  },
+  expandedRow: {
+    paddingVertical: 8,
+    paddingLeft: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    minWidth: 76,
+  },
+
+  actionIcon: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
+    marginRight: 6,
+    tintColor: Theme.colors.blue,
+  },
+
+  actionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Theme.colors.white,
+  },
+
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionLabel: {
+    color: Theme.colors.primaryYellow,
+    fontWeight: '600',
+  },
+
+  noDataImage: {
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
   },
   topRowTitle: {
     fontSize: 20,

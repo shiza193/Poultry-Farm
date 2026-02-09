@@ -310,7 +310,6 @@ const FlockDetailScreen = () => {
         title={flock ? `${flock.ref} (${flock.breed})` : 'Flock Detail'}
         showBack
       />
-
       <ScrollView style={{ padding: 11 }} keyboardShouldPersistTaps="handled">
         {/* Date Picker */}
         <View style={styles.dateRow}>

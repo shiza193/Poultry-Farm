@@ -10,7 +10,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Theme from '../../theme/Theme';
 import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
@@ -29,8 +29,7 @@ import { useBusinessUnit } from '../../context/BusinessContext';
 import SearchBar from '../../components/common/SearchBar';
 import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
 
-const FlockSaleScreen= () => {
-  const insets = useSafeAreaInsets();
+const FlockSaleScreen = () => {
   const { businessUnitId } = useBusinessUnit();
 
   const [salesData, setSalesData] = useState<SaleRecord[]>([]);
@@ -97,7 +96,7 @@ const FlockSaleScreen= () => {
 
   const columns: TableColumn[] = [
     { key: 'date', title: 'DATE', width: 110 },
-    { key: 'customer', title: 'CUSTOMER', width: 140, },
+    { key: 'customer', title: 'CUSTOMER', width: 140 },
     { key: 'flock', title: 'FLOCK', width: 120 },
     { key: 'quantity', title: 'QTY', width: 90 },
     { key: 'price', title: 'PRICE', width: 90 },
@@ -105,7 +104,7 @@ const FlockSaleScreen= () => {
 
   // ================= UI =================
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.safeArea}>
       {/* <BackArrow title="Flock Sale" showBack /> */}
 
       {/* ROW 1 : SEARCH + FILTER */}
@@ -193,14 +192,14 @@ const FlockSaleScreen= () => {
           fetchSales();
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default FlockSaleScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Theme.colors.white,
   },
@@ -290,12 +289,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   noDataImage: {
-    width: 150,
-    height: 150,
+    width: 290,
+    height: 290,
     resizeMode: 'contain',
-    marginBottom: 16,
   },
-
   errorText: {
     color: 'red',
     textAlign: 'center',

@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Text,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -79,7 +80,9 @@ const FlockStockScreen= () => {
           <DataCard columns={columns} data={tableData} />
         </View>
       ) : (
-        <Text style={styles.noData}>No flock stock available</Text>
+      <View style={styles.noDataContainer}>
+          <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+        </View>
       )}
     </View>
   );
@@ -98,7 +101,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-
+ noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataImage: {
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
+  },
   noData: {
     textAlign: 'center',
     marginTop: 40,

@@ -97,6 +97,13 @@ const FlocksMortalityScreen = () => {
     }
   };
 
+
+  const displayedFlockOptions =
+  flockOptions.length > 0
+    ? flockOptions
+    : [{ label: 'There is nothing to show', value: null }];
+
+
   const columns: TableColumn[] = [
     { key: 'flock', title: 'FLOCK', width: 130, },
     { key: 'date', title: 'DATE', width: 120 },
@@ -110,7 +117,7 @@ const FlocksMortalityScreen = () => {
         <Dropdown
           style={styles.dropdown}
           containerStyle={styles.dropdownContainer}
-          data={flockOptions}
+         data={displayedFlockOptions}
           labelField="label"
           valueField="value"
           placeholder="Select Flock"
