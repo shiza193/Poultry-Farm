@@ -17,6 +17,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Theme from '../../theme/Theme';
 import { getFeeds, Feed, getParties } from '../../services/FlockService';
+import { useBusinessUnit } from '../../context/BusinessContext';
 
 interface ItemEntryModalProps {
   visible?: boolean;
@@ -31,8 +32,9 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   type = 'feed',
   onClose,
   onSave,
-  businessUnitId = '157cc479-dc81-4845-826c-5fb991bd3d47',
 }) => {
+  const { businessUnitId } = useBusinessUnit();
+
   // ---------- Common States ----------
   const [feed, setFeed] = useState<string | null>(null);
   const [open, setOpen] = useState(false);

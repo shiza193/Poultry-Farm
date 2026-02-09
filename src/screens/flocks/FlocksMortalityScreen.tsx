@@ -1,218 +1,233 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
-  Image,
-  Alert,
-} from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, StyleSheet, Text, Image, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DataCard from '../../components/customCards/DataCard';
+
 import Theme from '../../theme/Theme';
+import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
+import LoadingOverlay from '../../components/loading/LoadingOverlay';
+
 import {
   getFlockHealthRecords,
   deleteFlockHealthRecord,
   FlockHealthRecord,
 } from '../../services/FlockService';
-import { CustomConstants } from '../../constants/CustomConstants';
 
 import { useBusinessUnit } from '../../context/BusinessContext';
+import { Dropdown } from 'react-native-element-dropdown';
 
-const FlocksMortalityScreen: React.FC = () => {
-  const [healthRecords, setHealthRecords] = useState<FlockHealthRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [selectedRecordName, setSelectedRecordName] = useState<string>('');
+const FlocksMortalityScreen = () => {
+  const insets = useSafeAreaInsets();
+  const route = useRoute<any>();
+  const fromMenu = route.params?.fromMenu === true;
 
   const { businessUnitId } = useBusinessUnit();
+  const [selectedFlockId, setSelectedFlockId] = useState<string | null>(null);
+  const [flockOptions, setFlockOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
 
-  // Fetch API data
-  useEffect(() => {
-    const fetchHealthRecords = async () => {
-       if (!businessUnitId) {
-      console.warn('Business Unit ID is not set');
-      return;
-    }
-      setLoading(true);
-      try {
-        const response = await getFlockHealthRecords(businessUnitId, 1);
-        setHealthRecords(response.data.data);
-      } catch (err) {
-        console.error('Error fetching health records:', err);
-        setHealthRecords([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [records, setRecords] = useState<FlockHealthRecord[]>([]);
+  const [loading, setLoading] = useState(false);
 
-    fetchHealthRecords();
-  }, []);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  
-  // Open modal before delete
-  const handleDeletePress = (id: string, name: string) => {
-    setSelectedRecordId(id);
-    setSelectedRecordName(name);
-    setModalVisible(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!selectedRecordId) return;
+  // ================= FETCH =================
+  const fetchRecords = async () => {
+    if (!businessUnitId) return;
 
     try {
       setLoading(true);
-      // Call API to delete
-      await deleteFlockHealthRecord(selectedRecordId);
-
-      // Remove from local state
-      setHealthRecords(prev =>
-        prev.filter(record => record.flockHealthId !== selectedRecordId),
-      );
-
-      setSelectedRecordId(null);
-      setSelectedRecordName('');
+      const res = await getFlockHealthRecords(businessUnitId, 1);
+      setRecords(res?.data?.data ?? []);
     } catch (err) {
-      Alert.alert('Error', 'Failed to delete flock health record.');
-      console.error('Delete error:', err);
+      console.error('Fetch mortality error:', err);
+      setRecords([]);
     } finally {
-      setModalVisible(false);
       setLoading(false);
     }
   };
 
-  // Cancel deletion
-  const handleCancelDelete = () => {
-    setSelectedRecordId(null);
-    setSelectedRecordName('');
-    setModalVisible(false);
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecords();
+    }, [businessUnitId]),
+  );
+
+  useEffect(() => {
+    const uniqueFlocks = Array.from(new Set(records.map(r => r.flock))).map(
+      f => ({
+        label: f,
+        value: f,
+      }),
+    );
+    setFlockOptions(uniqueFlocks);
+  }, [records]);
+
+  const filteredRecords = selectedFlockId
+    ? records.filter(r => r.flock === selectedFlockId)
+    : records;
+
+  const tableData = filteredRecords.map(item => ({
+    flock: item.flock,
+    date: new Date(item.date).toLocaleDateString(),
+    quantity: item.quantity,
+    raw: item,
+  }));
+
+  // ================= DELETE =================
+  const handleConfirmDelete = async () => {
+    if (!selectedId) return;
+
+    try {
+      setLoading(true);
+      await deleteFlockHealthRecord(selectedId);
+      setRecords(prev =>
+        prev.filter(item => item.flockHealthId !== selectedId),
+      );
+    } catch (err) {
+      console.error('Delete mortality error:', err);
+    } finally {
+      setSelectedId(null);
+      setDeleteModalVisible(false);
+      setLoading(false);
+    }
   };
 
-  const handleEdit = (id: string) => {
-    console.log('Edit flock health record:', id);
-  };
+  const columns: TableColumn[] = [
+    { key: 'flock', title: 'FLOCK', width: 130, },
+    { key: 'date', title: 'DATE', width: 120 },
+    { key: 'quantity', title: 'QUANTITY', width: 110 },
+  ];
 
+  // ================= UI =================
   return (
-    
-      <SafeAreaView style={styles.container}>
-        <View style={styles.topRow}>
-          <TouchableOpacity style={styles.dropdownSmall}>
-            <Text style={styles.dropdownTextSmall}>Select flock</Text>
-            <Image
-              source={Theme.icons.dropdown}
-              style={styles.dropdownIconSmall}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator
-            size="large"
-            color={Theme.colors.primaryYellow}
-            style={{ marginTop: 40 }}
-          />
-        ) : healthRecords.length === 0 ? (
-          <View style={{ alignItems: 'center', marginTop: 60 }}>
-            <Image
-              source={Theme.icons.nodata}
-              style={{
-                width: 290,
-                height: 290,
-                resizeMode: 'contain',
-                marginBottom: 12,
-              }}
-            />
-          </View>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
-          >
-            <View>
-              <DataCard
-                isHeader
-                labels={{
-                  name: 'Flock',
-                  phone: 'Date',
-                  email: 'Quantity',
-                  actions: 'Action',
-                }}
-                showAddress={false}
-                showStatus={false}
-              />
-
-              <FlatList
-                data={healthRecords}
-                keyExtractor={item => item.flockHealthId}
-                scrollEnabled={false}
-                renderItem={({ item }) => (
-                  <DataCard
-                    name={item.flock}
-                    phone={new Date(item.date).toLocaleDateString()}
-                    email={item.quantity.toString()}
-                    showAddress={false}
-                    showStatus={false}
-                    onEdit={() => handleEdit(item.flockHealthId)}
-                    onDelete={() =>
-                      handleDeletePress(item.flockHealthId, item.flock)
-                    }
-                  />
-                )}
-              />
-            </View>
-          </ScrollView>
-        )}
-
-        <ConfirmationModal
-          type="delete"
-          visible={modalVisible}
-          onClose={handleCancelDelete}
-          onConfirm={handleConfirmDelete}
-          title={`Are you sure you want to delete flock "${selectedRecordName}"?`}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.filterRow}>
+        <Dropdown
+          style={styles.dropdown}
+          containerStyle={styles.dropdownContainer}
+          data={flockOptions}
+          labelField="label"
+          valueField="value"
+          placeholder="Select Flock"
+          value={selectedFlockId}
+          onChange={item => setSelectedFlockId(item.value)}
         />
-      </SafeAreaView>
+
+        {selectedFlockId && (
+          <TouchableOpacity
+            style={styles.resetButton}
+            onPress={() => setSelectedFlockId(null)}
+          >
+            <Text style={styles.resetText}>Reset Fliter</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {tableData.length > 0 ? (
+        <View style={styles.tableContainer}>
+          <DataCard
+            columns={columns}
+            data={tableData}
+            renderRowMenu={(row, closeMenu) => (
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedId(row.raw.flockHealthId);
+                  setDeleteModalVisible(true);
+                  closeMenu();
+                }}
+                style={styles.deleteMenu}
+              >
+                <Text style={styles.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      ) : (
+        !loading && (
+          <View style={styles.noDataContainer}>
+            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+          </View>
+        )
+      )}
+
+      <ConfirmationModal
+        type="delete"
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleConfirmDelete}
+        title="Are you sure you want to delete this record?"
+      />
+
+      <LoadingOverlay visible={loading} />
+    </SafeAreaView>
   );
 };
 
 export default FlocksMortalityScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Theme.colors.white,
   },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    marginTop: 7,
-    marginBottom: 10,
-  },
-  dropdownSmall: {
+  filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderColor: Theme.colors.dropdowncolor,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  dropdown: {
+    width: 220, // fixed width always
+    height: 40,
     borderWidth: 1,
-    backgroundColor: Theme.colors.white,
+    borderColor: Theme.colors.success,
     borderRadius: 8,
     paddingHorizontal: 10,
-    height: 39,
-    width: 160,
+    justifyContent: 'center',
   },
-  dropdownTextSmall: {
-    fontSize: 12,
-    color: Theme.colors.textSecondary,
+  dropdownContainer: {
+    borderRadius: 8,
   },
-  dropdownIconSmall: {
-    width: 12,
-    height: 12,
-    tintColor: Theme.colors.grey,
+  resetButton: {
+    marginLeft: 8,
+    height: 40, // same as dropdown
+    paddingHorizontal: 12,
+    borderRadius: 8,
+
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resetText: {
+    color: Theme.colors.error,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  tableContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  deleteMenu: {
+    padding: 2,
+  },
+  deleteText: {
+    color: 'red',
+    fontWeight: '600',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataImage: {
+    width: 290,
+    height: 290,
+    resizeMode: 'contain',
   },
 });

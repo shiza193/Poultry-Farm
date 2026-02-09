@@ -99,6 +99,7 @@ const icons = {
   pdf: require('../resources/images/pdf.png'),
   more: require('../resources/images/more.png'),
   greater: require('../resources/images/greater.png'),
+  upload: require('../resources/images/upload.png'),
 
   management: require('../resources/images/management.png'),
 

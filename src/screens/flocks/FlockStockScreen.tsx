@@ -1,93 +1,87 @@
 import React, { useEffect, useState } from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Text,
 } from 'react-native';
-import DataCard from '../../components/customCards/DataCard';
-import Theme from '../../theme/Theme';
-import { getFlockStock, FlockStock } from '../../services/FlockService';
-import { CustomConstants } from '../../constants/CustomConstants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import Theme from '../../theme/Theme';
+import BackArrow from '../../components/common/ScreenHeaderWithBack';
+import DataCard, { TableColumn } from '../../components/customCards/DataCard';
+
+import { getFlockStock, FlockStock } from '../../services/FlockService';
 import { useBusinessUnit } from '../../context/BusinessContext';
 
-const FlockStockScreen = () => {
- 
-  const [flockStock, setFlockStock] = useState<FlockStock[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
+const FlockStockScreen= () => {
+  const insets = useSafeAreaInsets();
   const { businessUnitId } = useBusinessUnit();
 
+  const [data, setData] = useState<FlockStock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // ================= FETCH =================
   const fetchFlockStock = async () => {
-     if (!businessUnitId) {
-      console.warn('Business Unit ID is not set');
-      return;
-    }
+    if (!businessUnitId) return;
+
     try {
       setLoading(true);
-      const data = await getFlockStock(businessUnitId);
-      setFlockStock(data);
+      const res = await getFlockStock(businessUnitId);
+      setData(res ?? []);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch flock stock');
+      setData([]);
     } finally {
       setLoading(false);
     }
   };
 
- 
-
   useEffect(() => {
     fetchFlockStock();
-  }, []);
+  }, [businessUnitId]);
 
-  const handlePdfPress = () => {
-    console.log('PDF button pressed!');
-  };
+  // ================= TABLE =================
+  const tableData = data.map(item => ({
+    flock: item.flock,
+    purchased: item.totalPurchased,
+    mortality: item.totalMortality,
+    hospitality: item.totalHospitality,
+    sale: item.totalSale,
+    available: item.availableStock,
+    status: item.isEnded ? 'Ended' : 'Active',
+    raw: item,
+  }));
 
+  const columns: TableColumn[] = [
+    { key: 'flock', title: 'FLOCK', width: 140,  },
+    { key: 'purchased', title: 'PURCHASED', width: 120 },
+    { key: 'mortality', title: 'MORTALITY', width: 120 },
+    { key: 'hospitality', title: 'HOSPITALITY', width: 130 },
+    { key: 'sale', title: 'SALE', width: 100 },
+    { key: 'available', title: 'AVAILABLE', width: 120 },
+    { key: 'status', title: 'STATUS', width: 100 },
+  ];
+
+  // ================= UI =================
   return (
-   
-      <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* <BackArrow title="Flock Stock" showBack /> */}
 
-      
-
-        {loading ? (
-          <ActivityIndicator size="large" color={Theme.colors.buttonPrimary} />
-        ) : error ? (
-          <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>
-        ) : flockStock.length === 0 ? (
-          <Text style={{ textAlign: 'center' }}>No flock stock available</Text>
-        ) : (
-          <ScrollView
-            horizontal
-            contentContainerStyle={styles.scrollContent}
-            showsHorizontalScrollIndicator={false}
-          >
-            <View>
-              {/* HEADER */}
-              <DataCard showFlock isHeader />
-
-              {/* ROWS */}
-              {flockStock.map(flock => (
-                <DataCard
-                  key={flock.flockId}
-                  showFlock
-                  flockName={flock.flock}
-                  totalPurchased={flock.totalPurchased}
-                  totalMortality={flock.totalMortality}
-                  totalHospitality={flock.totalHospitality}
-                  totalSale={flock.totalSale}
-                  availableStock={flock.availableStock}
-                  status={flock.isEnded ? 'Active' : 'Active'}
-                />
-              ))}
-            </View>
-          </ScrollView>
-        )}
-      </View>
+      {loading ? (
+        <ActivityIndicator size="large" color={Theme.colors.primaryYellow} />
+      ) : error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : tableData.length > 0 ? (
+        <View style={{ flex: 1, paddingHorizontal: 16, marginTop:15, }}>
+          <DataCard columns={columns} data={tableData} />
+        </View>
+      ) : (
+        <Text style={styles.noData}>No flock stock available</Text>
+      )}
+    </View>
   );
 };
 
@@ -97,15 +91,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.colors.white,
-    paddingTop: 40,
   },
-  buttonContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 20,
-    paddingHorizontal: 8,
-    marginTop: 7,
+
+  error: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 20,
   },
-  scrollContent: {
-    paddingHorizontal: 10,
+
+  noData: {
+    textAlign: 'center',
+    marginTop: 40,
+    color: Theme.colors.grey,
   },
 });

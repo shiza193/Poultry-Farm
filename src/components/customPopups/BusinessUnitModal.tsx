@@ -14,6 +14,14 @@ import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+
+export type SaleFilterModel = {
+  fromDate: Date | null;
+  toDate: Date | null;
+  customerId: string | null;
+  searchKey?: string;
+};
+
 type AccountHeadPayload = {
   name: string;
   accountType: string;
@@ -34,17 +42,28 @@ interface BusinessUnitModalProps {
   supplierItems?: { label: string; value: string }[];
   selectedFlockId?: string | null;
   selectedSupplier?: string | null;
-  onApplyFilter?: (flockId: string | null, supplierId: string | null) => void;
+  isComplete?: boolean;
+  onApplyFilter?: (
+    flockId: string | null,
+    supplierId: string | null,
+    isComplete: boolean | null,
+  ) => void;
   onApplyvoucherFilter?: (
     fromDate: Date | null,
     toDate: Date | null,
     accountId: string | null,
-    voucherTypeId: number | null
+    voucherTypeId: number | null,
   ) => void;
   // mode
-  mode?: 'add' | 'edit' | 'filter' | 'reset' | 'singleField' | 'accountHead' | 'voucher';
-
-
+  mode?:
+    | 'add'
+    | 'edit'
+    | 'filter'
+    | 'reset'
+    | 'singleField'
+    | 'accountHead'
+    | 'saleFilter'
+    | 'voucher';
 
   // Add/Edit mode
   onSave?: (data: {
@@ -55,9 +74,10 @@ interface BusinessUnitModalProps {
 
   // SingleField mode
   onSaveSingleField?: (data: { value: string }) => void;
+  onApplySaleFilter?: (filters: SaleFilterModel) => void;
+  customerItems?: { label: string; value: string }[];
 
   onSaveAccountHead?: (data: AccountHeadPayload) => void;
-
 
   initialData?: { name: string; location: string };
   modalTitle?: string;
@@ -73,41 +93,37 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   onSaveAccountHead,
   onResetPassword,
   onSaveSingleField,
+  isComplete,
   mode = 'add',
   flockItems = [],
   supplierItems = [],
   selectedFlockId: initialFlockId,
   selectedSupplier: initialSupplier,
   onApplyFilter,
-  onApplyvoucherFilter, // ✅ ADD THIS
+  onApplyvoucherFilter,
   singleFieldLabel,
+  onApplySaleFilter,
+  customerItems = [],
   singleFieldValue,
   modalTitle,
   accountTypeItems = [],
   accountOptions = [],
   voucherTypeOptions = [],
-
-
 }) => {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
-
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
-
   const [selectedFlockId, setSelectedFlockId] = useState<string | null>(
     initialFlockId || null,
   );
+  const [complete, setComplete] = useState<boolean>(false);
+
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(
     initialSupplier || null,
   );
-
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-
   /* ===== ACCOUNT HEAD ===== */
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<string | null>(null);
@@ -123,6 +139,14 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
 
   const [accountId, setAccountId] = useState<string | null>(null);
   const [voucherTypeId, setVoucherTypeId] = useState<number | null>(null);
+
+  // sale filter
+  const [saleFromDate, setSaleFromDate] = useState<Date | null>(null);
+  const [saleToDate, setSaleToDate] = useState<Date | null>(null);
+  const [saleCustomer, setSaleCustomer] = useState<string | null>(null);
+
+  const [showSaleFromPicker, setShowSaleFromPicker] = useState(false);
+  const [showSaleToPicker, setShowSaleToPicker] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -156,17 +180,18 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     setSelectedSupplier(initialSupplier || null);
   }, [mode, initialData, singleFieldValue, visible]);
 
-  // ===== TITLE LOGIC (FIXED) =====
+  // ===== TITLE LOGIC  =====
   const getTitle = () => {
     if (modalTitle) return modalTitle;
 
     if (mode === 'singleField') return singleFieldLabel || 'Add Item';
     if (mode === 'add') return 'Add Poultry Farm';
     if (mode === 'edit') return 'Edit Poultry Farm';
-    if (mode === 'filter') return 'Filter';
+    if (mode === 'filter') return 'Flock Filter';
     if (mode === 'reset') return 'Reset Password';
     if (mode === 'accountHead') return 'Add Account';
     if (mode === 'voucher') return 'Voucher Filters';
+    if (mode === 'saleFilter') return 'Sale Filters';
 
     return '';
   };
@@ -188,6 +213,12 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     }
   }, [visible, mode]);
 
+  useEffect(() => {
+    if (!visible || mode !== 'filter') return;
+
+    setComplete(isComplete ?? false);
+  }, [visible, mode, isComplete]);
+
   const isSaveDisabled =
     mode === 'singleField'
       ? name.trim() === ''
@@ -196,12 +227,14 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   const handleResetFilter = () => {
     setSelectedFlockId(null);
     setSelectedSupplier(null);
-    if (onApplyFilter) onApplyFilter(null, null);
+    setComplete(false);
+
+    onApplyFilter?.(null, null, null);
     onClose();
   };
 
   const handleApplyFilter = () => {
-    if (onApplyFilter) onApplyFilter(selectedFlockId, selectedSupplier);
+    onApplyFilter?.(selectedFlockId, selectedSupplier, complete);
     onClose();
   };
 
@@ -216,12 +249,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   };
 
   const handleApplyVoucherFilter = () => {
-    onApplyvoucherFilter?.(
-      fromDate,
-      toDate,
-      accountId,
-      voucherTypeId
-    );
+    onApplyvoucherFilter?.(fromDate, toDate, accountId, voucherTypeId);
     onClose();
   };
   useEffect(() => {
@@ -246,33 +274,55 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
             <>
               {/* <Text style={styles.title}>Flock Filter</Text> */}
 
+              <Text style={styles.inputLabel}>Status</Text>
+
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginVertical: 8,
+                }}
+                onPress={() => setComplete(prev => !prev)}
+              >
+                <View
+                  style={[
+                    styles.checkboxSmall,
+                    complete && { backgroundColor: Theme.colors.primaryYellow },
+                  ]}
+                />
+                <Text style={{ marginLeft: 8 }}>Complete</Text>
+              </TouchableOpacity>
+
               <Text style={styles.inputLabel}>Flock</Text>
-              <DropDownPicker
-                open={dropdownOpen}
-                value={selectedFlockId}
-                items={flockItems}
-                setOpen={setDropdownOpen}
-                setValue={setSelectedFlockId}
-                setItems={() => { }}
-                placeholder="Select flock"
+              <Dropdown
                 style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-                dropDownDirection="BOTTOM"
-                zIndex={3000}
-                zIndexInverse={1000}
+                containerStyle={styles.dropdownContainer}
+                data={flockItems}
+                labelField="label"
+                valueField="value"
+                placeholder="Select flock"
+                value={selectedFlockId}
+                placeholderStyle={styles.dropdownPlaceholder}
+                selectedTextStyle={styles.dropdownText}
+                onChange={item => {
+                  setSelectedFlockId(item.value);
+                }}
               />
 
               <Text style={styles.inputLabel}>Supplier</Text>
-              <DropDownPicker
-                open={supplierDropdownOpen}
-                value={selectedSupplier}
-                items={supplierItems}
-                setOpen={setSupplierDropdownOpen}
-                setValue={setSelectedSupplier}
-                setItems={() => { }}
-                placeholder="Select supplier"
+              <Dropdown
                 style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
+                containerStyle={styles.dropdownContainer}
+                data={supplierItems}
+                labelField="label"
+                valueField="value"
+                placeholder="Select supplier"
+                value={selectedSupplier}
+                placeholderStyle={styles.dropdownPlaceholder}
+                selectedTextStyle={styles.dropdownText}
+                onChange={item => {
+                  setSelectedSupplier(item.value);
+                }}
               />
 
               <View style={styles.buttonRow}>
@@ -292,8 +342,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               </View>
             </>
           )}
-
-
           {/* ===== Voucher MODE ===== */}
           {mode === 'voucher' && (
             <>
@@ -304,7 +352,9 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 >
                   <Text style={styles.dateLabel}>From:</Text>
                   <Text style={styles.dateValue}>
-                    {fromDate ? fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+                    {fromDate
+                      ? fromDate.toLocaleDateString('en-GB')
+                      : 'DD/MM/YY'}
                   </Text>
                 </TouchableOpacity>
 
@@ -312,14 +362,16 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
 
                 <TouchableOpacity
                   style={styles.dateItem}
-                  onPress={() => setShowFromPicker(true)}
+                  onPress={() => setShowToPicker(true)}
                 >
                   <Text style={styles.dateLabel}>To:</Text>
                   <Text style={styles.dateValue}>
-                    {fromDate ? fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+                    {toDate ? toDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* ACCOUNT DROPDOWN */}
               <Dropdown
                 style={styles.dropdown}
                 containerStyle={styles.dropdownContainer}
@@ -345,14 +397,13 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 selectedTextStyle={styles.dropdownText}
                 onChange={item => setVoucherTypeId(item.value)}
               />
+
               {showFromPicker && (
                 <DateTimePicker
                   value={fromDate || new Date()}
                   mode="date"
-                  display="default"
                   onChange={(event, date) => {
                     setShowFromPicker(false);
-
                     if (event.type === 'set' && date) {
                       setFromDate(date);
                     }
@@ -364,16 +415,15 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 <DateTimePicker
                   value={toDate || new Date()}
                   mode="date"
-                  display="default"
                   onChange={(event, date) => {
-                    setShowFromPicker(false);
-
+                    setShowToPicker(false);
                     if (event.type === 'set' && date) {
-                      setFromDate(date);
+                      setToDate(date);
                     }
                   }}
                 />
               )}
+
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={styles.resetButton}
@@ -459,7 +509,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                     styles.saveButton,
                     (newPassword.trim() === '' ||
                       confirmPassword.trim() === '') &&
-                    styles.saveButtonDisabled,
+                      styles.saveButtonDisabled,
                   ]}
                   disabled={
                     newPassword.trim() === '' || confirmPassword.trim() === ''
@@ -530,8 +580,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               </View>
             </>
           )}
-
-          {/* ===== SINGLE FIELD MODE ===== */}
           {/* ===== SINGLE FIELD MODE ===== */}
           {mode === 'singleField' && (
             <>
@@ -542,7 +590,9 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
 
               {/* INPUT FIELD */}
               <InputField
-                placeholder={`Enter ${singleFieldLabel?.toLowerCase() || 'value'}...`}
+                placeholder={`Enter ${
+                  singleFieldLabel?.toLowerCase() || 'value'
+                }...`}
                 value={name}
                 onChangeText={setName}
               />
@@ -569,10 +619,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               </View>
             </>
           )}
-
-
-
-
           {/* ===== ACCOUNT HEAD MODE ===== */}
           {mode === 'accountHead' && (
             <>
@@ -653,6 +699,106 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               </View>
             </>
           )}
+          {mode === 'saleFilter' && (
+            <>
+              <View style={styles.dateRangeContainer}>
+                <TouchableOpacity
+                  style={styles.dateItem}
+                  onPress={() => setShowSaleFromPicker(true)}
+                >
+                  <Text style={styles.dateLabel}>From:</Text>
+                  <Text style={styles.dateValue}>
+                    {saleFromDate
+                      ? saleFromDate.toLocaleDateString('en-GB')
+                      : 'DD/MM/YY'}
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={styles.dateDash}>—</Text>
+
+                <TouchableOpacity
+                  style={styles.dateItem}
+                  onPress={() => setShowSaleToPicker(true)}
+                >
+                  <Text style={styles.dateLabel}>To:</Text>
+                  <Text style={styles.dateValue}>
+                    {saleToDate
+                      ? saleToDate.toLocaleDateString('en-GB')
+                      : 'DD/MM/YY'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* CUSTOMER */}
+              <Text style={styles.inputLabel}>Customer</Text>
+              <Dropdown
+                style={styles.dropdown}
+                containerStyle={styles.dropdownContainer}
+                data={customerItems || []}
+                labelField="label"
+                valueField="value"
+                placeholder="Select customer"
+                value={saleCustomer}
+                onChange={item => setSaleCustomer(item.value)}
+              />
+
+              {/* BUTTONS */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={styles.resetButton}
+                  onPress={() => {
+                    setSaleFromDate(null);
+                    setSaleToDate(null);
+                    setSaleCustomer(null);
+                    onApplySaleFilter?.({
+                      fromDate: null,
+                      toDate: null,
+                      customerId: null,
+                    });
+                    onClose();
+                  }}
+                >
+                  <Text style={styles.resetText}>Reset</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.applyButton}
+                  onPress={() => {
+                    onApplySaleFilter?.({
+                      fromDate: saleFromDate,
+                      toDate: saleToDate,
+                      customerId: saleCustomer,
+                    });
+                    onClose();
+                  }}
+                >
+                  <Text style={styles.applyText}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+
+              {showSaleFromPicker && (
+                <DateTimePicker
+                  value={saleFromDate || new Date()}
+                  mode="date"
+                  onChange={(e, d) => {
+                    setShowSaleFromPicker(false);
+                    if (e.type === 'set' && d) setSaleFromDate(d);
+                  }}
+                />
+              )}
+
+              {showSaleToPicker && (
+                <DateTimePicker
+                  value={saleToDate || new Date()}
+                  mode="date"
+                  onChange={(e, d) => {
+                    setShowSaleToPicker(false);
+                    if (e.type === 'set' && d) setSaleToDate(d);
+                  }}
+                />
+              )}
+            </>
+          )}
         </View>
       </View>
     </Modal>
@@ -688,11 +834,21 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 8,
   },
+  checkboxSmall: {
+    width: 16,
+    height: 16,
+    borderWidth: 1,
+    borderColor: Theme.colors.grey,
+    borderRadius: 4,
+    marginRight: 8,
+  },
   dropdown: {
     borderWidth: 1,
     borderColor: Theme.colors.success,
     borderRadius: 8,
-    minHeight: 45,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     marginBottom: 12,
   },
   dropdownContainer: {
@@ -702,7 +858,7 @@ const styles = StyleSheet.create({
   dropdownPlaceholder: {
     color: Theme.colors.black,
     fontSize: 14,
-    marginLeft: 10
+    marginLeft: 10,
   },
 
   dropdownText: {
@@ -827,7 +983,7 @@ const styles = StyleSheet.create({
   },
 
   dateItem: {
-    flexDirection: 'row',        // 🔥 SAME ROW
+    flexDirection: 'row', // 🔥 SAME ROW
 
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -842,7 +998,7 @@ const styles = StyleSheet.create({
   dateValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: Theme.colors.success
+    color: Theme.colors.success,
   },
 
   dateDash: {
