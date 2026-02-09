@@ -44,7 +44,7 @@ interface AddModalProps {
   customerItems?: { label: string; value: string }[];
   unitItems?: { label: string; value: number }[];
   feedItems?: { label: string; value: number }[];
-  feedTypeItems: { label: string; value: number }[];
+  feedTypeItems?: { label: string; value: number }[];
 
   // ✅ Add this line
   setUnitItems?: React.Dispatch<
