@@ -6,7 +6,7 @@ import {
   Text,
   Image,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Theme from '../../theme/Theme';
 import BackArrow from '../../components/common/ScreenHeaderWithBack';
@@ -16,7 +16,6 @@ import { getFlockStock, FlockStock } from '../../services/FlockService';
 import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlockStockScreen= () => {
-  const insets = useSafeAreaInsets();
   const { businessUnitId } = useBusinessUnit();
 
   const [data, setData] = useState<FlockStock[]>([]);
@@ -68,8 +67,7 @@ const FlockStockScreen= () => {
 
   // ================= UI =================
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* <BackArrow title="Flock Stock" showBack /> */}
+    <SafeAreaView style={styles.safeArea}>
 
       {loading ? (
         <ActivityIndicator size="large" color={Theme.colors.primaryYellow} />
@@ -84,14 +82,14 @@ const FlockStockScreen= () => {
           <Image source={Theme.icons.nodata} style={styles.noDataImage} />
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default FlockStockScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Theme.colors.white,
   },

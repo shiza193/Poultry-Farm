@@ -714,3 +714,72 @@ export const addSale = async (payload: AddSalePayload): Promise<AddSaleResponse>
     throw error;
   }
 };
+
+
+// flock detail
+export const getFlockDetail = async (flockId: string) => {
+  try {
+    if (!flockId) {
+      throw new Error("flockId is required");
+    }
+
+    // Construct query string
+    const query = `?flockId=${flockId}`;
+
+    const response = await api.get(`api/Flock/get-flock-detail${query}`);
+
+    if (response.data.status === 'Success') {
+      return response.data.data; // The flock details object
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch flock detail');
+    }
+  } catch (error) {
+    console.error('Error fetching flock detail:', error);
+    throw error;
+  }
+};
+
+
+export const getFlockSummary = async (
+  businessUnitId: string,
+  from: string | null = null,
+  to: string | null = null,
+  flockId: string | null = null 
+) => {
+  try {
+    console.log('Fetching Poultry Farm Summary for BusinessUnit ID:', businessUnitId, 'Flock ID:', flockId);
+
+    const payload: any = {
+      businessUnitId,
+      from,
+      to
+    };
+
+    if (flockId) {
+      payload.flockId = flockId; // send flockId to API
+    }
+
+    // Correct URL now
+    const response = await api.post('api/Flock/get-summary', payload);
+
+    console.log('Poultry Farm Summary:', response.data);
+
+    if (response.data && response.data.status === 'Success') {
+      return response.data.data;
+    }
+
+    console.warn('Unexpected response format:', response.data);
+    return null;
+  } catch (error: any) {
+    console.error('Error fetching Poultry Farm Summary');
+
+    if (error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Data:', error.response.data);
+    } else {
+      console.error('Message:', error.message);
+    }
+
+    throw error;
+  }
+};

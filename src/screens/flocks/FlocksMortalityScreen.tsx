@@ -19,7 +19,6 @@ import { useBusinessUnit } from '../../context/BusinessContext';
 import { Dropdown } from 'react-native-element-dropdown';
 
 const FlocksMortalityScreen = () => {
-  const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   const fromMenu = route.params?.fromMenu === true;
 
