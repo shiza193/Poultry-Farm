@@ -4,11 +4,9 @@ import {
   View,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import Theme from '../../theme/Theme';
 import AddFlockModal from '../../components/customPopups/AddFlockModal';
@@ -54,30 +52,28 @@ interface Flock {
   supplier: string;
   isEnded: boolean;
 }
-
 const FlocksScreen = () => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
 
-  // ===== FILTER & SEARCH STATE =====
-  const [filters, setFilters] = useState({
+  // ===== search aur filter functionality =====
+  const [filterState, setFilterState] = useState({
     searchKey: '',
-    flockId: null as string | null,
-    supplierId: null as string | null,
     isEnded: false,
+
+    selected: {
+      flockId: null as string | null,
+      supplierId: null as string | null,
+    },
+
+    options: {
+      flocks: [] as { label: string; value: string }[],
+      suppliers: [] as { label: string; value: string }[],
+    },
   });
-  const [openRowDotsId, setOpenRowDotsId] = useState<string | null>(null);
-
   const [flocks, setFlocks] = useState<Flock[]>([]);
-  const [dropdownItems, setDropdownItems] = useState<
-    { label: string; value: string }[]
-  >([]);
-  const [supplierItems, setSupplierItems] = useState<
-    { label: string; value: string }[]
-  >([]);
   const [loading, setLoading] = useState(false);
-
-  // ===== MODAL VISIBILITY STATES =====
+  // =====modals ka visibility control =====
   const [modals, setModals] = useState({
     add: false,
     filter: false,
@@ -88,29 +84,29 @@ const FlocksScreen = () => {
     confirmDelete: false,
     dotsMenu: false,
   });
-
+  //wo flock jo currently kisi action ke liye select kiya gaya ho
   const [selectedFlock, setSelectedFlock] = useState<Flock | null>(null);
+  //wo flock jo delete ke liye select kiya gaya ho
   const [flockToDelete, setFlockToDelete] = useState<Flock | null>(null);
 
   // ===== FETCH FLOCKS BASED ON FILTERS =====
   const fetchFlocks = async () => {
     if (!businessUnitId) return;
     setLoading(true);
-
     try {
       const data = await getFlockByFilter({
         businessUnitId,
-        searchKey: filters.searchKey || null,
-        flockId: filters.flockId || null,
-        supplierId: filters.supplierId || null,
-        isEnded: filters.isEnded ? true : null,
+        searchKey: filterState.searchKey || null,
+        flockId: filterState.selected.flockId,
+        supplierId: filterState.selected.supplierId,
+        isEnded: filterState.isEnded ? true : null,
         pageNumber: 1,
         pageSize: 10,
       });
 
       setFlocks(data.list || []);
-    } catch {
-      setFlocks([]);
+    } catch (err) {
+      console.log('fetchFlocks error:', err);
     } finally {
       setLoading(false);
     }
@@ -129,22 +125,37 @@ const FlocksScreen = () => {
     return `${day}/${month}/${year}`;
   };
 
-  useEffect(() => {
-    console.log('businessUnitId changed:', businessUnitId);
-  }, [businessUnitId]);
-
   const fetchDropdownFlocks = async () => {
-    if (!businessUnitId) {
-      console.warn('Business Unit ID is not set');
-      return;
-    }
+    if (!businessUnitId) return;
+
     const data = await getFlocks(businessUnitId);
-    setDropdownItems(
-      data.map((i: any) => ({
-        label: `${i.flockRef} (${i.breed})`,
-        value: i.flockId,
-      })),
-    );
+
+    setFilterState(prev => ({
+      ...prev,
+      options: {
+        ...prev.options,
+        flocks: data.map((i: any) => ({
+          label: `${i.flockRef} (${i.breed})`,
+          value: i.flockId,
+        })),
+      },
+    }));
+  };
+  const fetchSuppliers = async () => {
+    if (!businessUnitId) return;
+
+    const data = await getParties(businessUnitId, 1);
+
+    setFilterState(prev => ({
+      ...prev,
+      options: {
+        ...prev.options,
+        suppliers: data.map((s: any) => ({
+          label: s.name,
+          value: s.partyId,
+        })),
+      },
+    }));
   };
 
   const tableData = flocks.map(f => ({
@@ -160,10 +171,10 @@ const FlocksScreen = () => {
   }));
 
   const columns: TableColumn[] = [
-     {
+    {
       key: 'rowAction',
       title: 'Action',
-      width: 80,
+      width: 70,
       render: (_v, _r, index, toggleExpand) => (
         <TouchableOpacity
           onPress={() => {
@@ -242,26 +253,19 @@ const FlocksScreen = () => {
     { key: 'currentQty', title: 'CURRENT', width: 110 },
     { key: 'saleQty', title: 'SALE', width: 100 },
     { key: 'arrivalDate', title: 'ARRIVAL DATE', width: 130 },
-   
   ];
 
   useEffect(() => {
     if (!businessUnitId) return;
-
-    setFlocks([]);
-
-    fetchFlocks();
     fetchDropdownFlocks();
-
-    const fetchSuppliers = async () => {
-      const data = await getParties(businessUnitId, 1);
-      setSupplierItems(
-        // map use kia taake dropdown ke liye label/value format ban jaye
-        data.map((s: any) => ({ label: s.name, value: s.partyId })),
-      );
-    };
     fetchSuppliers();
-  }, [businessUnitId, filters]);
+    fetchFlocks();
+  }, [
+    businessUnitId,
+    filterState.searchKey,
+    filterState.selected,
+    filterState.isEnded,
+  ]);
 
   const AddFlock = async (data: any) => {
     const payload: AddFlockPayload = {
@@ -293,15 +297,28 @@ const FlocksScreen = () => {
       quantity: Number(data.quantity),
       businessUnitId: businessUnitId!,
     };
-    await addAutomaticFeedRecord(payload);
-    setFlocks(prev =>
-      prev.map(f =>
-        f.flockId === selectedFlock.flockId ? { ...f, hasFeed: true } : f,
-      ),
-    );
-    Alert.alert('Success', 'Feed record added');
-    setModals(prev => ({ ...prev, feed: false }));
-    fetchFlocks();
+
+    try {
+      await addAutomaticFeedRecord(payload);
+
+      // local state update
+      setFlocks(prev =>
+        prev.map(f =>
+          f.flockId === selectedFlock.flockId
+            ? {
+                ...f,
+                hasFeed: true,
+                remainingQuantity: f.remainingQuantity - payload.quantity,
+              }
+            : f,
+        ),
+      );
+
+      console.log('Feed added successfully');
+      setModals(prev => ({ ...prev, feed: false }));
+    } catch (err) {
+      console.log('FeedEntry error:', err);
+    }
   };
 
   const FCR = async (data: any) => {
@@ -311,35 +328,60 @@ const FlocksScreen = () => {
       flockId: selectedFlock.flockId,
       currentWeight: Number(data.currentWeight),
     };
-    return await calculateFCR(payload);
+
+    try {
+      return await calculateFCR(payload);
+    } catch (err) {
+      console.log('FCR error:', err);
+    }
   };
 
   const Mortality = async (data: any) => {
     if (!selectedFlock) return;
 
+    const quantity = Number(data.quantity);
     const payload = {
       flockId: selectedFlock.flockId,
-      quantity: Number(data.quantity),
+      quantity,
       date:
         data.expireDate?.toISOString().split('T')[0] ||
         new Date().toISOString().split('T')[0],
       flockHealthStatusId: 1,
     };
-    const response = await addFlockHealthRecord(payload);
-    Alert.alert('Success', response.message);
-    setModals(prev => ({ ...prev, mortality: false }));
-    fetchFlocks();
+
+    try {
+      await addFlockHealthRecord(payload);
+
+      // local state update
+      setFlocks(prev =>
+        prev.map(f =>
+          f.flockId === selectedFlock.flockId
+            ? {
+                ...f,
+                remainingQuantity: f.remainingQuantity - quantity,
+                expireQuantity: f.expireQuantity + quantity,
+              }
+            : f,
+        ),
+      );
+
+      console.log('Mortality added successfully');
+      setModals(prev => ({ ...prev, mortality: false }));
+    } catch (err) {
+      console.log('Mortality error:', err);
+    }
   };
 
   const Hospitality = async (data: any) => {
     if (!selectedFlock) return;
 
+    const quantity = Number(data.quantity);
     const payload = {
       flockId: selectedFlock.flockId,
       date:
         data.hospitalityDate?.toISOString().split('T')[0] ||
         new Date().toISOString().split('T')[0],
-      quantity: Number(data.quantity),
+      quantity,
       averageWeight: Number(data.averageWeight),
       symptoms: data.symptoms,
       diagnosis: data.diagnosis,
@@ -350,20 +392,41 @@ const FlocksScreen = () => {
       remarks: data.remarks || null,
       businessUnitId: businessUnitId!,
     };
-    const response = await addHospitality(payload);
-    Alert.alert('Success', response.message);
-    fetchFlocks();
-    setModals(prev => ({ ...prev, hospitality: false }));
+
+    try {
+      await addHospitality(payload);
+
+      // local update if needed
+      setFlocks(prev =>
+        prev.map(f =>
+          f.flockId === selectedFlock.flockId
+            ? { ...f, hospitalizedQuantity: f.hospitalizedQuantity + quantity }
+            : f,
+        ),
+      );
+
+      console.log('Hospitality added successfully');
+      setModals(prev => ({ ...prev, hospitality: false }));
+    } catch (err) {
+      console.log('Hospitality error:', err);
+    }
   };
 
   const DeleteFlock = async () => {
     if (!flockToDelete) return;
 
-    await deleteFlock(flockToDelete.flockId);
-    fetchFlocks();
-    fetchDropdownFlocks();
-    setModals(prev => ({ ...prev, confirmDelete: false }));
-    setFlockToDelete(null);
+    try {
+      await deleteFlock(flockToDelete.flockId);
+
+      // local state update: remove the flock
+      setFlocks(prev => prev.filter(f => f.flockId !== flockToDelete.flockId));
+
+      console.log('Flock deleted successfully');
+      setModals(prev => ({ ...prev, confirmDelete: false }));
+      setFlockToDelete(null);
+    } catch (err) {
+      console.log('DeleteFlock error:', err);
+    }
   };
 
   return (
@@ -379,8 +442,8 @@ const FlocksScreen = () => {
               <TouchableOpacity
                 style={styles.dotsMenuItem}
                 onPress={() => {
-                  const newValue = !filters.isEnded;
-                  setFilters(prev => ({ ...prev, isEnded: newValue }));
+                  const newValue = !filterState.isEnded;
+                  setFilterState(prev => ({ ...prev, isEnded: newValue }));
                   setModals(prev => ({ ...prev, dotsMenu: false }));
                 }}
               >
@@ -388,7 +451,7 @@ const FlocksScreen = () => {
                   <View
                     style={[
                       styles.checkboxSmall,
-                      filters.isEnded && {
+                      filterState.isEnded && {
                         backgroundColor: Theme.colors.primaryYellow,
                       },
                     ]}
@@ -438,9 +501,9 @@ const FlocksScreen = () => {
             <View style={{ flex: 1 }}>
               <SearchBar
                 placeholder="Search Flock..."
-                initialValue={filters.searchKey}
+                initialValue={filterState.searchKey}
                 onSearch={value => {
-                  setFilters(prev => ({ ...prev, searchKey: value }));
+                  setFilterState(prev => ({ ...prev, searchKey: value }));
                 }}
               />
             </View>
@@ -463,7 +526,7 @@ const FlocksScreen = () => {
               <Image source={Theme.icons.nodata} style={styles.noDataImage} />
             </View>
           ) : (
-            <View style={{ flex: 1, paddingHorizontal: 11 }}>
+            <View style={{ flex: 1, paddingHorizontal: 13 }}>
               <DataCard
                 columns={columns}
                 data={tableData}
@@ -534,7 +597,14 @@ const FlocksScreen = () => {
                   ];
 
                   return (
-                    <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'flex-start',marginLeft:24, }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        width: '100%',
+                        justifyContent: 'flex-start',
+                        marginLeft: 24,
+                      }}
+                    >
                       {/* ACTIONS */}
                       <ScrollView
                         horizontal
@@ -620,18 +690,21 @@ const FlocksScreen = () => {
           visible={modals.filter}
           onClose={() => setModals(prev => ({ ...prev, filter: false }))}
           mode="filter"
-          flockItems={dropdownItems}
-          supplierItems={supplierItems}
-          selectedFlockId={filters.flockId}
-          selectedSupplier={filters.supplierId}
-          isComplete={filters.isEnded}
+          flockItems={filterState.options.flocks}
+          supplierItems={filterState.options.suppliers}
+          selectedFlockId={filterState.selected.flockId}
+          selectedSupplier={filterState.selected.supplierId}
+          isComplete={filterState.isEnded}
           onApplyFilter={(flockId, supplierId, isComplete) => {
-            setFilters({
-              searchKey: filters.searchKey, // keep current search
-              flockId: flockId || null,
-              supplierId: supplierId || null,
+            setFilterState(prev => ({
+              ...prev,
+              selected: {
+                flockId: flockId || null,
+                supplierId: supplierId || null,
+              },
               isEnded: isComplete ?? false,
-            });
+            }));
+
             setModals(prev => ({ ...prev, filter: false }));
           }}
         />

@@ -783,3 +783,83 @@ export const getFlockSummary = async (
     throw error;
   }
 };
+
+
+
+export const getEggProductions = async (flockId: string) => {
+  try {
+    if (!flockId) throw new Error('Flock ID is required');
+
+    const response = await api.get(`api/EggProduction/get-eggProductions/${flockId}`);
+
+    if (response.data.status === 'Success') {
+      // Return the array of egg productions directly
+      return response.data.data;
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch egg production data');
+    }
+  } catch (error: any) {
+    console.error('Error fetching egg production data:', error);
+    throw error;
+  }
+};
+
+
+export const getFeedConsumptions = async (flockId: string) => {
+  try {
+    const response = await api.get(
+      `api/FeedRecordConsumption/get-feed-consumptions/${flockId}`
+    );
+      return response.data.data;
+  } catch (error) {
+    console.error('Error fetching feed consumptions:', error);
+    throw error;
+  }
+};
+
+export const getVaccinationSchedules = async (flockId: string) => {
+  try {
+    const response = await api.get(
+      `api/VaccinationSchedule/get-vaccination-schedules/${flockId}`
+    );
+
+    // API response: { status, message, data }
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching vaccination schedules:', error);
+    throw error;
+  }
+};
+
+
+
+export const getFlockHealthRecord = async (flockId: string) => {
+  try {
+    const response = await api.post(
+      `api/Flock/get-flock-health-records`,
+      {
+        flockId: flockId,
+      }
+    );
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching flock health records:', error);
+    throw error;
+  }
+};
+
+
+export const getHospitalities = async (flockId: string) => {
+  try {
+    const response = await api.get(
+      `api/Hospitality/get-hospitalities/${flockId}`
+    );
+
+    // API: { status, message, data: [] }
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching hospitalities:', error);
+    throw error;
+  }
+};
