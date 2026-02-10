@@ -9,6 +9,8 @@ import {
   ScrollView,
 } from 'react-native';
 import Theme from '../../theme/Theme';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Platform } from 'react-native';
 
 interface FlockInfo {
   quantity: string;
@@ -24,17 +26,27 @@ interface FlockInfo {
 interface Props {
   title: string;
   initialData: FlockInfo;
-  fieldsPerRow?: number; // optional, default 2
+  customLabels?: Partial<Record<keyof FlockInfo, string>>;
+  fieldsPerRow?: number;
 }
 
 const ExpandableCard: React.FC<Props> = ({
   title,
   initialData,
   fieldsPerRow = 2,
+  customLabels = {},
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [data, setData] = useState(initialData);
+  const [showDatePicker, setShowDatePicker] = useState<{
+    key: keyof FlockInfo;
+    visible: boolean;
+  }>({ key: 'arrivalDate', visible: false });
+
+  const formatLabel = (key: keyof FlockInfo) =>
+    customLabels[key] ??
+    key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 
   const handleChange = (key: keyof FlockInfo, value: string) => {
     setData({ ...data, [key]: value });
@@ -48,6 +60,13 @@ const ExpandableCard: React.FC<Props> = ({
   const handleDiscard = () => {
     setData(initialData);
     setEditing(false);
+  };
+
+  const handleDateSelect = (key: keyof FlockInfo, date: Date | undefined) => {
+    if (date) {
+      handleChange(key, date.toISOString().split('T')[0]); // store as yyyy-mm-dd
+    }
+    setShowDatePicker({ key, visible: false });
   };
 
   // Split data into rows
@@ -64,7 +83,6 @@ const ExpandableCard: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <TouchableOpacity
         style={styles.header}
         onPress={() => setExpanded(!expanded)}
@@ -81,25 +99,71 @@ const ExpandableCard: React.FC<Props> = ({
           <ScrollView showsVerticalScrollIndicator={false}>
             {rows.map((rowKeys, idx) => (
               <View key={idx} style={styles.row}>
-                {rowKeys.map(key => (
-                  <View key={key} style={styles.fieldContainer}>
-                    <Text style={styles.label}>{formatLabel(key)}</Text>
-                    {editing ? (
-                      <TextInput
-                        style={styles.input}
-                        value={data[key]}
-                        onChangeText={text => handleChange(key, text)}
-                      />
-                    ) : (
-                      <Text style={styles.value}>{data[key]}</Text>
-                    )}
-                  </View>
-                ))}
+                {rowKeys.map(key => {
+                  const isDateField =
+                    key === 'arrivalDate' || key === 'dateOfBirth';
+                  const isWeightField = key === 'averageWeight';
+                  return (
+                    <View key={key} style={styles.fieldContainer}>
+                      <Text style={styles.label}>{formatLabel(key)}</Text>
+
+                      {editing ? (
+                        isDateField ? (
+                          <TouchableOpacity
+                            style={[
+                              styles.input,
+                              {
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                              },
+                            ]}
+                            onPress={() =>
+                              setShowDatePicker({ key, visible: true })
+                            }
+                          >
+                            <Text>{data[key]}</Text>
+                            <Image
+                              source={Theme.icons.date}
+                              style={{
+                                width: 20,
+                                height: 20,
+                                tintColor: Theme.colors.buttonPrimary,
+                              }}
+                            />
+                          </TouchableOpacity>
+                        ) : (
+                          <TextInput
+                            style={styles.input}
+                            value={data[key]}
+                            onChangeText={text => handleChange(key, text)}
+                          />
+                        )
+                      ) : (
+                        <Text style={styles.value}>
+                          {isWeightField ? `${data[key]}` : data[key]}
+                        </Text>
+                      )}
+
+                      {/* Date Picker */}
+                      {showDatePicker.visible && showDatePicker.key === key && (
+                        <DateTimePicker
+                          value={data[key] ? new Date(data[key]) : new Date()}
+                          mode="date"
+                          display="default"
+                          onChange={(e, date) => {
+                            if (Platform.OS === 'android')
+                              setShowDatePicker({ key, visible: false });
+                            handleDateSelect(key, date);
+                          }}
+                        />
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             ))}
 
-            {/* Buttons */}
-            {/* Buttons */}
             <View style={styles.buttonRow}>
               {editing && (
                 <TouchableOpacity
@@ -133,9 +197,6 @@ const ExpandableCard: React.FC<Props> = ({
     </View>
   );
 };
-
-const formatLabel = (key: string) =>
-  key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 
 const styles = StyleSheet.create({
   container: {

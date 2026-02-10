@@ -20,7 +20,15 @@ import { useRoute } from '@react-navigation/native';
 import Theme from '../../theme/Theme';
 import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import ExpandableCard from '../../components/common/ExpandableCard';
-import { getFlockDetail, getFlockSummary } from '../../services/FlockService';
+import {
+  getEggProductions,
+  getFeedConsumptions,
+  getFlockDetail,
+  getFlockHealthRecord,
+  getFlockSummary,
+  getHospitalities,
+  getVaccinationSchedules,
+} from '../../services/FlockService';
 import LoadingOverlay from '../../components/loading/LoadingOverlay';
 
 const FlockDetailScreen = () => {
@@ -32,6 +40,7 @@ const FlockDetailScreen = () => {
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
+  const [hospitalityData, setHospitalityData] = useState<any[]>([]);
 
   const [flockData, setFlockData] = useState<any>(null);
   const [eggProductionData, setEggProductionData] = useState<any[]>([]);
@@ -61,37 +70,37 @@ const FlockDetailScreen = () => {
     {
       key: 'ref',
       title: 'REF',
-      width: 50,
+      width: 150,
       showDots: true,
     },
     { key: 'unit', title: 'UNIT', width: 80 },
-    { key: 'date', title: 'DATE', width: 90 },
-    { key: 'totalEggs', title: 'TOTAL EGGS', width: 90 },
-    { key: 'intactEggs', title: 'INTACT EGGS', width: 90 },
-    { key: 'brokenEggs', title: 'BROKEN EGGS', width: 90 },
+    { key: 'date', title: 'DATE', width: 100 },
+    { key: 'totalEggs', title: 'TOTAL', width: 90 },
+    { key: 'intactEggs', title: 'INTACT', width: 90 },
+    { key: 'brokenEggs', title: 'BROKEN', width: 90 },
   ];
 
   const feedColumns: TableColumn[] = [
     {
       key: 'ref',
       title: 'REF',
-      width: 50,
+      width: 150,
       showDots: true,
     },
-    { key: 'date', title: 'Date', width: 90 },
-    { key: 'feedName', title: 'Feed Name', width: 120 },
-    { key: 'totalBag', title: 'Total Bag', width: 80 },
-    { key: 'Bag', title: 'Bag', width: 80 },
+    { key: 'date', title: 'Date', width: 100 },
+    { key: 'feed', title: 'Feed Name', width: 120 },
+    { key: 'totalQuantity', title: 'Total Bag', width: 80 },
+    { key: 'quantity', title: 'Bag', width: 80 },
   ];
 
   const vaccinationColumns: TableColumn[] = [
     {
       key: 'ref',
       title: 'REF',
-      width: 50,
+      width: 180,
       showDots: true,
     },
-    { key: 'vaccinationName', title: 'Vaccination Name', width: 150 },
+    { key: 'vaccinationName', title: 'Vaccine Name', width: 150 },
     { key: 'scheduledDate', title: 'Scheduled Date', width: 120 },
     { key: 'quantity', title: 'Quantity', width: 80 },
     { key: 'done', title: 'Done', width: 80 },
@@ -113,34 +122,173 @@ const FlockDetailScreen = () => {
 
   const flockId = route.params?.flockId || route.params?.flock?.id;
 
-useEffect(() => {
-  const fetchFlockData = async () => {
-    setLoading(true);
-    try {
-      const flockDetail = await getFlockDetail(flockId);
-      setFlockData(flockDetail);
+  useEffect(() => {
+    const fetchFlockData = async () => {
+      setLoading(true);
+      try {
+        const flockDetail = await getFlockDetail(flockId);
+        setFlockData(flockDetail);
 
-      const summaryResponse = await getFlockSummary(
-        flockDetail.businessUnitId,
-        fromDate?.toISOString(),
-        toDate?.toISOString(),
-        flockId,
-      );
-      setSummaryData(summaryResponse.data || summaryResponse);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const summaryResponse = await getFlockSummary(
+          flockDetail.businessUnitId,
+          fromDate?.toISOString(),
+          toDate?.toISOString(),
+          flockId,
+        );
+        setSummaryData(summaryResponse.data || summaryResponse);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchFlockData(); 
-}, [flockId, fromDate, toDate]);
-
+    fetchFlockData();
+  }, [flockId, fromDate, toDate]);
 
   useEffect(() => {
-    console.log('Fetching summary for flockId:', flockId);
-  }, [flockId]);
+    const fetchEggProduction = async () => {
+      if (!flockId) return;
+      setLoading(true);
+      try {
+        const eggData = await getEggProductions(flockId);
+        // Map API response to table format
+        const formattedData = eggData.map((item: any) => ({
+          ref: item.ref,
+          unit: item.unit,
+          date: new Date(item.date).toLocaleDateString('en-GB'),
+          totalEggs: item.totalEggs,
+          intactEggs: item.totalEggs - item.brokenEggs, // calculate intact
+          brokenEggs: item.brokenEggs,
+          raw: item,
+        }));
+        setEggProductionData(formattedData);
+      } catch (error) {
+        console.error('Error fetching egg production:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEggProduction();
+  }, [flockId, fromDate, toDate]);
+
+  useEffect(() => {
+    const fetchFeedConsumption = async () => {
+      if (!flockId) return;
+      setLoading(true);
+      try {
+        const feedData = await getFeedConsumptions(flockId);
+        // Map API response to your table format if needed
+        const formattedFeedData = feedData.map((item: any) => ({
+          ref: item.ref,
+          date: new Date(item.date).toLocaleDateString('en-GB'),
+          feed: item.feed,
+          totalQuantity: item.totalQuantity,
+          quantity: item.quantity,
+          raw: item,
+        }));
+        setFeedConsumptionData(formattedFeedData);
+      } catch (error) {
+        console.error('Error fetching feed consumption:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedConsumption();
+  }, [flockId, fromDate, toDate]);
+
+  useEffect(() => {
+    const fetchVaccinationSchedules = async () => {
+      if (!flockId) return;
+      setLoading(true);
+
+      try {
+        const vaccineData = await getVaccinationSchedules(flockId);
+
+        const formattedVaccineData = vaccineData.map((item: any) => ({
+          ref: item.ref,
+          vaccinationName: item.vaccine,
+          scheduledDate: new Date(item.scheduledDate).toLocaleDateString(
+            'en-GB',
+          ),
+          quantity: item.quantity,
+          done: item.isVaccinated ? 'Yes' : 'No',
+          raw: item, // edit/delete ke liye
+        }));
+
+        setVaccinationData(formattedVaccineData);
+      } catch (error) {
+        console.error('Error fetching vaccination schedules:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVaccinationSchedules();
+  }, [flockId, fromDate, toDate]);
+
+  useEffect(() => {
+    const fetchMortalityRecords = async () => {
+      if (!flockId) return;
+      setLoading(true);
+
+      try {
+        const healthResponse = await getFlockHealthRecord(flockId);
+
+        // records array is inside healthResponse.data
+        const records = healthResponse?.data || [];
+
+        const formattedMortalityData = records.map((item: any) => ({
+          expireDate: new Date(item.date).toLocaleDateString('en-GB'),
+          mortalityQuantity: item.quantity,
+          raw: item,
+        }));
+
+        setMortalityData(formattedMortalityData);
+      } catch (error) {
+        console.error('Error fetching mortality records:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMortalityRecords();
+  }, [flockId, fromDate, toDate]);
+
+  useEffect(() => {
+    const fetchHospitality = async () => {
+      if (!flockId) return;
+      setLoading(true);
+
+      try {
+        const hospData = await getHospitalities(flockId);
+
+        const formattedHospitalityData = hospData.map((item: any) => ({
+          date: new Date(item.date).toLocaleDateString('en-GB'),
+          quantity: item.quantity,
+          avgWeight: item.averageWeight,
+          symptoms: item.symptoms,
+          diagnosis: item.diagnosis,
+          medication: item.medication,
+          dosage: item.dosage,
+          treatmentDays: item.treatmentDays,
+          vetName: item.vetName,
+          raw: item,
+        }));
+
+        setHospitalityData(formattedHospitalityData);
+      } catch (error) {
+        console.error('Error fetching hospitality:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHospitality();
+  }, [flockId, fromDate, toDate]);
+
   const birdStats = summaryData
     ? [
         {
@@ -220,28 +368,28 @@ useEffect(() => {
       ]
     : [];
 
-  const tableData = eggProductionData.map(item => ({
-    ref: item.ref,
-    unit: item.unit,
-    date: item.date,
-    totalEggs: item.totalEggs,
-    intactEggs: item.intactEggs,
-    brokenEggs: item.brokenEggs,
-    raw: item, // optional for actions later
-  }));
+  const InlineStat = ({ icon, label, value, total }: any) => {
+    const isTotalBirds = label === 'Total Birds';
+    return (
+      <View style={styles.inlineStatWrapper}>
+        <View style={styles.titleRow}>
+          {icon && <Image source={icon} style={styles.inlineIcon} />}
+          <Text style={styles.inlineLabel}>{label}</Text>
+        </View>
 
-  const InlineStat = ({ icon, label, value, total }: any) => (
-    <View style={styles.inlineStatWrapper}>
-      <View style={styles.titleRow}>
-        {icon && <Image source={icon} style={styles.inlineIcon} />}
-        <Text style={styles.inlineLabel}>{label}</Text>
+        {isTotalBirds ? (
+          <Text style={[styles.inlineValue, { fontSize: 16 }]}>
+            {total ?? 0}/{value ?? 0}
+          </Text>
+        ) : (
+          <Text style={styles.inlineValue}>
+            {value}
+            {total ? ` / ${total}` : ''}
+          </Text>
+        )}
       </View>
-      <Text style={styles.inlineValue}>
-        {value}
-        {total ? ` / ${total}` : ''}
-      </Text>
-    </View>
-  );
+    );
+  };
 
   const InlineRow = ({ stats }: any) => (
     <View style={styles.inlineRow}>
@@ -265,16 +413,21 @@ useEffect(() => {
   );
 
   const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
-    const progress = productionPercentage
-      ? Math.min(productionPercentage / 100, 1)
-      : 0;
-    const circleColor =
-      productionPercentage > 100
-        ? Theme.colors.lightblue
-        : Theme.colors.success;
+    const isAboveHundred = productionPercentage > 100;
 
+    // Graph progress (0–1)
+    const progress =
+      productionPercentage && productionPercentage > 0
+        ? Math.min(productionPercentage / 100, 1)
+        : 0;
+
+    // Graph color
+    const circleColor = isAboveHundred
+      ? Theme.colors.lightblue
+      : Theme.colors.success;
     return (
       <View style={styles.eggsProductionCard}>
+        {/* LEFT : GRAPH + LEGENDS */}
         <View style={styles.leftBlock}>
           <View style={styles.circleWrapper}>
             <Circle
@@ -286,6 +439,8 @@ useEffect(() => {
               unfilledColor={Theme.colors.grey}
               borderWidth={0}
             />
+
+            {/* CENTER TEXT */}
             <View style={styles.circleCenterContent}>
               <Text style={styles.productionLabel}>Production</Text>
               <Text style={[styles.productionValue, { color: circleColor }]}>
@@ -293,8 +448,39 @@ useEffect(() => {
               </Text>
             </View>
           </View>
+
+          <View
+            style={{
+              marginTop: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            {/* > 100 */}
+            <View style={[styles.statusRow, { marginRight: 14 }]}>
+              <View
+                style={[
+                  styles.statusBox,
+                  { backgroundColor: Theme.colors.lightblue },
+                ]}
+              />
+              <Text style={styles.statusText}>&gt; 100%</Text>
+            </View>
+
+            {/* < 100 */}
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusBox,
+                  { backgroundColor: Theme.colors.success },
+                ]}
+              />
+              <Text style={styles.statusText}>&lt; 100%</Text>
+            </View>
+          </View>
         </View>
 
+        {/* CENTER ICON */}
         <View style={styles.centerWrapper}>
           <View style={styles.verticalSeparator} />
           <View style={styles.centerBlock}>
@@ -302,6 +488,7 @@ useEffect(() => {
           </View>
         </View>
 
+        {/* RIGHT : TOTAL EGGS */}
         <View style={styles.rightBlock}>
           <Text style={styles.eggsLabel}>Total Eggs</Text>
           <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
@@ -411,23 +598,28 @@ useEffect(() => {
             summaryData?.totalEggsProductionsPercentage ?? 0
           }
         />
-        <ExpandableCard
-          title="Flock Information"
-          initialData={{
-            quantity: flockData?.quantity,
-            flockType: flockData?.flockType,
-            arrivalDate: new Date(flockData?.arrivalDate).toLocaleDateString(
-              'en-GB',
-            ),
-            gender: flockData?.isHen ? 'Hen' : 'Mixed',
-            supplier: flockData?.supplier,
-            averageWeight: flockData?.weight + ' kg',
-            price: flockData?.price,
-            dateOfBirth: new Date(flockData?.dateOfBirth).toLocaleDateString(
-              'en-GB',
-            ),
-          }}
-        />
+        {flockData && (
+          <ExpandableCard
+            title="Flock Information"
+            initialData={{
+              quantity: flockData.quantity?.toString() ?? '--',
+              flockType: flockData.flockType ?? '--',
+              arrivalDate: flockData.arrivalDate
+                ? new Date(flockData.arrivalDate).toLocaleDateString('en-GB')
+                : '--',
+              gender: flockData.gender ?? '--',
+              supplier: flockData.supplier ?? '--',
+              averageWeight: flockData.weight?.toString() ?? '--',
+              price: flockData.price?.toString() ?? '--',
+              dateOfBirth: flockData.dateOfBirth
+                ? new Date(flockData.dateOfBirth).toLocaleDateString('en-GB')
+                : '--',
+            }}
+            customLabels={{
+              averageWeight: 'Average Weight (G)',
+            }}
+          />
+        )}
 
         {/* Tabs */}
         {/* Tabs */}
@@ -466,7 +658,7 @@ useEffect(() => {
 
             <DataCard
               columns={eggProductionColumns}
-              data={tableData}
+              data={eggProductionData}
               renderRowMenu={(row, closeMenu) => (
                 <View>
                   <TouchableOpacity
@@ -476,9 +668,11 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ fontWeight: '600' }}>Edit</Text>
+                    <Text style={{ fontWeight: '600', marginLeft: 10 }}>
+                      Edit
+                    </Text>
                   </TouchableOpacity>
-
+                  <View style={styles.menuSeparator} />
                   <TouchableOpacity
                     onPress={() => {
                       console.log('Delete', row.raw);
@@ -486,7 +680,13 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ color: 'red', fontWeight: '600' }}>
+                    <Text
+                      style={{
+                        color: 'red',
+                        fontWeight: '600',
+                        marginLeft: 10,
+                      }}
+                    >
                       Delete
                     </Text>
                   </TouchableOpacity>
@@ -506,7 +706,6 @@ useEffect(() => {
               </TouchableOpacity>
             </View>
 
-            {/* Show DataCard automatically */}
             <DataCard
               columns={feedColumns}
               data={feedConsumptionData}
@@ -519,8 +718,11 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ fontWeight: '600' }}>Edit</Text>
+                    <Text style={{ fontWeight: '600', marginLeft: 10 }}>
+                      Edit
+                    </Text>
                   </TouchableOpacity>
+                  <View style={styles.menuSeparator} />
 
                   <TouchableOpacity
                     onPress={() => {
@@ -529,7 +731,13 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ color: 'red', fontWeight: '600' }}>
+                    <Text
+                      style={{
+                        color: 'red',
+                        fontWeight: '600',
+                        marginLeft: 10,
+                      }}
+                    >
                       Delete
                     </Text>
                   </TouchableOpacity>
@@ -561,8 +769,11 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ fontWeight: '600' }}>Edit</Text>
+                    <Text style={{ fontWeight: '600', marginLeft: 10 }}>
+                      Edit
+                    </Text>
                   </TouchableOpacity>
+                  <View style={styles.menuSeparator} />
 
                   <TouchableOpacity
                     onPress={() => {
@@ -571,7 +782,13 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ color: 'red', fontWeight: '600' }}>
+                    <Text
+                      style={{
+                        color: 'red',
+                        fontWeight: '600',
+                        marginLeft: 10,
+                      }}
+                    >
                       Delete
                     </Text>
                   </TouchableOpacity>
@@ -603,8 +820,11 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ fontWeight: '600' }}>Edit</Text>
+                    <Text style={{ fontWeight: '600', marginLeft: 10 }}>
+                      Edit
+                    </Text>
                   </TouchableOpacity>
+                  <View style={styles.menuSeparator} />
 
                   <TouchableOpacity
                     onPress={() => {
@@ -613,7 +833,13 @@ useEffect(() => {
                     }}
                     style={{ paddingVertical: 10 }}
                   >
-                    <Text style={{ color: 'red', fontWeight: '600' }}>
+                    <Text
+                      style={{
+                        color: 'red',
+                        fontWeight: '600',
+                        marginLeft: 10,
+                      }}
+                    >
                       Delete
                     </Text>
                   </TouchableOpacity>
@@ -642,33 +868,10 @@ useEffect(() => {
                 { key: 'diagnosis', title: 'Diagnosis', width: 120 },
                 { key: 'medication', title: 'Medication', width: 100 },
                 { key: 'dosage', title: 'Dosage', width: 80 },
-                { key: 'treatmentDays', title: 'Treatment Days', width: 100 },
+                { key: 'treatmentDays', title: 'Treatment Days', width: 120 },
                 { key: 'vetName', title: 'Vet Name', width: 120 },
               ]}
-              data={[
-                {
-                  date: '01/02/2026',
-                  quantity: 5,
-                  avgWeight: '2.1kg',
-                  symptoms: 'Cough',
-                  diagnosis: 'Mild infection',
-                  medication: 'Med A',
-                  dosage: '2ml',
-                  treatmentDays: 3,
-                  vetName: 'Dr. Khan',
-                },
-                {
-                  date: '02/02/2026',
-                  quantity: 3,
-                  avgWeight: '2.0kg',
-                  symptoms: 'Weakness',
-                  diagnosis: 'Vitamin deficiency',
-                  medication: 'Med B',
-                  dosage: '1ml',
-                  treatmentDays: 5,
-                  vetName: 'Dr. Ali',
-                },
-              ]}
+              data={hospitalityData}
             />
           </View>
         )}
@@ -695,6 +898,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 14,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  menuSeparator: {
+    height: 2,
+    backgroundColor: Theme.colors.SeparatorColor,
+    marginHorizontal: 8,
+  },
+  statusBox: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Theme.colors.black,
   },
   statVerticalDivider: {
     width: 1,
