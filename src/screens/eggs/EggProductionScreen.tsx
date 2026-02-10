@@ -97,7 +97,7 @@ const EggProductionScreen: React.FC<Props> = ({
   useFocusEffect(
     useCallback(() => {
       fetchEggProduction();
-      setMasterData(prev => ({ ...prev, selectedFlock: null })); // <-- USE THIS
+      setMasterData(prev => ({ ...prev, selectedFlock: null })); 
     }, [businessUnitId])
   );
   // ===== FETCH FLOCKS =====
@@ -223,7 +223,6 @@ const EggProductionScreen: React.FC<Props> = ({
             onChangeText={setSearchText}
             style={styles.searchInput}
           />
-
           {/*  CLEAR ICON */}
           {searchText.length > 0 && (
             <TouchableOpacity
@@ -281,17 +280,22 @@ const EggProductionScreen: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
       )}
-      <ScrollView style={{ paddingHorizontal: 16, marginTop: 10, }}>
+      <ScrollView
+        style={{ flex: 1, paddingHorizontal: 16 }}
+        contentContainerStyle={{ paddingBottom: 50 }}
+      >
         <DataCard
           columns={columns}
           data={eggProductionList}
           itemsPerPage={10}
           renderRowMenu={(row, closeMenu) => (
             <View>
-              <TouchableOpacity onPress={() => { setIsEditMode(true); setSelectedEggProduction(row); onOpenAddModal?.(); closeMenu(); }}>
-                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>Edit</Text>
+              <TouchableOpacity onPress={() => { setIsEditMode(true); setSelectedEggProduction(row); onOpenAddModal?.(); closeMenu(); }}
+                style={{ marginBottom: 8 }}
+              >
+                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
               </TouchableOpacity>
-
+              <View style={styles.menuSeparator} />
               <TouchableOpacity
                 onPress={() => {
                   setSelectedEggProduction(row);
@@ -300,7 +304,7 @@ const EggProductionScreen: React.FC<Props> = ({
                 }}
                 style={{ marginTop: 8 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600' }}>Delete </Text>
+                <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -381,5 +385,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: Theme.colors.error,
+  },
+  menuSeparator: {
+    height: 2,
+    backgroundColor: Theme.colors.SeparatorColor,
+    marginHorizontal: 8,
   },
 });

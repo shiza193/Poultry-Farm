@@ -63,7 +63,6 @@ const TopBarCard: React.FC<Props> = ({
   useEffect(() => {
     setBUValue(selectedBU ?? null);
   }, [selectedBU]);
-
   const isFilterApplied =
     (buValue !== null && !hideBUDropdown) ||
     statusState !== null;
@@ -81,44 +80,43 @@ const TopBarCard: React.FC<Props> = ({
       return next;
     });
   };
-
   return (
     <View style={styles.container}>
       {/* ===== TOP ROW ===== */}
       <View style={styles.row}>
         {/* SEARCH (LONGER) */}
-      <View
-  style={[
-    styles.searchBox,
-    hideBUDropdown && { flex: 1 },
-  ]}
->
-  {/* LEFT SEARCH ICON */}
-  <TouchableOpacity onPress={() => onSearchChange?.(tempSearch)}>
-    <Image source={Theme.icons.search} style={styles.searchIcon} />
-  </TouchableOpacity>
+        <View
+          style={[
+            styles.searchBox,
+            hideBUDropdown && { flex: 1 },
+          ]}
+        >
+          {/* LEFT SEARCH ICON */}
+          <TouchableOpacity onPress={() => onSearchChange?.(tempSearch)}>
+            <Image source={Theme.icons.search} style={styles.searchIcon} />
+          </TouchableOpacity>
 
-  {/* INPUT */}
-  <TextInput
-    placeholder="Search"
-    placeholderTextColor={Theme.colors.grey}
-    style={styles.searchInput}
-    value={tempSearch}
-    onChangeText={setTempSearch}
-  />
+          {/* INPUT */}
+          <TextInput
+            placeholder="Search"
+            placeholderTextColor={Theme.colors.grey}
+            style={styles.searchInput}
+            value={tempSearch}
+            onChangeText={setTempSearch}
+          />
 
-  {/* RIGHT CLEAR ICON */}
-  {tempSearch.length > 0 && (
-    <TouchableOpacity
-      onPress={() => {
-        setTempSearch('');
-        onSearchChange?.('');
-      }}
-    >
-      <Image source={Theme.icons.close1} style={styles.clearIcon} />
-    </TouchableOpacity>
-  )}
-</View>
+          {/* RIGHT CLEAR ICON */}
+          {tempSearch.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setTempSearch('');
+                onSearchChange?.('');
+              }}
+            >
+              <Image source={Theme.icons.close1} style={styles.clearIcon} />
+            </TouchableOpacity>
+          )}
+        </View>
 
 
         {/* BUSINESS UNIT (SMALLER) */}
@@ -194,22 +192,22 @@ const styles = StyleSheet.create({
   },
 
   searchInput: {
-  flex: 1,
-  fontSize: 15,
-  paddingHorizontal: 8,
-},
+    flex: 1,
+    fontSize: 15,
+    paddingHorizontal: 8,
+  },
 
-searchIcon: {
-  width: 20,
-  height: 20,
-  tintColor: Theme.colors.success,
-},
+  searchIcon: {
+    width: 20,
+    height: 20,
+    tintColor: Theme.colors.success,
+  },
 
-clearIcon: {
-  width: 20,
-  height: 20,
-  tintColor: Theme.colors.success,
-},
+  clearIcon: {
+    width: 20,
+    height: 20,
+    tintColor: Theme.colors.success,
+  },
 
   row: {
     flexDirection: 'row',
@@ -234,7 +232,7 @@ clearIcon: {
     paddingHorizontal: 12,
     height: 40,
   },
- 
+
 
   /* DROPDOWN */
   businessDropdown: { width: 90, zIndex: 2000 }, // decreased from 110 → smaller dropdown

@@ -20,7 +20,6 @@ const FeedRecordScreen: React.FC = () => {
     const [feedData, setFeedData] = useState<FeedRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchKey, setSearchKey] = useState<string>("");
-    const [showFeedModal, setShowFeedModal] = useState(false);
     const [feedGroupData, setFeedGroupData] = useState<{
         feeds: { label: string; value: number }[];
         feedTypes: FeedTypeItem[];
@@ -30,10 +29,16 @@ const FeedRecordScreen: React.FC = () => {
         feedTypes: [],
         suppliers: [],
     });
-    const [deleteModal, setDeleteModal] = useState<{
-        visible: boolean;
-        record?: FeedRecord;
-    }>({ visible: false, record: undefined });
+    const [modalState, setModalState] = useState<{
+        showFeed: boolean;
+        delete: {
+            visible: boolean;
+            record?: FeedRecord;
+        };
+    }>({
+        showFeed: false,
+        delete: { visible: false },
+    });
     const fetchFeedRecords = async (
         search: string = searchKey,
         supplierId: string | null = null
@@ -137,7 +142,10 @@ const FeedRecordScreen: React.FC = () => {
             if (res.status === "Success") {
                 showSuccessToast("Feed Record Added Successfully");
             }
-            setShowFeedModal(false);
+            setModalState(prev => ({
+                ...prev,
+                showFeed: false
+            }));
             fetchFeedRecords();
         } catch (error) {
             showErrorToast("Failed to Add feed Record");
@@ -169,7 +177,12 @@ const FeedRecordScreen: React.FC = () => {
             <BackArrow
                 title="Feed Records"
                 showBack
-                onAddNewPress={() => setShowFeedModal(true)}
+                onAddNewPress={() =>
+                    setModalState(prev => ({
+                        ...prev,
+                        showFeed: true
+                    }))
+                } 
                 onReportPress={() => console.log("Generate Report")}
             />
             <View style={styles.filterRow}>
@@ -190,7 +203,9 @@ const FeedRecordScreen: React.FC = () => {
                         data={feedGroupData.suppliers}
                         labelField="label"
                         valueField="value"
-                        placeholder="Supplier"
+                        placeholder={loading ? "Loading suppliers..." : "Supplier"}
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
                         value={getSelectedSupplierId()}
                         onChange={(item) => {
                             const updated = feedGroupData.suppliers.map(s => ({
@@ -237,18 +252,22 @@ const FeedRecordScreen: React.FC = () => {
                                 onPress={() => {
                                     // Edit logic here
                                 }}
+                                style={{ marginBottom: 8 }}
                             >
-                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>Edit</Text>
+                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
                             </TouchableOpacity>
                             <View style={styles.menuSeparator} />
                             <TouchableOpacity
                                 onPress={() => {
-                                    setDeleteModal({ visible: true, record: row });
+                                    setModalState(prev => ({
+                                        ...prev,
+                                        delete: { visible: true, record: row },
+                                    }));
                                     closeMenu();
                                 }}
                                 style={{ marginTop: 8 }}
                             >
-                                <Text style={{ color: 'red', fontWeight: '600' }}>Delete</Text>
+                                <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -256,8 +275,11 @@ const FeedRecordScreen: React.FC = () => {
             </View>
             <LoadingOverlay visible={loading} />
             <AddModal
-                visible={showFeedModal}
-                onClose={() => setShowFeedModal(false)}
+                visible={modalState.showFeed}
+                onClose={() => setModalState(prev => ({
+                    ...prev,
+                    showFeed: false
+                }))}
                 type="Feed Record"
                 title="Add Feed Record"
                 supplierItems={feedGroupData.suppliers}
@@ -267,21 +289,29 @@ const FeedRecordScreen: React.FC = () => {
             />
             <ConfirmationModal
                 type="delete"
-                visible={deleteModal.visible}
+                visible={modalState.delete.visible}
                 title={`Are you sure you want to delete this Feed Record?`}
-                onClose={() => setDeleteModal({ visible: false })}
+                onClose={() =>
+                    setModalState(prev => ({
+                        ...prev,
+                        delete: { visible: false, record: undefined }
+                    }))
+                }
                 onConfirm={async () => {
-                    if (!deleteModal.record) return;
+                    if (!modalState.delete.record) return;
                     try {
                         setLoading(true);
-                        await deleteFeedRecord(deleteModal.record.feedRecordId);
+                        await deleteFeedRecord(modalState.delete.record.feedRecordId);
                         showSuccessToast("Feed record deleted successfully");
                         fetchFeedRecords();
                     } catch (error) {
                         showErrorToast("Failed to delete feed record");
                     } finally {
                         setLoading(false);
-                        setDeleteModal({ visible: false });
+                        setModalState(prev => ({
+                            ...prev,
+                            delete: { visible: false, record: undefined }
+                        }));
                     }
                 }}
             />
@@ -299,9 +329,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 5,
-        padding: 16,marginTop:20
+        padding: 16,
     },
-
     dropdown: {
         height: 40,
         borderColor: Theme.colors.success,

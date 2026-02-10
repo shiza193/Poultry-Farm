@@ -55,18 +55,17 @@ const EggMainScreen = () => {
         );
     }
   };
-
   // ================= HEADER TITLE =================
-  const getHeaderTitle = () => {
-    switch (activeTab) {
-      case "sale":
-        return "Egg";
-      case "stock":
-        return "Egg";
-      default:
-        return "Egg";
-    }
-  };
+  // const getHeaderTitle = () => {
+  //   switch (activeTab) {
+  //     case "sale":
+  //       return "Eggs";
+  //     case "stock":
+  //       return "Eggs";
+  //     default:
+  //       return "Eggs";
+  //   }
+  // };
   const handleLogout = async () => {
     try {
       await AsyncStorage.clear();
@@ -104,7 +103,7 @@ const EggMainScreen = () => {
 
       {/* ===== HEADER ===== */}
       <Header
-        title={getHeaderTitle()}
+        title="Eggs" 
         onPressDots={() => setIsDotsMenuVisible(true)}
       />
       {/* ===== DOTS MENU ===== */}
@@ -222,7 +221,7 @@ export default EggMainScreen;
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: "row",
-    margin: 16,
+    margin: 14,
     backgroundColor: Theme.colors.white,
     borderColor: Theme.colors.borderColor,
     borderWidth: 1,

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
 } from 'react-native';
 import Theme from '../theme/Theme';
 import Header from '../components/common/LogoHeader';
@@ -19,13 +20,16 @@ import FlockStockScreen from '../screens/flocks/FlockStockScreen';
 import FlockSaleScreen from '../screens/flocks/FlockSaleScreen';
 import HospitalityScreen from '../screens/flocks/HospitalityScreen';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CustomConstants } from '../constants/CustomConstants';
 
-type TabType = 'flock' | 'mortality' | 'stock' | 'sale' | 'hospitality';
+type TabType = 'flocks' | 'mortality' | 'stock' | 'sale' | 'hospitality';
 
 const FlockMainScreen = () => {
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState<TabType>('flock');
+  const [activeTab, setActiveTab] = useState<TabType>('flocks');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
+  const [openAddModal, setOpenAddModal] = useState(false);
 
   // ================= RENDER SCREEN =================
   const renderScreen = () => {
@@ -39,7 +43,8 @@ const FlockMainScreen = () => {
       case 'hospitality':
         return <HospitalityScreen />;
       default:
-        return <FlocksScreen />;
+        return <FlocksScreen
+         />;
     }
   };
 
@@ -92,8 +97,86 @@ const FlockMainScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* ===== HEADER ===== */}
-      <Header title={getHeaderTitle()} />
+      {/* <Header title={getHeaderTitle()} /> */}
+      <Header title="Flocks"
+        onPressDots={() => setIsDotsMenuVisible(true)}
+      />
+      {/* ===== DOTS MENU ===== */}
+      {isDotsMenuVisible && (
+        <TouchableOpacity
+          style={styles.dotsOverlay}
+          activeOpacity={1}
+          onPress={() => setIsDotsMenuVisible(false)}
+        >
+          <View style={styles.dotsMenu}>
+            {/* ADD NEW (Production / Sale) */}
+            {(activeTab === "flocks" || activeTab === "sale" || activeTab === "hospitality") && (
+              <TouchableOpacity
+                style={styles.dotsMenuItemCustom}
+                onPress={() => {
+                  setIsDotsMenuVisible(false);
+                  setOpenAddModal(true);
+                }}
+              >
+                <Text style={styles.dotsMenuText}>+ Add New</Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.menuSeparator} />
 
+            {/* REPORT (Sale / Stock) */}
+            {(activeTab === "flocks" || activeTab === "stock") && (
+              <TouchableOpacity
+                style={styles.dotsMenuItemCustom}
+                onPress={() => {
+                  setIsDotsMenuVisible(false);
+                  // export logic
+                }}
+              >
+                <View style={styles.menuItemRowCustom}>
+                  <Image
+                    source={Theme.icons.report}
+                    style={styles.menuIcon}
+                  />
+                  <Text style={styles.dotsMenuText}>Report</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            <View style={styles.menuSeparator} />
+
+            {/* LOGOUT */}
+            <TouchableOpacity
+              style={styles.dotsMenuItemCustom}
+              onPress={() => {
+                setIsDotsMenuVisible(false);
+                setShowLogoutModal(true);
+              }}
+            >
+              <View style={styles.menuItemRowCustom}>
+                <Image source={Theme.icons.logout} style={styles.logoutIcon} />
+                <Text style={styles.dotsMenuText}>Logout</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.menuSeparator} />
+
+            {/* BACK TO ADMIN */}
+            <TouchableOpacity
+              style={styles.dotsMenuItemCustom}
+              onPress={() => {
+                setIsDotsMenuVisible(false);
+                navigation.navigate(CustomConstants.DASHBOARD_TABS);
+              }}
+            >
+              <View style={styles.menuItemRowCustom}>
+                <Image
+                  source={Theme.icons.back}
+                  style={styles.logoutIcon}
+                />
+                <Text style={styles.dotsMenuText}>Admin Portal</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      )}
       {/* ===== TABS ===== */}
       <View style={styles.tabsWrapper}>
         <ScrollView
@@ -102,9 +185,9 @@ const FlockMainScreen = () => {
           contentContainerStyle={styles.tabContainerScroll}
         >
           <TabButton
-            title="Flock"
-            active={activeTab === 'flock'}
-            onPress={() => setActiveTab('flock')}
+            title="Flocks"
+            active={activeTab === 'flocks'}
+            onPress={() => setActiveTab('flocks')}
           />
           <View style={styles.separator} />
           <TabButton
@@ -124,7 +207,7 @@ const FlockMainScreen = () => {
             active={activeTab === 'sale'}
             onPress={() => setActiveTab('sale')}
           />
-        <View style={styles.separator} />
+          <View style={styles.separator} />
           <TabButton
             title="Hospitality"
             active={activeTab === 'hospitality'}
@@ -187,10 +270,64 @@ const styles = StyleSheet.create({
     color: Theme.colors.white,
   },
   separator: {
-  width: 1, 
-  backgroundColor: Theme.colors.sky,
-  alignSelf: 'stretch', 
-  marginHorizontal: 2, 
-},
+    width: 1,
+    backgroundColor: Theme.colors.sky,
+    alignSelf: 'stretch',
+    marginHorizontal: 2,
+  },
+  dotsOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
+  },
+  dotsMenu: {
+    position: 'absolute',
+    top: 50,
+    right: 30,
+    backgroundColor: Theme.colors.white,
+    borderRadius: 10,
+    padding: 5,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  dotsMenuItemCustom: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  menuItemRowCustom: { flexDirection: "row", alignItems: "center" },
+  circleIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  dotsMenuText: {
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
+  },
+  menuIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 10,
+    tintColor: Theme.colors.textPrimary,
+  },
+  menuSeparator: {
+    height: 1,
+    backgroundColor: Theme.colors.SeparatorColor,
+    marginHorizontal: 8,
+  },
+  logoutIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 10,
+  },
 
 });

@@ -183,8 +183,7 @@ const SupplierScreen = () => {
 
       showSuccessToast(
         'Success',
-        `Supplier has been ${
-          !currentStatus ? 'activated' : 'deactivated'
+        `Supplier has been ${!currentStatus ? 'activated' : 'deactivated'
         } successfully`,
       );
     } catch (error: any) {
@@ -303,11 +302,6 @@ const SupplierScreen = () => {
           </Text>
         </TouchableOpacity>
       ),
-
-      onDotsPress: row => {
-        setSelectedPartyId(row.id);
-        setDeleteModalVisible(true);
-      },
     },
 
     { key: 'email', title: 'EMAIL', width: 200 },
@@ -377,11 +371,28 @@ const SupplierScreen = () => {
         hideBUDropdown={fromMenu}
       />
 
-      <ScrollView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         {tableData.length > 0 ? (
-          <View style={{ flex: 1, paddingHorizontal: 16 }}>
-            <DataCard columns={columns} data={tableData} itemsPerPage={10} />
-          </View>
+          <ScrollView
+            style={{ flex: 1, paddingHorizontal: 16 }}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          >
+            <DataCard columns={columns} data={tableData} itemsPerPage={10}
+              renderRowMenu={(row, closeMenu) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedPartyId(row.id);
+                    setDeleteModalVisible(true);
+                    setDeleteModalVisible(true);
+                    closeMenu();
+                  }}
+                >
+                  <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+              )} />
+          </ScrollView>
         ) : (
           !loading && (
             <View style={styles.noDataContainer}>
@@ -418,7 +429,7 @@ const SupplierScreen = () => {
             onSave={handleUpdateSupplier}
           />
         )}
-      </ScrollView>
+      </View>
       <LoadingOverlay visible={loading} />
     </SafeAreaView>
   );

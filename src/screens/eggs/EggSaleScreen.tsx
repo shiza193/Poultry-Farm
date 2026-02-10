@@ -296,18 +296,30 @@ const EggSaleScreen: React.FC<Props> = ({
           mode="date"
           display="default"
           onChange={(event, selectedDate) => {
-            if (activePicker === 'from') {
-              setMasterData(prev => ({ ...prev, fromDate: selectedDate || prev.fromDate }));
-            } else {
-              setMasterData(prev => ({ ...prev, toDate: selectedDate || prev.toDate }));
+            if (event.type !== 'set') {
+              if (Platform.OS === 'android') setActivePicker(null);
+              return;
             }
-
+            if (activePicker === 'from') {
+              setMasterData(prev => ({
+                ...prev,
+                fromDate: selectedDate!,
+              }));
+            } else {
+              setMasterData(prev => ({
+                ...prev,
+                toDate: selectedDate!,
+              }));
+            }
             if (Platform.OS === 'android') setActivePicker(null);
           }}
         />
       )}
 
-      <ScrollView style={{ paddingHorizontal: 16, }}>
+      <ScrollView
+        style={{ flex: 1, paddingHorizontal: 16 }}
+        contentContainerStyle={{ paddingBottom: 50 }}
+      >
         <DataCard
           columns={columns}
           data={eggSales}

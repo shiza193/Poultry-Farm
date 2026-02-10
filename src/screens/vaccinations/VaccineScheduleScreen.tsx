@@ -316,30 +316,26 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                                         setEditingSchedule(row);
                                         onOpenAddModal();
                                     }}
+                                    style={{ marginBottom: 8 }}
                                 >
-                                    <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>
-                                        Edit
-                                    </Text>
+                                    <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
                                 </TouchableOpacity>
-
+                                <View style={vsstyles.menuSeparator} />
                                 <TouchableOpacity
                                     onPress={() => {
-                                        // Open delete confirmation
                                         setSelectedScheduleId(row.vaccinationScheduleId);
                                         setConfirmationVisible(true);
                                         closeMenu();
                                     }}
                                     style={{ marginTop: 8 }}
                                 >
-                                    <Text style={{ color: 'red', fontWeight: '600' }}>Delete </Text>
+                                    <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
                     />
                 </View>
-
             </View>
-
             <AddModal
                 visible={openAddModal}
                 type="vaccination Schedule"
@@ -361,7 +357,6 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                 flockItems={flockItems}
                 initialData={editingSchedule}
             />
-
             <ConfirmationModal
                 visible={confirmationVisible}
                 type="delete"

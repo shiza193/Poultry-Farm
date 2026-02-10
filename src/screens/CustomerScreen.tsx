@@ -384,9 +384,10 @@ const CustomerScreen = () => {
                   setDeleteModalVisible(true);
                   closeMenu();
                 }}
-                style={{ padding: 8 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600' }}>Delete</Text>
+                <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
+                  Delete Cus
+                </Text>
               </TouchableOpacity>
             )}
           />

@@ -32,11 +32,16 @@ const FeedConsumptionScreen: React.FC = () => {
         feeds: [],
         flocks: [],
     });
-    const [showFeedModal, setShowFeedModal] = useState(false);
-    const [deleteModal, setDeleteModal] = useState<{
-        visible: boolean;
-        record?: FeedConsumptionRecord;
-    }>({ visible: false, record: undefined });
+    const [modalState, setModalState] = useState<{
+        showFeed: boolean;
+        delete: {
+            visible: boolean;
+            record?: FeedConsumptionRecord;
+        };
+    }>({
+        showFeed: false,
+        delete: { visible: false },
+    });
     const fetchFeedConsumption = async (
         search: string = searchKey,
         flockId: string | null = null
@@ -90,7 +95,6 @@ const FeedConsumptionScreen: React.FC = () => {
         if (!businessUnitId) return;
         try {
             const res: Flock[] = await getFlocks(businessUnitId);
-
             const dropdownData = res.map(f => ({
                 label: f.flockRef,
                 value: f.flockId,
@@ -126,8 +130,10 @@ const FeedConsumptionScreen: React.FC = () => {
                 date: payload.date,
             });
             showSuccessToast("Feed consumption added successfully");
-            setShowFeedModal(false);
-            fetchFeedConsumption();
+            setModalState(prev => ({
+                ...prev,
+                showFeed: false
+            })); fetchFeedConsumption();
         } catch (error: any) {
             const msg =
                 error?.response?.data?.message ||
@@ -163,8 +169,12 @@ const FeedConsumptionScreen: React.FC = () => {
             <BackArrow
                 title="Feed Consumption"
                 showBack
-                onAddNewPress={() => setShowFeedModal(true)}
-                onReportPress={() => console.log("Generate Report")}
+                onAddNewPress={() =>
+                    setModalState(prev => ({
+                        ...prev,
+                        showFeed: true
+                    }))
+                } onReportPress={() => console.log("Generate Report")}
             />
             <View style={styles.filterRow}>
                 {/* SEARCH */}
@@ -177,26 +187,27 @@ const FeedConsumptionScreen: React.FC = () => {
                         }}
                     />
                 </View>
-                {/* SUPPLIER DROPDOWN */}
+                {/* FLOCK DROPDOWN */}
                 <View style={{ width: 120, marginLeft: 10 }}>
                     <Dropdown
                         style={styles.dropdown}
-                        data={feedMasterData.flocks}
+                        data={feedMasterData.flocks.length > 0 ? feedMasterData.flocks : [{ label: "No result found", value: null, disabled: true }]}
                         labelField="label"
                         valueField="value"
                         placeholder="Select Flock"
-                        value={feedMasterData.flocks.find(f => f.isSelected)?.value}
+                        placeholderStyle={styles.placeholderStyle}
+                        selectedTextStyle={styles.selectedTextStyle}
+                        value={feedMasterData.flocks.find(f => f.isSelected)?.value || null}
                         onChange={(item) => {
+                            if (!item.value) return; 
                             const updated = feedMasterData.flocks.map(f => ({
                                 ...f,
                                 isSelected: f.value === item.value,
                             }));
-
                             setFeedMasterData(prev => ({
                                 ...prev,
                                 flocks: updated,
                             }));
-
                             fetchFeedConsumption(searchKey, item.value);
                         }}
                     />
@@ -232,17 +243,22 @@ const FeedConsumptionScreen: React.FC = () => {
                                 onPress={() => {
                                     // Edit logic (if needed)
                                 }}
+                                style={{ marginBottom: 8 }}
                             >
-                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>Edit</Text>
+                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
                             </TouchableOpacity>
+                            <View style={styles.menuSeparator} />
+
                             <TouchableOpacity
                                 onPress={() => {
-                                    setDeleteModal({ visible: true, record: row });
-                                    closeMenu();
+                                    setModalState(prev => ({
+                                        ...prev,
+                                        delete: { visible: true, record: row },
+                                    })); closeMenu();
                                 }}
                                 style={{ marginTop: 8 }}
                             >
-                                <Text style={{ color: 'red', fontWeight: '600' }}>Delete</Text>
+                                <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -250,8 +266,11 @@ const FeedConsumptionScreen: React.FC = () => {
             </View>
             <LoadingOverlay visible={loading} />
             <AddModal
-                visible={showFeedModal}
-                onClose={() => setShowFeedModal(false)}
+                visible={modalState.showFeed}
+                onClose={() => setModalState(prev => ({
+                    ...prev,
+                    showFeed: false
+                }))}
                 type="Feed Consumption"
                 title="Add Feed Consumption"
                 flockItems={feedMasterData.flocks}
@@ -260,21 +279,28 @@ const FeedConsumptionScreen: React.FC = () => {
             />
             <ConfirmationModal
                 type="delete"
-                visible={deleteModal.visible}
+                visible={modalState.delete.visible}
                 title={`Are you sure you want to delete this Feed Consumption Record?`}
-                onClose={() => setDeleteModal({ visible: false })}
-                onConfirm={async () => {
-                    if (!deleteModal.record) return;
+                onClose={() =>
+                    setModalState(prev => ({
+                        ...prev,
+                        delete: { visible: false, record: undefined }
+                    }))
+                } onConfirm={async () => {
+                    if (!modalState.delete.record) return;
                     try {
                         setLoading(true);
-                        await deleteFeedConsumption(deleteModal.record.feedRecordConsumptionId);
+                        await deleteFeedConsumption(modalState.delete.record.feedRecordConsumptionId);
                         showSuccessToast("Feed consumption record deleted successfully");
                         fetchFeedConsumption();
                     } catch (error) {
                         showErrorToast("Failed to delete feed consumption record");
                     } finally {
                         setLoading(false);
-                        setDeleteModal({ visible: false });
+                        setModalState(prev => ({
+                            ...prev,
+                            delete: { visible: false, record: undefined }
+                        }));
                     }
                 }}
             />
@@ -317,5 +343,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         marginLeft: 250,
+    },
+    menuSeparator: {
+        height: 2,
+        backgroundColor: Theme.colors.SeparatorColor,
+        marginHorizontal: 8,
     },
 });

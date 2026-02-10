@@ -339,7 +339,10 @@ const UserScreen = () => {
       />
 
       {tableData.length > 0 ? (
-        <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
+        <ScrollView
+          style={{ flex: 1, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
           <DataCard
             columns={columns}
             data={tableData}
@@ -355,7 +358,7 @@ const UserScreen = () => {
                   }}
                   style={{ paddingVertical: 5, width: 100 }}
                 >
-                  <Text style={{ color: 'red', fontWeight: '600' }}>
+                  <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>
                     Delete
                   </Text>
                 </TouchableOpacity>
@@ -368,13 +371,13 @@ const UserScreen = () => {
                     setShowResetModal(true);
                     closeMenu();
                   }}
-                  style={{ paddingVertical: 10, width: 100 }}
+                  style={{ paddingVertical: 10, width: 110 }}
                 >
-                  <Text style={{ fontWeight: '500', fontSize: 13 }}>
+                  <Text style={{ fontWeight: '500', fontSize: 13, marginLeft: 8 }}>
                     Reset Password
                   </Text>
                 </TouchableOpacity>
-            <View style={styles.menuSeparator} />
+                <View style={styles.menuSeparator} />
 
                 {/* ASSIGN TO POULTRY */}
                 <TouchableOpacity
@@ -382,9 +385,9 @@ const UserScreen = () => {
                     handleAssignPoultry(row.raw);
                     closeMenu();
                   }}
-                  style={{ paddingVertical: 10, width: 100 }}
+                  style={{ paddingVertical: 10, width: 110 }}
                 >
-                  <Text style={{ fontWeight: '500', fontSize: 13 }}>
+                  <Text style={{ fontWeight: '500', fontSize: 13, marginLeft: 8 }}>
                     Assign to Poultry
                   </Text>
                 </TouchableOpacity>

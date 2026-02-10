@@ -39,7 +39,7 @@ const EggStockScreen: React.FC<Props> = ({ setGlobalLoading }) => {
 
   return (
     <View style={styles.container}>
-      <View style={{ paddingHorizontal: 16 ,marginTop:5}}>
+      <View style={{ paddingHorizontal: 16 ,}}>
         <DataCard columns={columns} data={eggStockData} itemsPerPage={5} />
       </View>
     </View>

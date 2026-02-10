@@ -13,6 +13,11 @@ const styles = StyleSheet.create({
         marginTop: 6,
         gap: 10,
     },
+     menuSeparator: {
+        height: 2,
+        backgroundColor: Theme.colors.SeparatorColor,
+        marginHorizontal: 8,
+    },
     /* ===== DROPDOWN ===== */
     dropdownWrapper: {
         width: 120,
@@ -95,6 +100,11 @@ export const vsstyles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "500",
         color: Theme.colors.error,
+    },
+       menuSeparator: {
+        height: 2,
+        backgroundColor: Theme.colors.SeparatorColor,
+        marginHorizontal: 8,
     },
 });
 

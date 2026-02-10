@@ -309,8 +309,8 @@ const EmployeeScreen = () => {
                   closeMenu();
                 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600' }}>
-                  Delete Employee
+                <Text style={{ color: 'red', fontWeight: '600',fontSize:13,marginLeft:12 }}>
+                  Delete Emp
                 </Text>
               </TouchableOpacity>
             )}

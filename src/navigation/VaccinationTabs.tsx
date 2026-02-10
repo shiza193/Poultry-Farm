@@ -54,16 +54,16 @@ const VaccinationMainScreen = () => {
         }
     };
 
-    const getHeaderTitle = () => {
-        switch (activeTab) {
-            case "schedule":
-                return "Vaccinations";
-            case "stock":
-                return "Vaccinations";
-            default:
-                return "Vaccinations";
-        }
-    };
+    // const getHeaderTitle = () => {
+    //     switch (activeTab) {
+    //         case "schedule":
+    //             return "Vaccinations";
+    //         case "stock":
+    //             return "Vaccinations";
+    //         default:
+    //             return "Vaccinations";
+    //     }
+    // };
     const handleLogout = async () => {
         try {
             await AsyncStorage.clear();
@@ -110,7 +110,7 @@ const VaccinationMainScreen = () => {
             <LoadingOverlay visible={globalLoading} text="Loading..." />
             {/* 🔹 TOP HEADER */}
             <Header
-                title={getHeaderTitle()}
+                title="Vaccinations"
                 onPressDots={() => setIsDotsMenuVisible(true)}
             />
             {isDotsMenuVisible && (
