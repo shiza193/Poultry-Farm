@@ -17,6 +17,7 @@ import AddModal from "../../components/customPopups/AddModal";
 import ConfirmationModal from "../../components/customPopups/ConfirmationModal";
 import { showErrorToast, showSuccessToast } from "../../utils/AppToast";
 import { useBusinessUnit } from "../../context/BusinessContext"
+import SearchBar from "../../components/common/SearchBar";
 interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
@@ -59,25 +60,19 @@ const VaccinationsScreen: React.FC<Props> = ({
             setSupplierValue(null);
         }, [businessUnitId])
     );
-
+    const fetchSuppliers = async () => {
+        const suppliers = await getSuppliers(businessUnitId);
+        const dropdownData = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
+        setSupplierItems(dropdownData);
+    };
+    const fetchVaccines = async () => {
+        const data = await getVaccines();
+        setVaccineItems(data);
+    };
     useEffect(() => {
-        if (!businessUnitId) return;
-        const fetchSuppliers = async () => {
-            const suppliers = await getSuppliers(businessUnitId);
-            const dropdownData = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
-            setSupplierItems(dropdownData);
-        };
         fetchSuppliers();
-    }, [businessUnitId]);
-
-    useEffect(() => {
-        const fetchVaccines = async () => {
-            const data = await getVaccines();
-            setVaccineItems(data);
-        };
         fetchVaccines();
-    }, []);
-
+    }, [businessUnitId]);
     const filteredVaccinations = vaccinations.filter(item => {
         const supplierMatch = supplierValue
             ? item.supplierId === supplierValue
@@ -165,35 +160,13 @@ const VaccinationsScreen: React.FC<Props> = ({
         <View style={styles.container}>
             {/* ===== SEARCH + FILTER ===== */}
             <View style={styles.filterRow}>
-                <View style={styles.searchContainer}>
-                    <TextInput
+                <View style={{ flex: 1 }}>
+                    <SearchBar
                         placeholder="Search vaccine..."
-                        placeholderTextColor={Theme.colors.textSecondary}
-                        value={searchText}
-                        onChangeText={setSearchText}
-                        style={styles.searchInput}
+                        initialValue={searchText}
+                        onSearch={(value) => setSearchText(value)}
                     />
-
-                    {/*  CLEAR ICON */}
-                    {searchText.length > 0 && (
-                        <TouchableOpacity
-                            onPress={() => {
-                                setSearchText("");
-                                fetchVaccinationsData();
-                            }}
-                        >
-                            <Image source={Theme.icons.close1} style={styles.clearIcon} />
-                        </TouchableOpacity>
-                    )}
-                    {/*  SEARCH ICON */}
-                    <TouchableOpacity onPress={() => fetchVaccinationsData()}>
-                        <Image
-                            source={Theme.icons.search}
-                            style={styles.searchIcon}
-                        />
-                    </TouchableOpacity>
                 </View>
-
                 <View style={styles.dropdownWrapper}>
                     <DropDownPicker
                         open={supplierOpen}
@@ -223,7 +196,7 @@ const VaccinationsScreen: React.FC<Props> = ({
                 <DataCard
                     columns={columns}
                     data={filteredVaccinations}
-                    itemsPerPage={5}
+                    itemsPerPage={10}
                     renderRowMenu={(row, closeMenu) => (
                         <View>
                             <TouchableOpacity

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Text,ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 
@@ -295,11 +295,11 @@ const EmployeeScreen = () => {
       />
 
       {tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+        <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard
             columns={columns}
             data={tableData}
-            itemsPerPage={5}
+            itemsPerPage={10}
             renderRowMenu={(row, closeMenu) => (
               <TouchableOpacity
                 onPress={() => {
@@ -315,7 +315,7 @@ const EmployeeScreen = () => {
               </TouchableOpacity>
             )}
           />
-        </View>
+        </ScrollView>
       ) : (
         !loading && (
           <View style={styles.noDataContainer}>

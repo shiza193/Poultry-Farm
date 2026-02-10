@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Image } from "react-native";
-import DataCard, { TableColumn } from "../../components/customCards/DataCard";
-import Theme from "../../theme/Theme";
-import { getAccounts, getVouchers, Voucher, VoucherPayload, getVoucherTypes } from "../../services/VoucherService";
-import { useBusinessUnit } from "../../context/BusinessContext";
-import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import DataCard, { TableColumn } from "../../../components/customCards/DataCard";
+import Theme from "../../../theme/Theme";
+import { getAccounts, getVouchers, Voucher, VoucherPayload, getVoucherTypes } from "../../../services/VoucherService";
+import { useBusinessUnit } from "../../../context/BusinessContext";
+import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import { useFocusEffect } from "@react-navigation/native";
-import BackArrow from "../../components/common/ScreenHeaderWithBack";
-import SearchBar from "../../components/common/SearchBar";
-import BusinessUnitModal from "../../components/customPopups/BusinessUnitModal";
-import ReusableDetailsModal from "../../components/customPopups/VoucherDetailPopup";
+import BackArrow from "../../../components/common/ScreenHeaderWithBack";
+import SearchBar from "../../../components/common/SearchBar";
+import BusinessUnitModal from "../../../components/customPopups/BusinessUnitModal";
+import ReusableDetailsModal from "../../../components/customPopups/VoucherDetailPopup";
 interface VoucherEntry {
     accountHead: string;
     debit: number;
@@ -131,7 +131,6 @@ const VoucherScreen = () => {
             ),
         }
     ];
-
     return (
         <View style={styles.container}>
             <BackArrow

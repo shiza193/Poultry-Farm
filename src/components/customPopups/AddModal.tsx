@@ -214,7 +214,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const [showFeedDatePicker, setShowFeedDatePicker] = useState(false);
   const [feedOpen, setFeedOpen] = useState(false);
   const [feedtypeOpen, setFeedTypeOpen] = useState(false);
-  const [bag, setbag] = useState('');
+  const [bag, setbag] = useState('1');
 
   /* ===== Egg Sale ===== */
   const [trayCount, setTrayCount] = useState('');
@@ -408,6 +408,16 @@ const AddModal: React.FC<AddModalProps> = ({
 
       setIsSaveEnabled(isValid);
     }
+    if (type === 'Feed Consumption') {
+      const isValid =
+        selectedFlock !== null &&
+        feedDate !== null &&
+        selectedFeedId !== null &&
+        bag.trim().length > 0;
+
+      setIsSaveEnabled(isValid);
+      return;
+    }
   }, [
     type,
     name,
@@ -427,6 +437,9 @@ const AddModal: React.FC<AddModalProps> = ({
     endDate,
     price,
     selectedCustomer,
+    selectedFeedId,
+    feedDate,
+    bag,
   ]);
   const reset = () => {
     setName('');
@@ -530,13 +543,22 @@ const AddModal: React.FC<AddModalProps> = ({
     }
     else if (type === 'Feed Record') {
       onSave({
-        feedId: selectedFeedId,
-        feedTypeId: selectedFeedTypeId,
+        feedId: selectedFeedId,   
+        feedTypeId: selectedFeedTypeId, 
         quantity,
         date: feedDate,
-        supplierId: supplier,
+        supplierId: supplier,        
         price,
         note,
+        paymentStatus,
+      });
+    }
+    else if (type === 'Feed Consumption') {
+      onSave({
+        flockId: selectedFlock,
+        feedId: selectedFeedId,
+        bag: Number(bag),
+        date: feedDate,
       });
     }
     reset();
@@ -556,7 +578,8 @@ const AddModal: React.FC<AddModalProps> = ({
           >
             {/* NAME */}
             {type !== 'vaccination' && type !== 'vaccination Schedule' &&
-              type !== 'Egg production' && type !== 'Egg sale' && type !== 'Feed Record' && (
+              type !== 'Egg production' && type !== 'Egg sale' &&
+              type !== 'Feed Record' && type !== 'Feed Consumption' && (
                 <>
                   <Text style={styles.label}>
                     Name<Text style={styles.required}>*</Text>
@@ -1267,20 +1290,19 @@ const AddModal: React.FC<AddModalProps> = ({
             )}
             {type === 'Feed Record' && (
               <>
-                {/* FEED */}
+                 {/* FEED */}
                 <Text style={styles.label}>
                   Feed<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={feedOpen}
+                <Dropdown
                   value={selectedFeedId}
-                  items={feedItems || []}
-                  setOpen={setFeedOpen}
-                  setValue={setSelectedFeedId}
+                  data={feedItems || []}
                   placeholder="Select feed..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainer}
+                  onChange={(item) => setSelectedFeedId(item.value)}
+                  labelField="label"
+                  valueField="value"
                 />
                 {/* QUANTITY */}
                 <Text style={styles.label}>
@@ -1397,7 +1419,7 @@ const AddModal: React.FC<AddModalProps> = ({
 
             {type === 'Feed Consumption' && (
               <>
-                 {/* FLOCK */}
+                {/* FLOCK */}
                 <Text style={styles.label}>
                   Flock<Text style={styles.required}>*</Text>
                 </Text>
@@ -1412,7 +1434,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   style={styles.dropdown}
                   dropDownContainerStyle={styles.dropdownContainer}
                 />
-                  {/* DATE */}
+                {/* DATE */}
                 <Text style={styles.label}>
                   Date<Text style={styles.required}>*</Text>
                 </Text>
@@ -1437,25 +1459,24 @@ const AddModal: React.FC<AddModalProps> = ({
                     }}
                   />
                 )}
-
                 {/* FEED */}
                 <Text style={styles.label}>
                   Feed<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={feedOpen}
+                <Dropdown
                   value={selectedFeedId}
-                  items={feedItems || []}
-                  setOpen={setFeedOpen}
-                  setValue={setSelectedFeedId}
+                  data={feedItems || []}
                   placeholder="Select feed..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainer}
+                  onChange={(item) => setSelectedFeedId(item.value)}
+                  labelField="label"
+                  valueField="value"
                 />
-             
                 {/* PRICE */}
-                <Text style={styles.label}>Price</Text>
+                <Text style={styles.label}>
+                  Bag<Text style={styles.required}>*</Text>
+                </Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Enter bag..."
@@ -1659,7 +1680,7 @@ const styles = StyleSheet.create({
 
   radioSelectedOuter: {
     backgroundColor: Theme.colors.primaryYellow,
-    borderColor: Theme.colors.primaryYellow,
+    borderColor: Theme.colors.borderColor,
   },
   radioCheck: {
     color: Theme.colors.white,
@@ -1672,6 +1693,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.black,
   },
-
 
 });

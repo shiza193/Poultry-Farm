@@ -27,7 +27,7 @@ export const getFeedRecords = async (
       payload
     );
 
-    return response.data.data; 
+    return response.data.data;
     // { totalCount, list }
   } catch (error) {
     console.log("Get Feed Records Error:", error);
@@ -65,7 +65,7 @@ export const getFeedConsumptionRecords = async (
       payload
     );
 
-    return response.data.data; 
+    return response.data.data;
     // { totalCount, list }
   } catch (error) {
     console.log("Get Feed Consumption Error:", error);
@@ -101,7 +101,7 @@ export const getFeedStock = async (businessUnitId: string) => {
 export const getFeeds = async (): Promise<{ label: string; value: number }[]> => {
   try {
     const res = await api.get('api/Master/get-feeds');
-    
+
     if (res.data.status === 'Success' && Array.isArray(res.data.data)) {
       return res.data.data.map((feed: any) => ({
         label: feed.name,
@@ -128,7 +128,7 @@ export const getFeedTypes = async (): Promise<FeedTypeItem[]> => {
     if (res.data.status === 'Success' && Array.isArray(res.data.data)) {
       return res.data.data.map((item: any) => ({
         label: item.feedType,
-        value: item.feedTypeId, 
+        value: item.feedTypeId,
       }));
     } else {
       return [];
@@ -147,8 +147,8 @@ export interface AddFeedRecordPayload {
   supplierId: string;
   quantity: number;
   price: number;
-  date: string;   
-  expiryDate: string; 
+  date: string;
+  expiryDate: string;
   note?: string;
   isPaid: boolean;
 }
@@ -163,12 +163,65 @@ export const addFeedRecord = async (
   payload: AddFeedRecordPayload
 ): Promise<AddFeedRecordResponse> => {
   try {
-            console.log("Add feed record payload", payload);
-
     const res = await api.post("api/FeedRecord/add-feed-record", payload);
     return res.data;
   } catch (error) {
     console.log("Add Feed Record Error:", error);
+    throw error;
+  }
+};
+
+
+export interface AddFeedConsumptionPayload {
+  businessUnitId: string;
+  flockId: string;
+  feedId: number;
+  quantity: number;
+  price: number;
+  date: Date | string;
+}
+
+export const addFeedConsumption = async (
+  payload: AddFeedConsumptionPayload
+) => {
+  const response = await api.post(
+    'api/FeedRecordConsumption/add-feed-record-consumption',
+    {
+      businessUnitId: payload.businessUnitId,
+      flockId: payload.flockId,
+      feedId: payload.feedId,
+      quantity: payload.quantity,
+      price: payload.price,
+      date:
+        typeof payload.date === 'string'
+          ? payload.date
+          : payload.date.toISOString().split('T')[0],
+    }
+  );
+
+  return response.data;
+};
+
+export const deleteFeedRecord = async (feedRecordId: string) => {
+  try {
+    const response = await api.delete(
+      `api/FeedRecord/delete-feed-record?feedRecordId=${feedRecordId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Delete Feed Record Error:", error);
+    throw error;
+  }
+};
+
+export const deleteFeedConsumption = async (feedRecordConsumptionId: string) => {
+  try {
+    const response = await api.delete(
+      `api/FeedRecordConsumption/delete-feed-record-consumption/${feedRecordConsumptionId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Delete Feed Consumption Error:", error);
     throw error;
   }
 };

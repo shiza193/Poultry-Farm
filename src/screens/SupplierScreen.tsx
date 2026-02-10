@@ -377,10 +377,10 @@ const SupplierScreen = () => {
         hideBUDropdown={fromMenu}
       />
 
-      <View style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }}>
         {tableData.length > 0 ? (
           <View style={{ flex: 1, paddingHorizontal: 16 }}>
-            <DataCard columns={columns} data={tableData} itemsPerPage={5} />
+            <DataCard columns={columns} data={tableData} itemsPerPage={10} />
           </View>
         ) : (
           !loading && (
@@ -418,7 +418,7 @@ const SupplierScreen = () => {
             onSave={handleUpdateSupplier}
           />
         )}
-      </View>
+      </ScrollView>
       <LoadingOverlay visible={loading} />
     </SafeAreaView>
   );

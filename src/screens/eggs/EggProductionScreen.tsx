@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, TextInput } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Image, TextInput, ScrollView } from 'react-native';
 import Theme from '../../theme/Theme';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import {
@@ -39,13 +39,17 @@ const EggProductionScreen: React.FC<Props> = ({
   const { businessUnitId } = useBusinessUnit();
   // States
   const [eggProductionList, setEggProductionList] = useState<EggProduction[]>([]);
-  const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
   const [searchText, setSearchText] = useState<string>("");
   const [flockOpen, setFlockOpen] = useState<boolean>(false);
-  const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
-  const [unitItems, setUnitItems] = useState<
-    { label: string; value: number }[]
-  >([]);
+  const [masterData, setMasterData] = useState<{
+    flocks: { label: string; value: string; isSelected?: boolean }[];
+    units: { label: string; value: number }[];
+    selectedFlock: string | null;
+  }>({
+    flocks: [],
+    units: [],
+    selectedFlock: null,
+  });
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedEggProduction, setSelectedEggProduction] = useState<EggProduction | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -80,13 +84,10 @@ const EggProductionScreen: React.FC<Props> = ({
 
     const payload = {
       businessUnitId,
-      flockId: selectedFlock,
-      searchKey:
-        overrideSearchKey !== undefined
-          ? overrideSearchKey
-          : searchText || null,
+      flockId: masterData.selectedFlock,
+      searchKey: overrideSearchKey !== undefined ? overrideSearchKey : searchText || null,
       pageNumber: 1,
-      pageSize: 10,
+      pageSize: 100,
     };
 
     const data = await getEggProduction(payload);
@@ -96,23 +97,26 @@ const EggProductionScreen: React.FC<Props> = ({
   useFocusEffect(
     useCallback(() => {
       fetchEggProduction();
-      setSelectedFlock(null);
+      setMasterData(prev => ({ ...prev, selectedFlock: null })); // <-- USE THIS
     }, [businessUnitId])
   );
   // ===== FETCH FLOCKS =====
   const fetchFlocks = async () => {
     if (!businessUnitId) return;
+
     try {
       const flocks: Flock[] = await getFlocks(businessUnitId);
-      const dropdownData = flocks.map((f: Flock) => ({
+      const dropdownData = flocks.map(f => ({
         label: f.flockRef,
         value: f.flockId,
+        isSelected: false,
       }));
-      setFlockItems(dropdownData);
+      setMasterData(prev => ({ ...prev, flocks: dropdownData }));
     } catch (error) {
       console.error("Failed to fetch flocks:", error);
     }
   };
+
   useEffect(() => {
     fetchFlocks();
     fetchUnits();
@@ -121,17 +125,15 @@ const EggProductionScreen: React.FC<Props> = ({
     if (businessUnitId) {
       fetchEggProduction();
     }
-  }, [selectedFlock]);
+  }, [masterData.selectedFlock]);
   const fetchUnits = async () => {
     try {
       const units = await getUnitsByProductType(1);
-
       const dropdownData = units.map((u: any) => ({
         label: u.value,
         value: u.unitId,
       }));
-
-      setUnitItems(dropdownData);
+      setMasterData(prev => ({ ...prev, units: dropdownData }));
     } catch (error) {
       console.error("Failed to fetch units", error);
     }
@@ -230,7 +232,7 @@ const EggProductionScreen: React.FC<Props> = ({
                 fetchEggProduction(null);
               }}
             >
-              <Image source={Theme.icons.close1} style={styles.clearIcon} />
+              <Image source={Theme.icons.cross} style={styles.clearIcon} />
             </TouchableOpacity>
           )}
           {/* SEARCH ICON */}
@@ -244,32 +246,46 @@ const EggProductionScreen: React.FC<Props> = ({
         <View style={styles.dropdownWrapper}>
           <DropDownPicker
             open={flockOpen}
-            value={selectedFlock}
-            items={flockItems}
+            value={masterData.selectedFlock}
+            items={masterData.flocks}
             setOpen={setFlockOpen}
-            setValue={setSelectedFlock}
-            setItems={setFlockItems}
-            placeholder=" Flock"
+            setValue={(callbackOrValue: any) =>
+              setMasterData(prev => ({
+                ...prev,
+                selectedFlock:
+                  typeof callbackOrValue === 'function'
+                    ? callbackOrValue(prev.selectedFlock)
+                    : callbackOrValue,
+              }))
+            }
+            setItems={(callbackOrItems: any) =>
+              setMasterData(prev => ({
+                ...prev,
+                flocks:
+                  typeof callbackOrItems === 'function'
+                    ? callbackOrItems(prev.flocks)
+                    : callbackOrItems,
+              }))
+            }
+            placeholder="Flock"
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownContainer}
             textStyle={styles.dropdownText}
           />
         </View>
       </View>
-      {(selectedFlock) && (
+      {masterData.selectedFlock && (
         <View style={styles.resetRow}>
-          <TouchableOpacity onPress={() => {
-            setSelectedFlock(null);
-          }}>
+          <TouchableOpacity onPress={() => setMasterData(prev => ({ ...prev, selectedFlock: null }))}>
             <Text style={styles.resetText}>Reset Filters</Text>
           </TouchableOpacity>
         </View>
       )}
-      <View style={{ paddingHorizontal: 16, marginTop: 10, }}>
+      <ScrollView style={{ paddingHorizontal: 16, marginTop: 10, }}>
         <DataCard
           columns={columns}
           data={eggProductionList}
-          itemsPerPage={5}
+          itemsPerPage={10}
           renderRowMenu={(row, closeMenu) => (
             <View>
               <TouchableOpacity onPress={() => { setIsEditMode(true); setSelectedEggProduction(row); onOpenAddModal?.(); closeMenu(); }}>
@@ -289,14 +305,14 @@ const EggProductionScreen: React.FC<Props> = ({
             </View>
           )}
         />
-      </View>
+      </ScrollView>
       {/* ===== ADD / EDIT MODAL ===== */}
       <AddModal
         visible={openAddModal}
         title={isEditMode ? "Edit Egg Production" : "Add Egg Production"}
         type="Egg production"
-        unitItems={unitItems}
-        flockItems={flockItems}
+        unitItems={masterData.units}
+        flockItems={masterData.flocks}
         initialData={selectedEggProduction}
         isEdit={isEditMode}
         onClose={() => { onCloseAddModal(); setIsEditMode(false); setSelectedEggProduction(null); }}

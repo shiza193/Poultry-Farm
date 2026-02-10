@@ -3,20 +3,20 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
-import Theme from '../../theme/Theme';
-import BackArrow from '../../components/common/ScreenHeaderWithBack';
-import SearchBar from '../../components/common/SearchBar';
-import DataCard, { TableColumn } from '../../components/customCards/DataCard';
-import LoadingOverlay from '../../components/loading/LoadingOverlay';
-import { showErrorToast, showSuccessToast } from '../../utils/AppToast';
+import Theme from '../../../theme/Theme';
+import BackArrow from '../../../components/common/ScreenHeaderWithBack';
+import SearchBar from '../../../components/common/SearchBar';
+import DataCard, { TableColumn } from '../../../components/customCards/DataCard';
+import LoadingOverlay from '../../../components/loading/LoadingOverlay';
+import { showErrorToast, showSuccessToast } from '../../../utils/AppToast';
 
 import {
   getAccountHeads,
   getParentAccountHeads,
   addAccountHead,
-} from '../../services/AccountHeadService';
-import { useBusinessUnit } from '../../context/BusinessContext';
-import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
+} from '../../../services/AccountHeadService';
+import { useBusinessUnit } from '../../../context/BusinessContext';
+import BusinessUnitModal from '../../../components/customPopups/BusinessUnitModal';
 
 /* ================= TYPES ================= */
 type AccountHead = {
@@ -112,8 +112,8 @@ const AccountHeadScreen = () => {
       // payload for API
       const payload = {
         name: data.name,
-        accountType: data.accountType, // parent account ID
-        parentId: data.accountType, // same as parent ID
+        accountType: data.accountType,
+        parentId: data.accountType,
         isActive: data.isActive,
         businessUnitId,
       };

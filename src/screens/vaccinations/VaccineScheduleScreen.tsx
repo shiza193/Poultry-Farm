@@ -22,6 +22,7 @@ import { showErrorToast, showSuccessToast } from "../../utils/AppToast";
 import AddModal from "../../components/customPopups/AddModal";
 import ConfirmationModal from "../../components/customPopups/ConfirmationModal";
 import { useFocusEffect } from "@react-navigation/native";
+import SearchBar from "../../components/common/SearchBar";
 
 interface Flock {
     flockId: string;
@@ -54,7 +55,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     const [editingSchedule, setEditingSchedule] = useState<VaccinationSchedule | null>(null);
 
     // ===== FETCH SCHEDULES =====
-    const fetchSchedules = async (pageNumber = 1, pageSize = 10,overrideSearchKey?:string) => {
+    const fetchSchedules = async (pageNumber = 1, pageSize = 10, overrideSearchKey?: string) => {
         if (!businessUnitId) return;
         setGlobalLoading(true);
         try {
@@ -77,8 +78,6 @@ const VaccineScheduleScreen: React.FC<Props> = ({
             setGlobalLoading(false);
         }
     };
-
-    // 🔹 useFocusEffect ensures refresh on tab focus
     useFocusEffect(
         useCallback(() => {
             fetchSchedules();
@@ -100,16 +99,18 @@ const VaccineScheduleScreen: React.FC<Props> = ({
             console.error("Failed to fetch flocks:", error);
         }
     };
+    const fetchVaccines = async () => {
+        const data = await getVaccines();
+        setVaccineItems(data);
+    };
     useEffect(() => {
         fetchFlocks();
+        fetchVaccines();
     }, [businessUnitId]);
     useEffect(() => {
-        const fetchVaccines = async () => {
-            const data = await getVaccines();
-            setVaccineItems(data);
-        };
-        fetchVaccines();
-    }, []);
+        fetchSchedules(1, 10, searchText || undefined);
+    }, [searchText, selectedFlock]);
+
     const handleAddSchedule = async (data: any) => {
         if (!businessUnitId) {
             showErrorToast("Business Unit not found");
@@ -271,34 +272,12 @@ const VaccineScheduleScreen: React.FC<Props> = ({
             <View style={vsstyles.container}>
                 {/* ===== SEARCH + FLOCK DROPDOWN ===== */}
                 <View style={vsstyles.filterRow}>
-                    <View style={vsstyles.searchContainer}>
-                        <TextInput
-                            placeholder="Search vaccine..."
-                            placeholderTextColor={Theme.colors.textSecondary}
-                            value={searchText}
-                            onChangeText={setSearchText}
-                            style={vsstyles.searchInput}
+                    <View style={{ flex: 1 }}>
+                        <SearchBar
+                            placeholder="Search Ref,Flock vaccine..."
+                            initialValue={searchText}
+                            onSearch={(value) => setSearchText(value)}
                         />
-
-                        {/*  CLEAR ICON */}
-                        {searchText.length > 0 && (
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setSearchText("");
-                                    fetchSchedules();
-                                }}
-                            >
-                                <Image source={Theme.icons.close1} style={vsstyles.clearIcon} />
-                            </TouchableOpacity>
-                        )}
-
-                        {/* SEARCH ICON */}
-                        <TouchableOpacity onPress={() => fetchSchedules()}>
-                            <Image
-                                source={Theme.icons.search}
-                                style={vsstyles.searchIcon}
-                            />
-                        </TouchableOpacity>
                     </View>
                     <View style={vsstyles.dropdownWrapper}>
                         <DropDownPicker
@@ -315,7 +294,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                         />
                     </View>
                 </View>
-                {(selectedFlock || searchText) && (
+                {(selectedFlock) && (
                     <View style={vsstyles.resetRow}>
                         <TouchableOpacity onPress={() => {
                             setSelectedFlock(null);

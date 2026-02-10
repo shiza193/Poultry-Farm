@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import Theme from "../../../theme/Theme";
 import DataCard, { TableColumn } from "../../../components/customCards/DataCard";
 import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import { useBusinessUnit } from "../../../context/BusinessContext";
 import BackArrow from "../../../components/common/ScreenHeaderWithBack";
-import { getFeedRecords, FeedRecord, FeedTypeItem, getFeedTypes, AddFeedRecordPayload, addFeedRecord } from "../../../services/FeedService";
+import { getFeedRecords, FeedRecord, FeedTypeItem, getFeedTypes, AddFeedRecordPayload, addFeedRecord, deleteFeedRecord } from "../../../services/FeedService";
 import { useFocusEffect } from "@react-navigation/native";
 import { Dropdown } from "react-native-element-dropdown";
 import SearchBar from "../../../components/common/SearchBar";
@@ -13,28 +13,34 @@ import { getSuppliers } from "../../../services/VaccinationService";
 import AddModal from "../../../components/customPopups/AddModal";
 import { getFeeds } from "../../../services/FeedService";
 import { showErrorToast, showSuccessToast } from "../../../utils/AppToast";
+import ConfirmationModal from "../../../components/customPopups/ConfirmationModal";
 
 const FeedRecordScreen: React.FC = () => {
     const { businessUnitId } = useBusinessUnit();
     const [feedData, setFeedData] = useState<FeedRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchKey, setSearchKey] = useState<string>("");
-    const [suppliers, setSuppliers] = useState<
-        { label: string; value: string; isSelected?: boolean }[]
-    >([]);
     const [showFeedModal, setShowFeedModal] = useState(false);
-    const [feedItems, setFeedItems] = useState<{ label: string; value: number }[]>([]);
-    const [feedTypes, setFeedTypes] = useState<FeedTypeItem[]>([]);
-
+    const [feedGroupData, setFeedGroupData] = useState<{
+        feeds: { label: string; value: number }[];
+        feedTypes: FeedTypeItem[];
+        suppliers: { label: string; value: string; isSelected?: boolean }[];
+    }>({
+        feeds: [],
+        feedTypes: [],
+        suppliers: [],
+    });
+    const [deleteModal, setDeleteModal] = useState<{
+        visible: boolean;
+        record?: FeedRecord;
+    }>({ visible: false, record: undefined });
     const fetchFeedRecords = async (
         search: string = searchKey,
         supplierId: string | null = null
     ) => {
         try {
             if (!businessUnitId) return;
-
-            setLoading(true);
-
+            setLoading(true)
             const payload = {
                 businessUnitId,
                 pageNumber: 1,
@@ -44,8 +50,8 @@ const FeedRecordScreen: React.FC = () => {
             };
 
             const res = await getFeedRecords(payload);
-
             const mappedData = res.list.map((item: any) => ({
+                feedRecordId: item.feedRecordId,
                 feedName: item.feed,
                 feedType: item.feedType,
                 supplier: item.supplier,
@@ -67,7 +73,12 @@ const FeedRecordScreen: React.FC = () => {
             fetchSuppliers();
         }, [businessUnitId])
     );
+    const getSelectedSupplierId = () => {
+        return feedGroupData.suppliers.find(s => s.isSelected)?.value ?? null;
+    };
     const fetchSuppliers = async () => {
+        if (!businessUnitId) return;
+
         const res = await getSuppliers(businessUnitId);
         const dropdownData = res.map((s: any) => ({
             label: s.name,
@@ -75,23 +86,27 @@ const FeedRecordScreen: React.FC = () => {
             isSelected: false,
         }));
 
-        setSuppliers(dropdownData);
+        setFeedGroupData(prev => ({
+            ...prev,
+            suppliers: dropdownData,
+        }));
     };
-    const getSelectedSupplierId = () => {
-        return suppliers.find(s => s.isSelected)?.value ?? null;
+    const fetchFeedTypes = async () => {
+        const res = await getFeedTypes();
+        setFeedGroupData(prev => ({
+            ...prev,
+            feedTypes: res,
+        }));
+    };
+    const fetchFeeds = async () => {
+        const res = await getFeeds();
+        setFeedGroupData(prev => ({
+            ...prev,
+            feeds: res,
+        }));
     };
     useEffect(() => {
-        const fetchFeeds = async () => {
-            const res = await getFeeds();
-            setFeedItems(res);
-        };
         fetchFeeds();
-    }, []);
-    useEffect(() => {
-        const fetchFeedTypes = async () => {
-            const res = await getFeedTypes();
-            setFeedTypes(res);
-        };
         fetchFeedTypes();
     }, []);
     const formatDate = (d: Date | string) => {
@@ -103,14 +118,13 @@ const FeedRecordScreen: React.FC = () => {
     };
     const handleAddFeedRecords = async (data: any) => {
         if (!businessUnitId) return;
-
         try {
             setLoading(true);
             const payload: AddFeedRecordPayload = {
                 businessUnitId,
-                feedId: Number(data.feed),
-                feedTypeId: Number(data.feedType),
-                supplierId: data.supplier,
+                feedId: data.feedId!,
+                feedTypeId: data.feedTypeId!,
+                supplierId: data.supplierId || null,
                 quantity: Number(data.quantity),
                 price: Number(data.price),
                 date: formatDate(data.date),
@@ -119,23 +133,20 @@ const FeedRecordScreen: React.FC = () => {
                 isPaid: data.paymentStatus === "Paid",
             };
             console.log("Payload before API:", payload);
-
             const res = await addFeedRecord(payload);
-
             if (res.status === "Success") {
                 showSuccessToast("Feed Record Added Successfully");
             }
             setShowFeedModal(false);
             fetchFeedRecords();
         } catch (error) {
-            showErrorToast("Failed to Add feed Recordy");
+            showErrorToast("Failed to Add feed Record");
         } finally {
             setLoading(false);
         }
     };
-
     const columns: TableColumn[] = [
-        { key: "feedName", title: "FEED NAME", width: 140, isTitle: true },
+        { key: "feedName", title: "FEED NAME", width: 140, isTitle: true, showDots: true },
         { key: "feedType", title: "FEED TYPE", width: 120 },
         { key: "supplier", title: "SUPPLIER", width: 140 },
         {
@@ -176,19 +187,21 @@ const FeedRecordScreen: React.FC = () => {
                 <View style={{ width: 120, marginLeft: 10 }}>
                     <Dropdown
                         style={styles.dropdown}
-                        data={suppliers}
+                        data={feedGroupData.suppliers}
                         labelField="label"
                         valueField="value"
                         placeholder="Supplier"
-                        placeholderStyle={styles.placeholderStyle}
-                        selectedTextStyle={styles.selectedTextStyle}
-                        value={suppliers.find(s => s.isSelected)?.value}
+                        value={getSelectedSupplierId()}
                         onChange={(item) => {
-                            const updated = suppliers.map(s => ({
+                            const updated = feedGroupData.suppliers.map(s => ({
                                 ...s,
                                 isSelected: s.value === item.value,
                             }));
-                            setSuppliers(updated);
+                            setFeedGroupData(prev => ({
+                                ...prev,
+                                suppliers: updated,
+                            }));
+
                             fetchFeedRecords(searchKey, item.value);
                         }}
                     />
@@ -199,12 +212,14 @@ const FeedRecordScreen: React.FC = () => {
                 <Text
                     style={styles.resetText}
                     onPress={() => {
-                        const reset = suppliers.map(s => ({
-                            ...s,
-                            isSelected: false,
+                        setFeedGroupData(prev => ({
+                            ...prev,
+                            suppliers: prev.suppliers.map(s => ({
+                                ...s,
+                                isSelected: false,
+                            })),
                         }));
 
-                        setSuppliers(reset);
                         fetchFeedRecords("", null);
                     }}
                 >
@@ -216,6 +231,27 @@ const FeedRecordScreen: React.FC = () => {
                     columns={columns}
                     data={feedData}
                     itemsPerPage={5}
+                    renderRowMenu={(row, closeMenu) => (
+                        <View>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    // Edit logic here
+                                }}
+                            >
+                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600' }}>Edit</Text>
+                            </TouchableOpacity>
+                            <View style={styles.menuSeparator} />
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setDeleteModal({ visible: true, record: row });
+                                    closeMenu();
+                                }}
+                                style={{ marginTop: 8 }}
+                            >
+                                <Text style={{ color: 'red', fontWeight: '600' }}>Delete</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 />
             </View>
             <LoadingOverlay visible={loading} />
@@ -224,10 +260,30 @@ const FeedRecordScreen: React.FC = () => {
                 onClose={() => setShowFeedModal(false)}
                 type="Feed Record"
                 title="Add Feed Record"
-                supplierItems={suppliers}
-                feedItems={feedItems}
-                feedTypeItems={feedTypes}
+                supplierItems={feedGroupData.suppliers}
+                feedItems={feedGroupData.feeds}
+                feedTypeItems={feedGroupData.feedTypes}
                 onSave={handleAddFeedRecords}
+            />
+            <ConfirmationModal
+                type="delete"
+                visible={deleteModal.visible}
+                title={`Are you sure you want to delete this Feed Record?`}
+                onClose={() => setDeleteModal({ visible: false })}
+                onConfirm={async () => {
+                    if (!deleteModal.record) return;
+                    try {
+                        setLoading(true);
+                        await deleteFeedRecord(deleteModal.record.feedRecordId);
+                        showSuccessToast("Feed record deleted successfully");
+                        fetchFeedRecords();
+                    } catch (error) {
+                        showErrorToast("Failed to delete feed record");
+                    } finally {
+                        setLoading(false);
+                        setDeleteModal({ visible: false });
+                    }
+                }}
             />
         </View>
     );
@@ -237,14 +293,13 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Theme.colors.background,
-        marginTop: 20
     },
     filterRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 5,
-        padding: 16
+        padding: 16,marginTop:20
     },
 
     dropdown: {
@@ -268,5 +323,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         marginLeft: 250,
+    },
+    menuSeparator: {
+        height: 2,
+        backgroundColor: Theme.colors.SeparatorColor,
+        marginHorizontal: 8,
     },
 });

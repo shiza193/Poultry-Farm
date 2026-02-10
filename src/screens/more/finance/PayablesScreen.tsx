@@ -6,21 +6,21 @@ import {
     TouchableOpacity,
     Platform,
 } from "react-native";
-import DataCard, { TableColumn } from "../../components/customCards/DataCard";
-import Theme from "../../theme/Theme";
-import BackArrow from "../../components/common/ScreenHeaderWithBack";
-import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import DataCard, { TableColumn } from "../../../components/customCards/DataCard";
+import Theme from "../../../theme/Theme";
+import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import {
     getPayablesAndReceivables,
     PayablesReceivablesItem,
     PayablesReceivablesPayload,
-} from "../../services/VoucherService";
-import { useBusinessUnit } from "../../context/BusinessContext";
+} from "../../../services/VoucherService";
+import { useBusinessUnit } from "../../../context/BusinessContext";
 import { useFocusEffect } from "@react-navigation/native";
-import SearchBar from "../../components/common/SearchBar";
+import SearchBar from "../../../components/common/SearchBar";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import BackArrow from "../../../components/common/ScreenHeaderWithBack";
 
-const ReceivablesScreen = () => {
+const PayablesScreen = () => {
     const { businessUnitId } = useBusinessUnit();
     const [payables, setPayables] = useState<PayablesReceivablesItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ const ReceivablesScreen = () => {
         { key: "status", title: "TYPE", width: 80 },
         {
             key: "balance",
-            title: " BALANCE",
+            title: "PAYABLE BALANCE",
             width: 140,
             render: (val: number) => (
                 <Text>
@@ -57,7 +57,7 @@ const ReceivablesScreen = () => {
                 searchKey: searchKey || null,
                 dateTime: filterDate ? filterDate.toISOString() : new Date().toISOString(),
                 businessUnitId,
-                balanceTypeId: 2,
+                balanceTypeId: 1,
                 pageNumber: 1,
                 pageSize: 100,
             };
@@ -80,12 +80,12 @@ const ReceivablesScreen = () => {
     };
     return (
         <View style={styles.container}>
-            <BackArrow title="Receivables" showBack />
+            <BackArrow title="Payables" showBack />
 
             {/* Filters row */}
             <View style={styles.filtersRow}>
                 {/* Search bar */}
-                <View style={{ flex: 1, marginRight: 8 }}>
+                <View style={{ flex: 1, marginRight: 8, }}>
                     <SearchBar
                         placeholder="Search account..."
                         initialValue={searchKey}
@@ -94,7 +94,7 @@ const ReceivablesScreen = () => {
                 </View>
 
                 {/* Date filter + Reset button column */}
-                <View style={{ width: 120, flexDirection: "column",marginRight:10 }}>
+                <View style={{ width: 120, flexDirection: "column", marginRight: 10 }}>
                     {/* Date filter */}
                     <TouchableOpacity
                         style={styles.dateFilterContainer}
@@ -122,6 +122,7 @@ const ReceivablesScreen = () => {
                             />
                         )}
                     </TouchableOpacity>
+
                     {/* Reset filter */}
                     {filterDate && (
                         <TouchableOpacity onPress={resetFilters} style={styles.resetBtn}>
@@ -130,6 +131,7 @@ const ReceivablesScreen = () => {
                     )}
                 </View>
             </View>
+
             <View style={{ flex: 1, paddingHorizontal: 16 }}>
                 <DataCard columns={columns} data={payables} itemsPerPage={5} />
             </View>
@@ -138,7 +140,7 @@ const ReceivablesScreen = () => {
     );
 };
 
-export default ReceivablesScreen;
+export default PayablesScreen;
 
 const styles = StyleSheet.create({
     container: {

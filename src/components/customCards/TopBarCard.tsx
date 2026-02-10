@@ -232,7 +232,7 @@ clearIcon: {
     borderColor: Theme.colors.success,
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 42,
+    height: 40,
   },
  
 
@@ -241,7 +241,7 @@ clearIcon: {
   dropdown: {
     borderColor: Theme.colors.success,
     borderRadius: 8,
-    minHeight: 42,
+    minHeight: 40,
   },
   dropdownContainer: {
     borderRadius: 8,

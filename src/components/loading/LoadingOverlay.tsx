@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     height,
     top: 0,
     left: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)', // Slightly darker for better focus
+    backgroundColor: 'rgba(0,0,0,0.4)', 
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   },
   text: {
     marginTop: 15,
-    color: Theme.colors.textPrimary,
+    color: Theme.colors.primaryYellow,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

@@ -55,7 +55,7 @@ const FlockMainScreen = () => {
       case 'hospitality':
         return 'Hospitality';
       default:
-        return 'My Flocks';
+        return 'Flocks';
     }
   };
 

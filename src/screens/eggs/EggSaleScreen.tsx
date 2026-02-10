@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, TextInput, Platform } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Image, TextInput, Platform, ScrollView } from 'react-native';
 import Theme from '../../theme/Theme';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import { getEggSales, EggSale, getCustomers, addEggSale, } from '../../services/EggsService';
@@ -33,12 +33,24 @@ const EggSaleScreen: React.FC<Props> = ({
   // States
   const [eggSales, setEggSales] = useState<EggSale[]>([]);
   const [searchText, setSearchText] = useState<string>("");
-  const [CustomerValue, setCustomerValue] = useState<string | null>(null); const [customerOpen, setCustomerOpen] = useState(false);
-  const [customerItems, setCustomerItems] = useState<any[]>([]);
-  const [fromDate, setFromDate] = useState<Date | null>(null);
-  const [toDate, setToDate] = useState<Date | null>(null);
+  const [customerOpen, setCustomerOpen] = useState(false);
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
-  const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
+  const [masterData, setMasterData] = useState<{
+    selectedCustomer: string | null;
+    customerItems: { label: string; value: string }[];
+    selectedFlock: string | null;
+    flockItems: { label: string; value: string }[];
+    fromDate: Date | null;
+    toDate: Date | null;
+  }>({
+    selectedCustomer: null,
+    customerItems: [],
+    selectedFlock: null,
+    flockItems: [],
+    fromDate: null,
+    toDate: null,
+  });
+
   //TABLE COLUMNS
   const columns: TableColumn[] = [
     {
@@ -82,10 +94,11 @@ const EggSaleScreen: React.FC<Props> = ({
     setGlobalLoading(true);
     const payload = {
       businessUnitId,
-      customerId: CustomerValue,
-      from: fromDate ? fromDate.toISOString() : null,
-      to: toDate ? toDate.toISOString() : null,
-      searchKey: overrideSearchKey !== undefined ? overrideSearchKey : searchText || null,
+      customerId: masterData.selectedCustomer,
+      flockId: masterData.selectedFlock,
+      from: masterData.fromDate?.toISOString() || null,
+      to: masterData.toDate?.toISOString() || null,
+      searchKey: searchText || null,
       pageNumber: 1,
       pageSize: 10,
     };
@@ -96,25 +109,27 @@ const EggSaleScreen: React.FC<Props> = ({
   useFocusEffect(
     useCallback(() => {
       fetchEggSales();
-      setCustomerValue(null);
-      setFromDate(null);
-      setToDate(null);
+      setMasterData(prev => ({
+        ...prev,
+        selectedCustomer: null,
+        fromDate: null,
+        toDate: null,
+      }));
     }, [businessUnitId])
   );
-  useEffect(() => {
-    if (!businessUnitId) return;
-    const fetchCustomers = async () => {
-      const suppliers = await getCustomers(businessUnitId);
-      const dropdownData = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
-      setCustomerItems(dropdownData);
-    };
-    fetchCustomers();
-  }, [businessUnitId]);
+  const fetchCustomers = async () => {
+    const suppliers = await getCustomers(businessUnitId);
+    const dropdownData = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
+    setMasterData(prev => ({
+      ...prev,
+      customerItems: dropdownData,
+    }));
+  };
   useEffect(() => {
     if (businessUnitId) {
       fetchEggSales();
     }
-  }, [CustomerValue, fromDate, toDate]);
+  }, [businessUnitId, masterData.selectedCustomer, masterData.fromDate, masterData.toDate]);
 
   // ===== FETCH FLOCKS =====
   const fetchFlocks = async () => {
@@ -125,13 +140,17 @@ const EggSaleScreen: React.FC<Props> = ({
         label: f.flockRef,
         value: f.flockId,
       }));
-      setFlockItems(dropdownData);
+      setMasterData(prev => ({
+        ...prev,
+        flockItems: dropdownData,
+      }));
     } catch (error) {
       console.error("Failed to fetch flocks:", error);
     }
   };
   useEffect(() => {
     fetchFlocks();
+    fetchCustomers();
   }, [businessUnitId]);
   const handleAddEggSale = async (data: any) => {
     try {
@@ -185,7 +204,7 @@ const EggSaleScreen: React.FC<Props> = ({
               }}
             >
               <Image
-                source={Theme.icons.close1}
+                source={Theme.icons.cross}
                 style={styles.clearIcon}
               />
             </TouchableOpacity>
@@ -203,11 +222,23 @@ const EggSaleScreen: React.FC<Props> = ({
         <View style={styles.dropdownWrapper}>
           <DropDownPicker
             open={customerOpen}
-            value={CustomerValue}
-            items={customerItems}
+            value={masterData.selectedCustomer}
+            items={masterData.customerItems}
             setOpen={setCustomerOpen}
-            setValue={setCustomerValue}
-            setItems={setCustomerItems}
+            setValue={(valOrFunc) =>
+              setMasterData(prev => ({
+                ...prev,
+                selectedCustomer:
+                  typeof valOrFunc === 'function' ? valOrFunc(prev.selectedCustomer) : valOrFunc,
+              }))
+            }
+            setItems={(itemsOrFunc) =>
+              setMasterData(prev => ({
+                ...prev,
+                customerItems:
+                  typeof itemsOrFunc === 'function' ? itemsOrFunc(prev.customerItems) : itemsOrFunc,
+              }))
+            }
             placeholder="Customer"
             style={styles.dropdown}
             dropDownContainerStyle={styles.dropdownContainer}
@@ -221,36 +252,34 @@ const EggSaleScreen: React.FC<Props> = ({
           {/* FROM */}
           <TouchableOpacity
             style={styles.dateItem}
-            onPress={() => setActivePicker('from')}
-          >
+            onPress={() => setActivePicker('from')} >
             <Text style={styles.dateLabel}>From</Text>
             <Text style={styles.dateValue}>
-              {fromDate ? fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+              {masterData.fromDate ? masterData.fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
             </Text>
           </TouchableOpacity>
-
           <Text style={styles.dateDash}>—</Text>
-
           {/* TO */}
-          <TouchableOpacity
-            style={styles.dateItem}
-            onPress={() => setActivePicker('to')}
-          >
+          <TouchableOpacity style={styles.dateItem}
+            onPress={() => setActivePicker('to')} >
             <Text style={styles.dateLabel}>To</Text>
             <Text style={styles.dateValue}>
-              {toDate ? toDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+              {masterData.toDate ? masterData.toDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* RESET FILTERS */}
-        {(fromDate || toDate || CustomerValue) && (
+        {(masterData.fromDate || masterData.toDate || masterData.selectedCustomer) && (
           <TouchableOpacity
             style={styles.resetInlineBtn}
             onPress={() => {
-              setCustomerValue(null);
-              setFromDate(null);
-              setToDate(null);
+              setMasterData(prev => ({
+                ...prev,
+                selectedCustomer: null,
+                fromDate: null,
+                toDate: null,
+              }));
             }}
           >
             <Text style={styles.resetInlineText}>Reset Filters</Text>
@@ -259,38 +288,38 @@ const EggSaleScreen: React.FC<Props> = ({
       </View>
       {activePicker && (
         <DateTimePicker
-          value={activePicker === 'from' ? (fromDate || new Date()) : (toDate || new Date())}
+          value={
+            activePicker === 'from'
+              ? masterData.fromDate || new Date()
+              : masterData.toDate || new Date()
+          }
           mode="date"
           display="default"
           onChange={(event, selectedDate) => {
-            if (Platform.OS === 'android') {
-              setActivePicker(null);
-              if (event.type === 'set' && selectedDate) {
-                if (activePicker === 'from') setFromDate(selectedDate);
-                else setToDate(selectedDate);
-              }
-            } else { // iOS me
-              if (selectedDate) {
-                if (activePicker === 'from') setFromDate(selectedDate);
-                else setToDate(selectedDate);
-              }
+            if (activePicker === 'from') {
+              setMasterData(prev => ({ ...prev, fromDate: selectedDate || prev.fromDate }));
+            } else {
+              setMasterData(prev => ({ ...prev, toDate: selectedDate || prev.toDate }));
             }
+
+            if (Platform.OS === 'android') setActivePicker(null);
           }}
         />
       )}
-      <View style={{ paddingHorizontal: 16, }}>
+
+      <ScrollView style={{ paddingHorizontal: 16, }}>
         <DataCard
           columns={columns}
           data={eggSales}
-          itemsPerPage={5}
+          itemsPerPage={10}
         />
-      </View>
+      </ScrollView>
       <AddModal
         visible={openAddModal}
         title="Add Egg Sale"
         type="Egg sale"
-        customerItems={customerItems}
-        flockItems={flockItems}
+        customerItems={masterData.customerItems}
+        flockItems={masterData.flockItems}
         onClose={onCloseAddModal}
         onSave={(data) => {
           handleAddEggSale(data);

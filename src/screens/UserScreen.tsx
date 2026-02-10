@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Text,
+  ScrollView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -214,7 +215,7 @@ const UserScreen = () => {
       await deleteUser(selectedUserId);
       setUsers(prev => prev.filter(u => u.id !== selectedUserId));
       showSuccessToast('User deleted successfully');
-    } catch (error: any) { 
+    } catch (error: any) {
       const backendMessage = error?.response?.data?.message || error.message || 'Failed to delete user';
       showErrorToast(backendMessage);
     } finally {
@@ -338,11 +339,11 @@ const UserScreen = () => {
       />
 
       {tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+        <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard
             columns={columns}
             data={tableData}
-            itemsPerPage={5}
+            itemsPerPage={10}
             renderRowMenu={(row, closeMenu) => (
               <View>
                 {/* DELETE */}
@@ -352,12 +353,13 @@ const UserScreen = () => {
                     setDeleteModalVisible(true);
                     closeMenu();
                   }}
-                  style={{ paddingVertical: 10 }}
+                  style={{ paddingVertical: 5, width: 100 }}
                 >
                   <Text style={{ color: 'red', fontWeight: '600' }}>
                     Delete
                   </Text>
                 </TouchableOpacity>
+                <View style={styles.menuSeparator} />
 
                 {/* RESET PASSWORD */}
                 <TouchableOpacity
@@ -366,12 +368,13 @@ const UserScreen = () => {
                     setShowResetModal(true);
                     closeMenu();
                   }}
-                  style={{ paddingVertical: 10 }}
+                  style={{ paddingVertical: 10, width: 100 }}
                 >
-                  <Text style={{ fontWeight: '500' }}>
+                  <Text style={{ fontWeight: '500', fontSize: 13 }}>
                     Reset Password
                   </Text>
                 </TouchableOpacity>
+            <View style={styles.menuSeparator} />
 
                 {/* ASSIGN TO POULTRY */}
                 <TouchableOpacity
@@ -379,16 +382,16 @@ const UserScreen = () => {
                     handleAssignPoultry(row.raw);
                     closeMenu();
                   }}
-                  style={{ paddingVertical: 10 }}
+                  style={{ paddingVertical: 10, width: 100 }}
                 >
-                  <Text style={{ fontWeight: '500' }}>
+                  <Text style={{ fontWeight: '500', fontSize: 13 }}>
                     Assign to Poultry
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           />
-        </View>
+        </ScrollView>
       ) : (
         !loading && (
           <View style={styles.noDataContainer}>
@@ -535,7 +538,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.success,
   },
-
+  menuSeparator: {
+    height: 2,
+    backgroundColor: Theme.colors.SeparatorColor,
+    marginHorizontal: 8,
+  },
   noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
   noDataImage: {
     width: 290,
