@@ -8,6 +8,8 @@ import {
   Platform,
   Image,
 } from 'react-native';
+import { useEffect } from 'react';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Circle } from 'react-native-progress';
@@ -18,6 +20,8 @@ import { useRoute } from '@react-navigation/native';
 import Theme from '../../theme/Theme';
 import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import ExpandableCard from '../../components/common/ExpandableCard';
+import { getFlockDetail, getFlockSummary } from '../../services/FlockService';
+import LoadingOverlay from '../../components/loading/LoadingOverlay';
 
 const FlockDetailScreen = () => {
   const navigation = useNavigation();
@@ -29,71 +33,15 @@ const FlockDetailScreen = () => {
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
 
-  const [eggProductionData, setEggProductionData] = useState([
-    {
-      ref: 1,
-      unit: 'Unit 1',
-      date: '01/02/2026',
-      totalEggs: 200,
-      intactEggs: 190,
-      brokenEggs: 10,
-    },
-    {
-      ref: 2,
-      unit: 'Unit 2',
-      date: '01/02/2026',
-      totalEggs: 150,
-      intactEggs: 145,
-      brokenEggs: 5,
-    },
-  ]);
+  const [flockData, setFlockData] = useState<any>(null);
+  const [eggProductionData, setEggProductionData] = useState<any[]>([]);
+  const [feedConsumptionData, setFeedConsumptionData] = useState<any[]>([]);
+  const [vaccinationData, setVaccinationData] = useState<any[]>([]);
+  const [mortalityData, setMortalityData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const [vaccinationData, setVaccinationData] = useState([
-    {
-      ref: 1,
-      vaccinationName: 'Newcastle',
-      scheduledDate: '08/02/2026',
-      quantity: 20,
-      done: 'No',
-      raw: {},
-    },
-    {
-      ref: 2,
-      vaccinationName: 'IBD',
-      scheduledDate: '10/02/2026',
-      quantity: 20,
-      done: 'Yes',
-      raw: {},
-    },
-  ]);
-  const [mortalityData, setMortalityData] = useState([
-    {
-      expireDate: '01/02/2026',
-      mortalityQuantity: 2,
-      raw: {},
-    },
-    {
-      expireDate: '02/02/2026',
-      mortalityQuantity: 3,
-      raw: {},
-    },
-  ]);
-  const [feedConsumptionData, setFeedConsumptionData] = useState([
-    {
-      ref: 1,
-      date: '01/02/2026',
-      feedName: 'Layer Mash',
-      totalBag: 10,
-      raw: {},
-    },
-    {
-      ref: 2,
-      date: '02/02/2026',
-      feedName: 'Grower Mash',
-      totalBag: 8,
-      raw: {},
-    },
-  ]);
+  const [summaryData, setSummaryData] = useState<any>(null);
+  const [loadingSummary, setLoadingSummary] = useState<boolean>(false);
 
   const [feedCardOpen, setFeedCardOpen] = useState(false);
 
@@ -115,9 +63,6 @@ const FlockDetailScreen = () => {
       title: 'REF',
       width: 50,
       showDots: true,
-      onDotsPress: row => {
-        console.log('DOTS PRESSED', row.raw);
-      },
     },
     { key: 'unit', title: 'UNIT', width: 80 },
     { key: 'date', title: 'DATE', width: 90 },
@@ -132,9 +77,6 @@ const FlockDetailScreen = () => {
       title: 'REF',
       width: 50,
       showDots: true,
-      onDotsPress: row => {
-        console.log('Feed Dots Pressed', row.raw);
-      },
     },
     { key: 'date', title: 'Date', width: 90 },
     { key: 'feedName', title: 'Feed Name', width: 120 },
@@ -148,9 +90,6 @@ const FlockDetailScreen = () => {
       title: 'REF',
       width: 50,
       showDots: true,
-      onDotsPress: row => {
-        console.log('Vaccination Dots', row.raw);
-      },
     },
     { key: 'vaccinationName', title: 'Vaccination Name', width: 150 },
     { key: 'scheduledDate', title: 'Scheduled Date', width: 120 },
@@ -164,9 +103,6 @@ const FlockDetailScreen = () => {
       title: 'Expire Date',
       width: 140,
       showDots: true,
-      onDotsPress: row => {
-        console.log('Mortality Dots', row.raw);
-      },
     },
     {
       key: 'mortalityQuantity',
@@ -175,40 +111,114 @@ const FlockDetailScreen = () => {
     },
   ];
 
-  const initialFlockData = {
-    quantity: '200',
-    flockType: 'Layer',
-    arrivalDate: '01/02/2026',
-    gender: 'Mixed',
-    supplier: 'Local Farm',
-    averageWeight: '2.3 kg',
-    price: '$5 per bird',
-    dateOfBirth: '15/01/2026',
+  const flockId = route.params?.flockId || route.params?.flock?.id;
+
+useEffect(() => {
+  const fetchFlockData = async () => {
+    setLoading(true);
+    try {
+      const flockDetail = await getFlockDetail(flockId);
+      setFlockData(flockDetail);
+
+      const summaryResponse = await getFlockSummary(
+        flockDetail.businessUnitId,
+        fromDate?.toISOString(),
+        toDate?.toISOString(),
+        flockId,
+      );
+      setSummaryData(summaryResponse.data || summaryResponse);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const birdStats = [
-    { icon: Theme.icons.hen, label: 'Total Birds', value: 20, total: 25 },
-    { icon: Theme.icons.motality, label: 'Mortality', value: 5 },
-    { icon: Theme.icons.hospital, label: 'Hospitalized', value: 3 },
-  ];
+  fetchFlockData(); 
+}, [flockId, fromDate, toDate]);
 
-  const saleStats = [
-    { icon: Theme.icons.trend, label: 'Bird Sales', value: 20 },
-    { icon: Theme.icons.trend, label: 'Egg Sales', value: 500 },
-    { icon: Theme.icons.trend, label: 'Other Sales', value: 50 },
-  ];
 
-  const feedStats = [
-    { icon: Theme.icons.game, label: 'Available', value: 4 },
-    { icon: Theme.icons.game, label: 'Purchased', value: 9 },
-    { icon: Theme.icons.game, label: 'Consumed', value: 5 },
-  ];
+  useEffect(() => {
+    console.log('Fetching summary for flockId:', flockId);
+  }, [flockId]);
+  const birdStats = summaryData
+    ? [
+        {
+          icon: Theme.icons.hen,
+          label: 'Total Birds',
+          value: summaryData.totalBirds,
+          total: summaryData.totalRemainingBirds,
+        },
+        {
+          icon: Theme.icons.motality,
+          label: 'Mortality',
+          value: summaryData.totalMortalityBirds,
+        },
+        {
+          icon: Theme.icons.hospital,
+          label: 'Hospitalized',
+          value: summaryData.totalHospitalizedBirds,
+        },
+      ]
+    : [];
+  const saleStats = summaryData
+    ? [
+        {
+          icon: Theme.icons.trend,
+          label: 'Bird Sales',
+          value: summaryData.totalBirdsSale,
+        },
+        {
+          icon: Theme.icons.trend,
+          label: 'Egg Sales',
+          value: summaryData.totalEggSale,
+        },
+        {
+          icon: Theme.icons.trend,
+          label: 'Other Sales',
+          value: summaryData.totalOtherSale,
+        },
+      ]
+    : [];
+  const feedStats = summaryData
+    ? [
+        {
+          icon: Theme.icons.game,
+          label: 'Available',
+          value: summaryData.totalAvailableFeed,
+        },
+        {
+          icon: Theme.icons.game,
+          label: 'Purchased',
+          value: summaryData.totalPurchasedFeed,
+        },
+        {
+          icon: Theme.icons.game,
+          label: 'Consumed',
+          value: summaryData.totalFeedConsumed,
+        },
+      ]
+    : [];
 
-  const vaccineStats = [
-    { icon: Theme.icons.health, label: 'Schedule', value: 6 },
-    { icon: Theme.icons.health, label: 'Available', value: 43 },
-    { icon: Theme.icons.health, label: 'Purchased', value: 49 },
-  ];
+  const vaccineStats = summaryData
+    ? [
+        {
+          icon: Theme.icons.health,
+          label: 'Schedule',
+          value: summaryData.totalVaccineSchedule,
+        },
+        {
+          icon: Theme.icons.health,
+          label: 'Available',
+          value: summaryData.totalAvailableVaccine,
+        },
+        {
+          icon: Theme.icons.health,
+          label: 'Purchased',
+          value: summaryData.totalPurchasedVaccine,
+        },
+      ]
+    : [];
 
   const tableData = eggProductionData.map(item => ({
     ref: item.ref,
@@ -310,6 +320,12 @@ const FlockDetailScreen = () => {
         title={flock ? `${flock.ref} (${flock.breed})` : 'Flock Detail'}
         showBack
       />
+
+      <LoadingOverlay
+        visible={loadingSummary || loading}
+        text="Fetching data..."
+      />
+
       <ScrollView style={{ padding: 11 }} keyboardShouldPersistTaps="handled">
         {/* Date Picker */}
         <View style={styles.dateRow}>
@@ -349,7 +365,7 @@ const FlockDetailScreen = () => {
                 setToDate(null);
               }}
             >
-              <Text style={styles.resetInlineText}>Reset Filters</Text>
+              <Text style={styles.resetInlineText}>Reset Filter</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -389,12 +405,28 @@ const FlockDetailScreen = () => {
         <SectionDivider title="Vaccine Stats" />
         <InlineRow stats={vaccineStats} />
 
-        <SectionDivider title="Flock Egg Production" />
-        <EggsProductionCard eggs={1200} productionPercentage={95} />
-
+        <EggsProductionCard
+          eggs={summaryData?.totalEggsProduced ?? 0}
+          productionPercentage={
+            summaryData?.totalEggsProductionsPercentage ?? 0
+          }
+        />
         <ExpandableCard
           title="Flock Information"
-          initialData={initialFlockData}
+          initialData={{
+            quantity: flockData?.quantity,
+            flockType: flockData?.flockType,
+            arrivalDate: new Date(flockData?.arrivalDate).toLocaleDateString(
+              'en-GB',
+            ),
+            gender: flockData?.isHen ? 'Hen' : 'Mixed',
+            supplier: flockData?.supplier,
+            averageWeight: flockData?.weight + ' kg',
+            price: flockData?.price,
+            dateOfBirth: new Date(flockData?.dateOfBirth).toLocaleDateString(
+              'en-GB',
+            ),
+          }}
         />
 
         {/* Tabs */}
@@ -729,7 +761,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: 30, // keep left padding
+    paddingLeft: 10, // keep left padding
     paddingRight: 90, // add extra space on the right
     marginVertical: 10,
   },
@@ -740,7 +772,7 @@ const styles = StyleSheet.create({
   },
 
   resetInlineBtn: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 30,
     paddingVertical: 1,
   },
 
@@ -773,9 +805,9 @@ const styles = StyleSheet.create({
   dateValue: { fontSize: 13, color: Theme.colors.success, fontWeight: '700' },
   dateDash: { fontSize: 18, marginHorizontal: 6, color: '#9CA3AF' },
   resetInlineText: {
-    fontSize: 12,
+    fontSize: 13,
     color: Theme.colors.error,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   eggHeaderRow: {
     flexDirection: 'row',

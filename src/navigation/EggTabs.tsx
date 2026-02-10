@@ -60,11 +60,11 @@ const EggMainScreen = () => {
   const getHeaderTitle = () => {
     switch (activeTab) {
       case "sale":
-        return "Egg Sale";
+        return "Egg";
       case "stock":
-        return "Egg Stock";
+        return "Egg";
       default:
-        return "Egg Production";
+        return "Egg";
     }
   };
   const handleLogout = async () => {

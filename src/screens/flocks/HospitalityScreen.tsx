@@ -90,9 +90,6 @@ const HospitalityScreen = () => {
   // ================= UI =================
   return (
     <SafeAreaView style={styles.safeArea}>
-
-            {/* <BackArrow title="Hospitality" showBack /> */}
-
       {/* SEARCH + ACTION */}
       <View style={styles.searchRow}>
         <View style={{ flex: 1, marginRight: 8 }}>

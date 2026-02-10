@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 🔹 FLOCK SCREENS
+//  FLOCK SCREENS
 import FlocksScreen from '../screens/flocks/FlocksScreen';
 import FlocksMortalityScreen from '../screens/flocks/FlocksMortalityScreen';
 import FlockStockScreen from '../screens/flocks/FlockStockScreen';

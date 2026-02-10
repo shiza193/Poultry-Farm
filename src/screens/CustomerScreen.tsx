@@ -269,7 +269,7 @@ const CustomerScreen = () => {
     {
       key: 'status',
       title: 'STATUS',
-      width: 120,
+      width: 130,
       render: (value, row) => (
         <StatusToggle
           isActive={value}
@@ -308,18 +308,7 @@ const CustomerScreen = () => {
         </View>
       )}
       {openRowDotsId && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 225,
-            marginLeft: 23,
-            backgroundColor: Theme.colors.white,
-            borderRadius: 6,
-            elevation: 5,
-            padding: 8,
-            zIndex: 999,
-          }}
-        >
+        <View>
           <TouchableOpacity
             onPress={() => {
               setSelectedUserId(openRowDotsId);
@@ -391,15 +380,13 @@ const CustomerScreen = () => {
             renderRowMenu={(row, closeMenu) => (
               <TouchableOpacity
                 onPress={() => {
-                  setSelectedUserId(row.raw.id); // store selected user
-                  setDeleteModalVisible(true); // show confirmation modal
-                  closeMenu(); // close row dots menu
+                  setSelectedUserId(row.raw.id);
+                  setDeleteModalVisible(true);
+                  closeMenu();
                 }}
-                style={{ padding: 2 }}
+                style={{ padding: 8 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600' }}>
-                  Delete
-                </Text>
+                <Text style={{ color: 'red', fontWeight: '600' }}>Delete</Text>
               </TouchableOpacity>
             )}
           />

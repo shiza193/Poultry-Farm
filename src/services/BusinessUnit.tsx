@@ -141,7 +141,7 @@ export const getBusinessUnits = async () => {
 
 
 // ===== GET POULTRY FARM SUMMARY =====
-export const getPoultryFarmSummary = async (businessUnitId: string, from: string | null = null, to: string | null = null) => {
+export const getPoultryFarmSummary = async (businessUnitId: string,  from: string | null = null, to: string | null = null) => {
   try {
     console.log(' Fetching Poultry Farm Summary for BusinessUnit ID:', businessUnitId);
 

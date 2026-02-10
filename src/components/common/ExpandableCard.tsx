@@ -32,7 +32,7 @@ const ExpandableCard: React.FC<Props> = ({
   initialData,
   fieldsPerRow = 2,
 }) => {
-const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [data, setData] = useState(initialData);
 
@@ -81,14 +81,14 @@ const [expanded, setExpanded] = useState(false);
           <ScrollView showsVerticalScrollIndicator={false}>
             {rows.map((rowKeys, idx) => (
               <View key={idx} style={styles.row}>
-                {rowKeys.map((key) => (
+                {rowKeys.map(key => (
                   <View key={key} style={styles.fieldContainer}>
                     <Text style={styles.label}>{formatLabel(key)}</Text>
                     {editing ? (
                       <TextInput
                         style={styles.input}
                         value={data[key]}
-                        onChangeText={(text) => handleChange(key, text)}
+                        onChangeText={text => handleChange(key, text)}
                       />
                     ) : (
                       <Text style={styles.value}>{data[key]}</Text>
@@ -99,7 +99,24 @@ const [expanded, setExpanded] = useState(false);
             ))}
 
             {/* Buttons */}
+            {/* Buttons */}
             <View style={styles.buttonRow}>
+              {editing && (
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    {
+                      backgroundColor: Theme.colors.white,
+                      borderWidth: 1,
+                      borderColor: Theme.colors.buttonPrimary,
+                    },
+                  ]}
+                  onPress={handleDiscard}
+                >
+                  <Text style={styles.buttonText}>Discard</Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
                 style={[
                   styles.button,
@@ -107,22 +124,8 @@ const [expanded, setExpanded] = useState(false);
                 ]}
                 onPress={editing ? handleSave : () => setEditing(true)}
               >
-                <Text style={styles.saveText}>
-                  {editing ? 'Save' : 'Edit'}
-                </Text>
+                <Text style={styles.saveText}>{editing ? 'Save' : 'Edit'}</Text>
               </TouchableOpacity>
-
-              {editing && (
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    { backgroundColor: Theme.colors.white,borderWidth:1,borderColor:Theme.colors.buttonPrimary },
-                  ]}
-                  onPress={handleDiscard}
-                >
-                  <Text style={styles.buttonText}>Discard</Text>
-                </TouchableOpacity>
-              )}
             </View>
           </ScrollView>
         </View>
@@ -132,7 +135,7 @@ const [expanded, setExpanded] = useState(false);
 };
 
 const formatLabel = (key: string) =>
-  key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+  key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 
 const styles = StyleSheet.create({
   container: {
@@ -143,7 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.colors.borderLight,
     elevation: 4,
-    marginBottom:20,
+    marginBottom: 20,
   },
 
   header: {
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     resizeMode: 'contain',
-    tintColor:Theme.colors.blue,
+    tintColor: Theme.colors.blue,
   },
 
   content: {

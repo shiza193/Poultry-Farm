@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  LayoutChangeEvent,
+  Dimensions,
 } from 'react-native';
 import React, { useRef, useState } from 'react';
 import Theme from '../../theme/Theme';
@@ -17,49 +17,41 @@ export interface TableColumn {
   render?: (
     value: any,
     row: any,
-    index: number,
-    toggleExpand: (index: number) => void,
+    index?: number,
+    toggleExpand?: (index: number) => void,
   ) => React.ReactNode;
   isTitle?: boolean;
   titleColor?: string;
-
   showDots?: boolean;
-  onDotsPress?: (row: any) => void;
+  onDotsPress?: (row: any) => void; // ✅ added to fix TS error
 }
 
 interface DataCardProps {
   columns: TableColumn[];
   data: any[];
-  renderExpandedRow?: (row: any) => React.ReactNode;
   itemsPerPage?: number;
   onRowPress?: (row: any) => void;
-  showActions?: boolean;
-  onEdit?: (row: any) => void;
-  onDelete?: (row: any) => void;
   renderRowMenu?: (row: any, closeMenu: () => void) => React.ReactNode;
+  renderExpandedRow?: (row: any) => React.ReactNode;
 }
 
 const DataCard: React.FC<DataCardProps> = ({
   columns,
   data,
-  onRowPress,
   itemsPerPage = 10,
-  showActions = false,
-  onEdit,
-  onDelete,
-  renderExpandedRow,
+  onRowPress,
   renderRowMenu,
+  renderExpandedRow,
 }) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [floatingMenu, setFloatingMenu] = useState<any>(null);
   const [activePage, setActivePage] = useState(1);
   const [scrollX, setScrollX] = useState(0);
-  const [expandedRowIndex, setExpandedRowIndex] = useState<number | null>(null);
-
   const [contentWidth, setContentWidth] = useState(1);
   const [containerWidth, setContainerWidth] = useState(1);
-  const scrollRef = useRef<ScrollView>(null);
 
-  // dots menu state
-  const [activeRowMenu, setActiveRowMenu] = useState<number | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const dotRefs = useRef<{ [key: number]: View | null }>({});
 
   const totalRecords = data.length;
   const totalPages = Math.max(Math.ceil(totalRecords / itemsPerPage), 1);
@@ -67,9 +59,19 @@ const DataCard: React.FC<DataCardProps> = ({
     (activePage - 1) * itemsPerPage,
     activePage * itemsPerPage,
   );
+
   const isFirstPage = activePage === 1;
   const isLastPage = activePage === totalPages;
 
+  const toggleExpand = (index: number) => {
+    setExpandedIndex(prev => (prev === index ? null : index));
+  };
+
+  const containerRef = useRef<View>(null);
+
+  const hasDots = columns.some(c => c.showDots);
+
+  // Scrollbar thumb calculation
   const thumbWidth = Math.max(
     (containerWidth / contentWidth) * containerWidth,
     40,
@@ -77,12 +79,8 @@ const DataCard: React.FC<DataCardProps> = ({
   const thumbTranslateX =
     (scrollX / (contentWidth - containerWidth)) * (containerWidth - thumbWidth);
 
-  const handleActionPress = (index: number) => {
-    setExpandedRowIndex(prev => (prev === index ? null : index));
-  };
-
   return (
-    <View>
+    <View ref={containerRef}>
       {/* ===== TABLE SCROLL ===== */}
       <ScrollView
         ref={scrollRef}
@@ -96,9 +94,7 @@ const DataCard: React.FC<DataCardProps> = ({
         <View>
           {/* ===== HEADER ===== */}
           <View style={styles.headerRow}>
-            {columns.some(c => c.showDots) && (
-              <Text style={[styles.headerCell, { width: 50 }]} />
-            )}
+            {hasDots && <Text style={[styles.headerCell, { width: 50 }]} />}
             {columns.map(col => (
               <Text
                 key={col.key}
@@ -107,9 +103,6 @@ const DataCard: React.FC<DataCardProps> = ({
                 {col.title}
               </Text>
             ))}
-            {showActions && (
-              <Text style={[styles.headerCell, { width: 100 }]}>Actions</Text>
-            )}
           </View>
 
           {/* ===== ROWS ===== */}
@@ -130,41 +123,111 @@ const DataCard: React.FC<DataCardProps> = ({
             </View>
           ) : (
             paginatedData.map((row, index) => {
+              const globalIndex = (activePage - 1) * itemsPerPage + index;
               const RowWrapper = onRowPress ? TouchableOpacity : View;
 
               return (
-                <View key={index}>
+                <View key={globalIndex}>
                   <RowWrapper
                     style={styles.dataRow}
                     onPress={() => onRowPress?.(row)}
                     activeOpacity={0.7}
                   >
+                    {hasDots && (
+                      <View
+                        style={[
+                          styles.dataCell,
+                          {
+                            width: 50,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          },
+                        ]}
+                      >
+                        {(() => {
+                          const rowKey = row.id ?? globalIndex;
+                          return (
+                            <TouchableOpacity
+                              ref={ref => {
+                                dotRefs.current[rowKey] = ref;
+                              }}
+                              onPress={() => {
+                                const dotRef = dotRefs.current[rowKey];
+                                if (!dotRef || !containerRef.current) return;
+
+                                dotRef.measureLayout(
+                                  containerRef.current!,
+                                  (x, y, width, height) => {
+                                    setFloatingMenu({
+                                      x,
+                                      y: y + height,
+                                      row,
+                                    });
+                                  },
+                                  () => {
+                                    console.log('measureLayout failed');
+                                  },
+                                );
+                              }}
+                            >
+                              <Image
+                                source={Theme.icons.dots}
+                                style={{ width: 20, height: 20 }}
+                              />
+                            </TouchableOpacity>
+                          );
+                        })()}
+                      </View>
+                    )}
+
+                    {/* CELLS */}
                     {columns.map(col => {
                       const value = row[col.key];
                       return (
                         <View
                           key={col.key}
-                          style={[styles.dataCell, { width: col.width || 120 }]}
+                          style={[
+                            styles.dataCell,
+                            {
+                              width: col.width || 120,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            },
+                          ]}
                         >
                           {col.render ? (
-                            col.render(value, row, index, () =>
-                              setExpandedRowIndex(prev =>
-                                prev === index ? null : index,
-                              ),
-                            )
+                            col.render(value, row, globalIndex, toggleExpand)
                           ) : col.isTitle ? (
-                            <Text style={styles.titleText}>{value ?? '—'}</Text>
+                            <Text
+                              style={[
+                                styles.titleText,
+                                {
+                                  color:
+                                    col.titleColor || styles.titleText.color,
+                                },
+                              ]}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {value ?? '—'}
+                            </Text>
                           ) : (
-                            <Text style={styles.cellText}>{value ?? '—'}</Text>
+                            <Text
+                              style={styles.cellText}
+                              numberOfLines={2}
+                              ellipsizeMode="tail"
+                            >
+                              {value ?? '—'}
+                            </Text>
                           )}
                         </View>
                       );
                     })}
                   </RowWrapper>
 
-                  {/* Expanded row showing all actions */}
-                  {expandedRowIndex === index && renderExpandedRow && (
-                    <View style={styles.expandedRow}>
+                  {/* 🔽 EXPANDED ROW */}
+                  {expandedIndex === globalIndex && renderExpandedRow && (
+                    <View style={{ paddingVertical: 10 }}>
                       {renderExpandedRow(row)}
                     </View>
                   )}
@@ -174,6 +237,36 @@ const DataCard: React.FC<DataCardProps> = ({
           )}
         </View>
       </ScrollView>
+      {floatingMenu && renderRowMenu && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999,
+          }}
+          activeOpacity={1}
+          onPress={() => setFloatingMenu(null)}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              top: floatingMenu.y, 
+              left: floatingMenu.x,
+              minWidth: 120,
+              backgroundColor: Theme.colors.white,
+              borderRadius: 6,
+              elevation: 6,
+              paddingVertical: 9,
+              zIndex: 100,
+            }}
+          >
+            {renderRowMenu(floatingMenu.row, () => setFloatingMenu(null))}
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* CUSTOM SCROLLBAR */}
       <View style={styles.scrollBarTrack}>
@@ -259,19 +352,6 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.borderColor,
     paddingVertical: 10,
   },
-  expandedRow: {
-    backgroundColor: Theme.colors.lightGrey,
-    paddingVertical: 5,
-    paddingLeft: 10,
-    borderBottomWidth: 1,
-    borderColor: Theme.colors.borderColor,
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 19, // <-- space between each child
-  },
-
   dataCell: {
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
@@ -298,17 +378,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Theme.colors.buttonPrimary,
     borderRadius: 4,
-  },
-  rowDotsMenu: {
-    position: 'absolute',
-    backgroundColor: Theme.colors.white,
-    borderRadius: 6,
-    elevation: 5,
-    padding: 8,
-    zIndex: 999,
-    minWidth: 80,
-    top: 20,
-    left: 18,
   },
   paginationContainer: {
     flexDirection: 'row',

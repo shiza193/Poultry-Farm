@@ -11,11 +11,11 @@ import { CustomConstants } from "../constants/CustomConstants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ConfirmationModal from "../components/customPopups/ConfirmationModal";
 
-type TabType = "vaccination" | "schedule" | "stock";
+type TabType = "vaccinations" | "schedule" | "stock";
 
 const VaccinationMainScreen = () => {
     const navigation = useNavigation<any>();
-    const [activeTab, setActiveTab] = useState<TabType>("vaccination");
+    const [activeTab, setActiveTab] = useState<TabType>("vaccinations");
     const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
     const [openAddModal, setOpenAddModal] = useState(false);
     const [globalLoading, setGlobalLoading] = useState(false);
@@ -57,9 +57,9 @@ const VaccinationMainScreen = () => {
     const getHeaderTitle = () => {
         switch (activeTab) {
             case "schedule":
-                return "Vaccination Schedule";
+                return "Vaccinations";
             case "stock":
-                return "Vaccination Stock";
+                return "Vaccinations";
             default:
                 return "Vaccinations";
         }
@@ -121,7 +121,7 @@ const VaccinationMainScreen = () => {
                 >
                     <View style={styles.dotsMenu}>
                         {/* ADD NEW */}
-                        {(activeTab === "vaccination" || activeTab === "schedule") && (
+                        {(activeTab === "vaccinations" || activeTab === "schedule") && (
                             <TouchableOpacity
                                 style={styles.dotsMenuItemCustom}
                                 onPress={() => {
@@ -135,7 +135,7 @@ const VaccinationMainScreen = () => {
                         <View style={styles.menuSeparator} />
 
                         {/* EXPORT DATA - vaccination or stock */}
-                        {(activeTab === "vaccination" || activeTab === "stock") && (
+                        {(activeTab === "vaccinations" || activeTab === "stock") && (
                             <TouchableOpacity
                                 style={styles.dotsMenuItemCustom}
                                 onPress={() => {
@@ -191,9 +191,9 @@ const VaccinationMainScreen = () => {
             {/* TOP TOGGLE BUTTONS */}
             <View style={styles.tabContainer}>
                 <TabButton
-                    title="Vaccination"
-                    active={activeTab === "vaccination"}
-                    onPress={() => setActiveTab("vaccination")}
+                    title="Vaccinations"
+                    active={activeTab === "vaccinations"}
+                    onPress={() => setActiveTab("vaccinations")}
                 />
                 <View style={styles.separator} />
                 <TabButton

@@ -36,7 +36,6 @@ import { useNavigation } from '@react-navigation/native';
 
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
-import Header from '../../components/common/LogoHeader';
 import SearchBar from '../../components/common/SearchBar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -60,11 +59,13 @@ const FlocksScreen = () => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
 
-  // ===== FILTER STATES =====
-  const [search, setSearch] = useState('');
-  const [complete, setComplete] = useState(false);
-  const [selectedFlockId, setSelectedFlockId] = useState<string | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
+  // ===== FILTER & SEARCH STATE =====
+  const [filters, setFilters] = useState({
+    searchKey: '',
+    flockId: null as string | null,
+    supplierId: null as string | null,
+    isEnded: false,
+  });
   const [openRowDotsId, setOpenRowDotsId] = useState<string | null>(null);
 
   const [flocks, setFlocks] = useState<Flock[]>([]);
@@ -77,44 +78,32 @@ const FlocksScreen = () => {
   const [loading, setLoading] = useState(false);
 
   // ===== MODAL VISIBILITY STATES =====
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-  const [isFeedModalVisible, setIsFeedModalVisible] = useState(false);
-  const [isFCRModalVisible, setIsFCRModalVisible] = useState(false);
-  const [isMortalityModalVisible, setIsMortalityModalVisible] = useState(false);
-  const [isHospitalityModalVisible, setIsHospitalityModalVisible] =
-    useState(false);
-  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
-  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
-  // ===== SELECTED FLOCK STATES =====
+  const [modals, setModals] = useState({
+    add: false,
+    filter: false,
+    feed: false,
+    fcr: false,
+    mortality: false,
+    hospitality: false,
+    confirmDelete: false,
+    dotsMenu: false,
+  });
+
   const [selectedFlock, setSelectedFlock] = useState<Flock | null>(null);
   const [flockToDelete, setFlockToDelete] = useState<Flock | null>(null);
 
   // ===== FETCH FLOCKS BASED ON FILTERS =====
-  const fetchFlocks = async (
-    searchValue?: string,
-    filterFlock?: string,
-    filterSupplier?: string,
-    filterComplete?: boolean,
-  ) => {
+  const fetchFlocks = async () => {
     if (!businessUnitId) return;
     setLoading(true);
 
     try {
       const data = await getFlockByFilter({
         businessUnitId,
-        searchKey: searchValue ?? search,
-        isEnded:
-          filterComplete === undefined
-            ? complete
-              ? true
-              : null
-            : filterComplete === null
-            ? null
-            : filterComplete,
-
-        flockId: filterFlock || null,
-        supplierId: filterSupplier || null,
+        searchKey: filters.searchKey || null,
+        flockId: filters.flockId || null,
+        supplierId: filters.supplierId || null,
+        isEnded: filters.isEnded ? true : null,
         pageNumber: 1,
         pageSize: 10,
       });
@@ -171,6 +160,26 @@ const FlocksScreen = () => {
   }));
 
   const columns: TableColumn[] = [
+     {
+      key: 'rowAction',
+      title: 'Action',
+      width: 80,
+      render: (_v, _r, index, toggleExpand) => (
+        <TouchableOpacity
+          onPress={() => {
+            if (typeof index === 'number') {
+              toggleExpand?.(index);
+            }
+          }}
+          style={{ alignItems: 'center' }}
+        >
+          <Image
+            source={Theme.icons.dropdown}
+            style={{ width: 18, height: 18, tintColor: Theme.colors.blue }}
+          />
+        </TouchableOpacity>
+      ),
+    },
     {
       key: 'flockName',
       title: 'FLOCK NAME',
@@ -182,6 +191,7 @@ const FlocksScreen = () => {
           onPress={() =>
             navigation.navigate(CustomConstants.FLOCK_DETAIL_SCREEN, {
               flock: row.raw,
+              flockId: row.raw.flockId,
             })
           }
         >
@@ -190,11 +200,6 @@ const FlocksScreen = () => {
           </Text>
         </TouchableOpacity>
       ),
-      onDotsPress: row => {
-        setOpenRowDotsId(prev =>
-          prev === row.raw.flockId ? null : row.raw.flockId,
-        );
-      },
     },
     { key: 'supplier', title: 'SUPPLIER', width: 120 },
     { key: 'quantity', title: 'QUANTITY', width: 90 },
@@ -237,16 +242,7 @@ const FlocksScreen = () => {
     { key: 'currentQty', title: 'CURRENT', width: 110 },
     { key: 'saleQty', title: 'SALE', width: 100 },
     { key: 'arrivalDate', title: 'ARRIVAL DATE', width: 130 },
-    {
-      key: 'actions',
-      title: 'ACTIONS',
-      width: 90,
-      render: (_v, _r, index, toggleExpand) => (
-        <TouchableOpacity onPress={() => toggleExpand(index)}>
-          <Text style={styles.actionLabel}>Actions</Text>
-        </TouchableOpacity>
-      ),
-    },
+   
   ];
 
   useEffect(() => {
@@ -265,7 +261,7 @@ const FlocksScreen = () => {
       );
     };
     fetchSuppliers();
-  }, [businessUnitId]);
+  }, [businessUnitId, filters]);
 
   const AddFlock = async (data: any) => {
     const payload: AddFlockPayload = {
@@ -285,7 +281,7 @@ const FlocksScreen = () => {
     await addFlock(payload);
     fetchFlocks();
     fetchDropdownFlocks();
-    setIsAddModalVisible(false);
+    setModals(prev => ({ ...prev, add: false }));
   };
 
   const FeedEntry = async (data: any) => {
@@ -304,7 +300,7 @@ const FlocksScreen = () => {
       ),
     );
     Alert.alert('Success', 'Feed record added');
-    setIsFeedModalVisible(false);
+    setModals(prev => ({ ...prev, feed: false }));
     fetchFlocks();
   };
 
@@ -331,7 +327,7 @@ const FlocksScreen = () => {
     };
     const response = await addFlockHealthRecord(payload);
     Alert.alert('Success', response.message);
-    setIsMortalityModalVisible(false);
+    setModals(prev => ({ ...prev, mortality: false }));
     fetchFlocks();
   };
 
@@ -357,7 +353,7 @@ const FlocksScreen = () => {
     const response = await addHospitality(payload);
     Alert.alert('Success', response.message);
     fetchFlocks();
-    setIsHospitalityModalVisible(false);
+    setModals(prev => ({ ...prev, hospitality: false }));
   };
 
   const DeleteFlock = async () => {
@@ -366,46 +362,33 @@ const FlocksScreen = () => {
     await deleteFlock(flockToDelete.flockId);
     fetchFlocks();
     fetchDropdownFlocks();
-    setIsConfirmModalVisible(false);
+    setModals(prev => ({ ...prev, confirmDelete: false }));
     setFlockToDelete(null);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* <Header
-        title="My Flocks"
-        alignWithLogo
-        onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
-      /> */}
       <ScrollView>
-        {isDotsMenuVisible && (
+        {modals.dotsMenu && (
           <TouchableOpacity
             style={styles.dotsOverlay}
             activeOpacity={1}
-            onPress={() => setIsDotsMenuVisible(false)}
+            onPress={() => setModals(prev => ({ ...prev, dotsMenu: false }))}
           >
             <View style={styles.dotsMenu}>
               <TouchableOpacity
                 style={styles.dotsMenuItem}
                 onPress={() => {
-                  const newValue = !complete;
-                  setComplete(newValue);
-
-                  fetchFlocks(
-                    search,
-                    selectedFlockId ?? undefined,
-                    selectedSupplier ?? undefined,
-                    newValue,
-                  );
-
-                  setIsDotsMenuVisible(false);
+                  const newValue = !filters.isEnded;
+                  setFilters(prev => ({ ...prev, isEnded: newValue }));
+                  setModals(prev => ({ ...prev, dotsMenu: false }));
                 }}
               >
                 <View style={styles.menuItemRow}>
                   <View
                     style={[
                       styles.checkboxSmall,
-                      complete && {
+                      filters.isEnded && {
                         backgroundColor: Theme.colors.primaryYellow,
                       },
                     ]}
@@ -413,12 +396,13 @@ const FlocksScreen = () => {
                   <Text style={styles.dotsMenuText}>Complete</Text>
                 </View>
               </TouchableOpacity>
+
               {/* ===== EXPORT EXCEL / DATA ===== */}
               <TouchableOpacity
                 style={styles.dotsMenuItemCustom}
                 onPress={() => {
                   console.log('Export Data clicked');
-                  setIsDotsMenuVisible(false);
+                  setModals(prev => ({ ...prev, dotsMenu: false }));
                 }}
               >
                 <View style={styles.menuItemRowCustom}>
@@ -436,8 +420,8 @@ const FlocksScreen = () => {
               <TouchableOpacity
                 style={styles.dotsMenuItemCustom}
                 onPress={() => {
-                  setIsAddModalVisible(true);
-                  setIsDotsMenuVisible(false);
+                  setModals(prev => ({ ...prev, add: true }));
+                  setModals(prev => ({ ...prev, dotsMenu: false }));
                 }}
               >
                 <View style={styles.menuItemRowCustom}>
@@ -454,29 +438,21 @@ const FlocksScreen = () => {
             <View style={{ flex: 1 }}>
               <SearchBar
                 placeholder="Search Flock..."
-                initialValue={search}
+                initialValue={filters.searchKey}
                 onSearch={value => {
-                  setSearch(value);
-                  fetchFlocks(
-                    value,
-                    selectedFlockId ?? undefined,
-                    selectedSupplier ?? undefined,
-                    complete,
-                  );
+                  setFilters(prev => ({ ...prev, searchKey: value }));
                 }}
               />
             </View>
-
             <TouchableOpacity
               style={styles.filterBtn}
-              onPress={() => setIsFilterModalVisible(true)}
+              onPress={() => setModals(prev => ({ ...prev, filter: true }))}
             >
               <Image source={Theme.icons.filter} style={styles.filterIcon} />
             </TouchableOpacity>
           </View>
 
           {/* ===== FLOCK LIST ===== */}
-
           {loading ? (
             <ActivityIndicator
               size="large"
@@ -487,100 +463,13 @@ const FlocksScreen = () => {
               <Image source={Theme.icons.nodata} style={styles.noDataImage} />
             </View>
           ) : (
-            <View style={{ flex: 1, paddingHorizontal: 9 }}>
-              {/* <DataCard
-                columns={columns}
-                data={tableData}
-                renderRowMenu={(row, closeMenu) => {
-                  const f = row.raw;
-                  return (
-                    <ScrollView>
-                 
-                      {!f.isEnded && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setSelectedFlock(f);
-                            setIsFeedModalVisible(true);
-                            closeMenu();
-                          }}
-                        >
-                          <Text style={styles.menuItem}>Feed</Text>
-                        </TouchableOpacity>
-                      )}
-
-             
-                      {!f.isEnded && f.remainingQuantity > 0 && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setSelectedFlock(f);
-                            setIsFCRModalVisible(true);
-                            closeMenu();
-                          }}
-                        >
-                          <Text style={styles.menuItem}>FCR</Text>
-                        </TouchableOpacity>
-                      )}
-
-          
-                      {!f.isEnded && f.remainingQuantity > 0 && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setSelectedFlock(f);
-                            setIsMortalityModalVisible(true);
-                            closeMenu();
-                          }}
-                        >
-                          <Text style={styles.menuItem}>Mortality</Text>
-                        </TouchableOpacity>
-                      )}
-
-        
-                      {!f.isEnded && f.remainingQuantity > 0 && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setSelectedFlock(f);
-                            setIsHospitalityModalVisible(true);
-                            closeMenu();
-                          }}
-                        >
-                          <Text style={styles.menuItem}>Hospitality</Text>
-                        </TouchableOpacity>
-                      )}
-
-           
-                      {!f.isEnded && (
-                        <TouchableOpacity
-                          onPress={async () => {
-                            await updateFlockIsEnded(f.flockId, true);
-                            fetchFlocks();
-                            closeMenu();
-                          }}
-                        >
-                          <Text style={styles.menuItem}>Complete</Text>
-                        </TouchableOpacity>
-                      )}
-
-        
-                      <TouchableOpacity
-                        onPress={() => {
-                          setFlockToDelete(f);
-                          setIsConfirmModalVisible(true);
-                          closeMenu();
-                        }}
-                      >
-                        <Text style={[styles.menuItem, { color: 'red' }]}>
-                          Delete
-                        </Text>
-                      </TouchableOpacity>
-                    </ScrollView>
-                  );
-                }}
-              /> */}
+            <View style={{ flex: 1, paddingHorizontal: 11 }}>
               <DataCard
                 columns={columns}
                 data={tableData}
                 renderExpandedRow={row => {
                   const f = row.raw;
+
                   const actions = [
                     {
                       label: 'Feed',
@@ -589,7 +478,7 @@ const FlocksScreen = () => {
                       show: !f.isEnded,
                       onPress: () => {
                         setSelectedFlock(f);
-                        setIsFeedModalVisible(true);
+                        setModals(prev => ({ ...prev, feed: true }));
                       },
                     },
                     {
@@ -599,7 +488,7 @@ const FlocksScreen = () => {
                       show: !f.isEnded && f.remainingQuantity > 0,
                       onPress: () => {
                         setSelectedFlock(f);
-                        setIsFCRModalVisible(true);
+                        setModals(prev => ({ ...prev, fcr: true }));
                       },
                     },
                     {
@@ -609,7 +498,7 @@ const FlocksScreen = () => {
                       show: !f.isEnded && f.remainingQuantity > 0,
                       onPress: () => {
                         setSelectedFlock(f);
-                        setIsMortalityModalVisible(true);
+                        setModals(prev => ({ ...prev, mortality: true }));
                       },
                     },
                     {
@@ -619,7 +508,7 @@ const FlocksScreen = () => {
                       show: !f.isEnded && f.remainingQuantity > 0,
                       onPress: () => {
                         setSelectedFlock(f);
-                        setIsHospitalityModalVisible(true);
+                        setModals(prev => ({ ...prev, hospitality: true }));
                       },
                     },
                     {
@@ -639,38 +528,41 @@ const FlocksScreen = () => {
                       show: true,
                       onPress: () => {
                         setFlockToDelete(f);
-                        setIsConfirmModalVisible(true);
+                        setModals(prev => ({ ...prev, confirmDelete: true }));
                       },
                     },
                   ];
 
                   return (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.expandedRow}
-                    >
-                      {actions
-                        .filter(a => a.show)
-                        .map((action, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            onPress={action.onPress}
-                            style={[
-                              styles.actionButton,
-                              { backgroundColor: action.color },
-                            ]}
-                          >
-                            <Image
-                              source={action.icon}
-                              style={styles.actionIcon}
-                            />
-                            <Text style={styles.actionText}>
-                              {action.label}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'flex-start',marginLeft:24, }}>
+                      {/* ACTIONS */}
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 14 }}
+                      >
+                        {actions
+                          .filter(a => a.show)
+                          .map((action, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              onPress={action.onPress}
+                              style={[
+                                styles.actionButton,
+                                { backgroundColor: action.color },
+                              ]}
+                            >
+                              <Image
+                                source={action.icon}
+                                style={styles.actionIcon}
+                              />
+                              <Text style={styles.actionText}>
+                                {action.label}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                      </ScrollView>
+                    </View>
                   );
                 }}
               />
@@ -679,71 +571,68 @@ const FlocksScreen = () => {
         </View>
 
         <AddFlockModal
-          visible={isAddModalVisible}
-          onClose={() => setIsAddModalVisible(false)}
+          visible={modals.add}
+          onClose={() => setModals(prev => ({ ...prev, add: false }))}
           businessUnitId={businessUnitId}
           onSave={AddFlock}
         />
 
         {/* ===== ITEM ENTRY MODALS (Feed / FCR / Mortality / Hospitality) ===== */}
         <ItemEntryModal
-          visible={isFeedModalVisible}
+          visible={modals.feed}
+          onClose={() => setModals(prev => ({ ...prev, feed: false }))}
           type="feed"
-          onClose={() => setIsFeedModalVisible(false)}
           onSave={FeedEntry}
         />
 
         <ItemEntryModal
-          visible={isFCRModalVisible}
+          visible={modals.fcr}
+          onClose={() => setModals(prev => ({ ...prev, fcr: false }))}
           type="fcr"
-          onClose={() => setIsFCRModalVisible(false)}
           onSave={FCR}
         />
 
         <ItemEntryModal
-          visible={isMortalityModalVisible}
+          visible={modals.mortality}
+          onClose={() => setModals(prev => ({ ...prev, mortality: false }))}
           type="mortality"
-          onClose={() => setIsMortalityModalVisible(false)}
           onSave={Mortality}
         />
 
         <ItemEntryModal
-          visible={isHospitalityModalVisible}
+          visible={modals.hospitality}
+          onClose={() => setModals(prev => ({ ...prev, hospitality: false }))}
           type="hospitality"
-          onClose={() => setIsHospitalityModalVisible(false)}
           onSave={Hospitality}
         />
 
         {/* ===== DELETE CONFIRMATION MODAL ===== */}
         <ConfirmationModal
+          visible={modals.confirmDelete}
+          onClose={() => setModals(prev => ({ ...prev, confirmDelete: false }))}
           type="delete"
           title={`Are you sure you want to delete flock ${flockToDelete?.ref}?`}
-          visible={isConfirmModalVisible}
-          onClose={() => setIsConfirmModalVisible(false)}
           onConfirm={DeleteFlock}
         />
 
         {/* ===== FILTER MODAL ===== */}
         <BusinessUnitModal
-          visible={isFilterModalVisible}
-          onClose={() => setIsFilterModalVisible(false)}
+          visible={modals.filter}
+          onClose={() => setModals(prev => ({ ...prev, filter: false }))}
           mode="filter"
           flockItems={dropdownItems}
           supplierItems={supplierItems}
-          selectedFlockId={selectedFlockId}
-          selectedSupplier={selectedSupplier}
-          isComplete={complete}
+          selectedFlockId={filters.flockId}
+          selectedSupplier={filters.supplierId}
+          isComplete={filters.isEnded}
           onApplyFilter={(flockId, supplierId, isComplete) => {
-            setSelectedFlockId(flockId);
-            setSelectedSupplier(supplierId);
-            setComplete(isComplete === null ? false : isComplete);
-
-            fetchFlocks(
-              undefined,
-              flockId ?? undefined,
-              supplierId ?? undefined,
-              isComplete === null ? undefined : isComplete,
-            );
+            setFilters({
+              searchKey: filters.searchKey, // keep current search
+              flockId: flockId || null,
+              supplierId: supplierId || null,
+              isEnded: isComplete ?? false,
+            });
+            setModals(prev => ({ ...prev, filter: false }));
           }}
         />
       </ScrollView>

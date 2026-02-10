@@ -137,29 +137,6 @@ const MenuListScreen = ({ navigation }: any) => {
 
       {/* -------- Menu Sections -------- */}
       <ScrollView>
-        <Section title="Flock">
-          <MenuItem
-            title="Flocks Mortality"
-            icon={Theme.icons.motality}
-            onPress={() => navigation.navigate(CustomConstants.FLOCKS_MORTALITY_SCREEN)}
-          />
-          <MenuItem
-            title="Flock Stock"
-            icon={Theme.icons.hen}
-            onPress={() => navigation.navigate(CustomConstants.FLOCK_STOCK_SCREEN)}
-          />
-          <MenuItem
-            title="Flock Sale"
-            icon={Theme.icons.receivables}
-            onPress={() => navigation.navigate(CustomConstants.FLOCK_SALE_SCREEN)}
-          />
-            <MenuItem
-            title="Flock Hospitality"
-            icon={Theme.icons.hospital}
-            onPress={() => navigation.navigate(CustomConstants.HOSPITALITY_SCREEN)}
-          />
-        </Section>
-
         <Section title="Feed">
           <MenuItem
             title="Feed Record"

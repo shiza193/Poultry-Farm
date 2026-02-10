@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: '700',
     color: Theme.colors.textPrimary,
     marginLeft: 23,

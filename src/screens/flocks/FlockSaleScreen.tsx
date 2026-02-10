@@ -105,8 +105,6 @@ const FlockSaleScreen = () => {
   // ================= UI =================
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* <BackArrow title="Flock Sale" showBack /> */}
-
       {/* ROW 1 : SEARCH + FILTER */}
       <View style={styles.topRow}>
         <View style={{ flex: 1 }}>
@@ -239,7 +237,6 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.primaryYellow,
     height: 40,
     paddingHorizontal: 16,
-
     borderRadius: 8,
     justifyContent: 'center',
   },
