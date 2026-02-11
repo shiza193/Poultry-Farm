@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
   Image,
   TouchableOpacity,
   Text,
   ScrollView
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import Header from '../components/common/LogoHeader';
 import TopBarCard from '../components/customCards/TopBarCard';
@@ -48,36 +46,29 @@ type User = {
   businessUnitId: string;
 };
 const UserScreen = () => {
-  const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   const routeBusinessUnitId = route.params?.businessUnitId ?? null;
-  const [search, setSearch] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [roleItems, setRoleItems] = useState<
     { label: string; value: string }[]
   >([]);
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [selectedBU, setSelectedBU] = useState<string | null>(
-    routeBusinessUnitId,
-  );
-  const [showAssignFarmModal, setShowAssignFarmModal] = useState(false);
+  const [groupState, setGroupState] = useState({
+    search: '',
+    status: 'all' as 'all' | 'active' | 'inactive',
+    selectedBU: routeBusinessUnitId as string | null,
+    showAddModal: false,
+    deleteModalVisible: false,
+    selectedUserId: null as string | null,
+    profileVisible: false,
+    selectedProfile: null as ProfileData | null,
+    selectedUserForReset: null as User | null,
+    showAssignFarmModal: false,
+    selectedRowUser: null as User | null,
+  });
   const [farms, setFarms] = useState<{ id: number; name: string }[]>([]);
-  const [rowModalVisible, setRowModalVisible] = useState(false);
   const [selectedRowUser, setSelectedRowUser] = useState<User | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [profileVisible, setProfileVisible] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<ProfileData | null>(
-    null,
-  );
-
-  const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(
-    null,
-  );
   const pageSize = 50;
 
   // ================= FETCH ROLES =================
@@ -104,17 +95,18 @@ const UserScreen = () => {
       setLoading(true);
 
       const payload: any = {
-        searchKey: search || null,
-        isActive: status === 'all' ? null : status === 'active',
+        searchKey: groupState.search || null,
+        isActive:
+          groupState.status === 'all'
+            ? null
+            : groupState.status === 'active',
         pageNumber: 1,
         pageSize,
       };
 
-      if (selectedBU) payload.businessUnitId = selectedBU;
-
+      if (groupState.selectedBU) payload.businessUnitId = groupState.selectedBU;
       const response = await getUsers(payload);
       const list = response?.list || [];
-
       setUsers(
         list.map((u: any) => ({
           id: u.userId,
@@ -134,18 +126,22 @@ const UserScreen = () => {
       setLoading(false);
     }
   };
-
   useFocusEffect(
     useCallback(() => {
       fetchUsers();
-    }, [search, status, selectedBU])
+    }, [groupState.search, groupState.status, groupState.selectedBU])
   );
 
   // ================= FILTER =================
   const filteredUsers = users.filter(user => {
+    // Destructure for cleaner code
+    const { search, status, selectedBU } = groupState;
+
+    // Status filter
     if (status === 'active' && !user.isActive) return false;
     if (status === 'inactive' && user.isActive) return false;
 
+    // Search filter
     if (search) {
       const q = search.toLowerCase();
       if (
@@ -154,9 +150,8 @@ const UserScreen = () => {
       )
         return false;
     }
-
+    // Business Unit filter
     if (selectedBU && user.businessUnitId !== selectedBU) return false;
-
     return true;
   });
   const tableData = filteredUsers.map(u => ({
@@ -183,11 +178,13 @@ const UserScreen = () => {
       showSuccessToast('User added successfully');
     } catch {
     } finally {
-      setShowAddModal(false);
+      setGroupState(prev => ({
+        ...prev,
+        showAddModal: false,
+      }));
       setShowDotsMenu(false);
     }
   };
-
   const handleToggleStatus = async (user: User) => {
     try {
       await changeUserStatus({
@@ -203,29 +200,38 @@ const UserScreen = () => {
         `User ${!user.isActive ? 'Activated' : 'Deactivated'} successfully`,
       );
     } catch {
-      showErrorToast('Failed to update user status');
+      // showErrorToast('Failed to update user status');
     }
   };
 
   const handleConfirmDelete = async () => {
-    if (!selectedUserId) return;
+    if (!groupState.selectedUserId) return;
 
     try {
-      await deleteUser(selectedUserId);
-      setUsers(prev => prev.filter(u => u.id !== selectedUserId));
+      await deleteUser(groupState.selectedUserId);
+      setUsers(prev =>
+        prev.filter(u => u.id !== groupState.selectedUserId)
+      );
+      setGroupState(prev => ({
+        ...prev,
+        selectedUserId: null,
+        deleteModalVisible: false,
+      }));
       showSuccessToast('User deleted successfully');
     } catch (error: any) {
       // const backendMessage = error?.response?.data?.message || error.message || 'Failed to delete user';
       // showErrorToast(backendMessage);
     } finally {
-      setDeleteModalVisible(false);
-      setSelectedUserId(null);
+      setGroupState(prev => ({
+        ...prev,
+        deleteModalVisible: false,
+        selectedUserId: null,
+      }));
     }
   }
   const handleAssignPoultry = async (user: User) => {
     try {
       setSelectedRowUser(user);
-
       const farmList = await getUserFarms(user.id);
       setFarms(
         farmList.map((f: any) => ({
@@ -236,19 +242,24 @@ const UserScreen = () => {
           userRole: f.userRole,
         })),
       );
-
-      setShowAssignFarmModal(true);
+      setGroupState(prev => ({
+        ...prev,
+        showAssignFarmModal: true,
+      }));
     } catch (error) {
       console.error(error);
       showErrorToast('Failed to fetch farms');
     } finally {
     }
   };
-  const resetFilters = () => {
-    setSearch('');
-    setStatus('all');
-    setSelectedBU(null);
-  };
+  // const resetFilters = () => {
+  //   setGroupState(prev => ({
+  //     ...prev,
+  //     search: '',
+  //     status: 'all',
+  //     selectedBU: null,
+  //   }));
+  // };
   const columns: TableColumn[] = [
     {
       key: 'name',
@@ -257,22 +268,20 @@ const UserScreen = () => {
       isTitle: true,
 
       showDots: true,
-      onDotsPress: row => {
-        setSelectedRowUser(row.raw);
-        setRowModalVisible(true);
-      },
-
       render: (value, row) => (
         <TouchableOpacity
           onPress={() => {
-            setSelectedProfile({
-              id: row.raw.id,
-              name: row.raw.name,
-              email: row.raw.email,
-              isActive: row.raw.isActive,
-              createdAt: row.raw.createdAt ?? '2026-01-20',
-            });
-            setProfileVisible(true);
+            setGroupState(prev => ({
+              ...prev,
+              selectedProfile: {
+                id: row.raw.id,
+                name: row.raw.name,
+                email: row.raw.email,
+                isActive: row.raw.isActive,
+                createdAt: row.raw.createdAt ?? '2026-01-20',
+              },
+              profileVisible: true,
+            }));
           }}
         >
           <Text style={{ fontWeight: '700', color: Theme.colors.textPrimary }}>
@@ -306,7 +315,7 @@ const UserScreen = () => {
 
   // ================= UI =================
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       {/* ===== HEADER ===== */}
       <Header
         title="Users"
@@ -318,7 +327,10 @@ const UserScreen = () => {
         <View style={styles.dotsMenu}>
           <TouchableOpacity
             onPress={() => {
-              setShowAddModal(true);
+              setGroupState(prev => ({
+                ...prev,
+                showAddModal: true,
+              }));
               setShowDotsMenu(false);
             }}
           >
@@ -328,15 +340,27 @@ const UserScreen = () => {
       )}
       {/* ===== TOP BAR ===== */}
       <TopBarCard
-        searchValue={search}
-        onSearchChange={setSearch}
-        status={status === 'all' ? null : status}
-        onStatusChange={s => setStatus(s ?? 'all')}
-        value={selectedBU}
-        onBusinessUnitChange={setSelectedBU}
-        onReset={resetFilters}
+        searchValue={groupState.search}
+        onSearchChange={text =>
+          setGroupState(prev => ({ ...prev, search: text }))
+        }
+        status={groupState.status === 'all' ? null : groupState.status}
+        onStatusChange={s =>
+          setGroupState(prev => ({ ...prev, status: s ?? 'all' }))
+        }
+        value={groupState.selectedBU}
+        onBusinessUnitChange={bu =>
+          setGroupState(prev => ({ ...prev, selectedBU: bu }))
+        }
+        onReset={() =>
+          setGroupState(prev => ({
+            ...prev,
+            search: '',
+            status: 'all',
+            selectedBU: null,
+          }))
+        }
       />
-
       {tableData.length > 0 ? (
         <ScrollView
           style={{ flex: 1, paddingHorizontal: 16 }}
@@ -351,8 +375,11 @@ const UserScreen = () => {
                 {/* DELETE */}
                 <TouchableOpacity
                   onPress={() => {
-                    setSelectedUserId(row.raw.id);
-                    setDeleteModalVisible(true);
+                    setGroupState(prev => ({
+                      ...prev,
+                      selectedUserId: row.raw.id,
+                      deleteModalVisible: true,
+                    }));
                     closeMenu();
                   }}
                   style={{ paddingVertical: 5, width: 100 }}
@@ -366,8 +393,11 @@ const UserScreen = () => {
                 {/* RESET PASSWORD */}
                 <TouchableOpacity
                   onPress={() => {
-                    setSelectedUserForReset(row.raw);
-                    setShowResetModal(true);
+                    setGroupState(prev => ({
+                      ...prev,
+                      selectedUserForReset: row.raw,
+                      showResetModal: true,
+                    }));
                     closeMenu();
                   }}
                   style={{ paddingVertical: 10, width: 110 }}
@@ -404,46 +434,51 @@ const UserScreen = () => {
 
       {/* ===== MODALS ===== */}
       <AddModal
-        visible={showAddModal}
+        visible={groupState.showAddModal}
         type="user"
         title="Add User"
         roleItems={roleItems}
-        onClose={() => setShowAddModal(false)}
+        onClose={() =>
+          setGroupState(prev => ({ ...prev, showAddModal: false }))
+        }
         onSave={handleSaveUser}
       />
 
       <ConfirmationModal
         type="delete"
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
+        visible={groupState.deleteModalVisible}
+        onClose={() =>
+          setGroupState(prev => ({
+            ...prev,
+            deleteModalVisible: false,
+            selectedUserId: null,
+          }))
+        }
         onConfirm={handleConfirmDelete}
         title="Are you sure you want to delete this user?"
       />
       <BusinessUnitModal
-        visible={showResetModal}
+        visible={!!groupState.selectedUserForReset}
         mode="reset"
-        onClose={() => {
-          setShowResetModal(false);
-          setSelectedUserForReset(null);
-        }}
+        onClose={() =>
+          setGroupState(prev => ({ ...prev, selectedUserForReset: null }))
+        }
         onResetPassword={async ({ newPassword, confirmPassword }) => {
-          if (!selectedUserForReset) return;
+          if (!groupState.selectedUserForReset) return;
 
-          // Validate passwords match
           if (newPassword !== confirmPassword) {
             showErrorToast('Passwords do not match');
             return;
           }
           try {
             await resetPassword({
-              userId: selectedUserForReset.id,
-              newPassword: newPassword,
+              userId: groupState.selectedUserForReset.id,
+              newPassword,
               conformPassword: confirmPassword,
             });
 
             showSuccessToast('Password reset successfully');
-            setShowResetModal(false);
-            setSelectedUserForReset(null);
+            setGroupState(prev => ({ ...prev, selectedUserForReset: null }));
           } catch (error) {
             console.error(error);
             showErrorToast('Failed to reset password');
@@ -451,10 +486,12 @@ const UserScreen = () => {
         }}
       />
       <AssignFarmRoleModal
-        visible={showAssignFarmModal}
+        visible={groupState.showAssignFarmModal}
         farms={farms}
         getUserRoles={getUserRoles}
-        onClose={() => setShowAssignFarmModal(false)}
+        onClose={() =>
+          setGroupState(prev => ({ ...prev, showAssignFarmModal: false }))
+        }
         onSave={async data => {
           if (!selectedRowUser) return;
 
@@ -468,7 +505,10 @@ const UserScreen = () => {
             await updateUserBusinessUnits(selectedRowUser.id, payload);
 
             showSuccessToast('Farms & roles updated successfully');
-            setShowAssignFarmModal(false);
+            setGroupState(prev => ({
+              ...prev,
+              showAssignFarmModal: false,
+            }));
             fetchUsers();
           } catch (error) {
             console.error(error);
@@ -476,36 +516,38 @@ const UserScreen = () => {
           }
         }}
       />
-      {profileVisible && selectedProfile && (
+      {groupState.profileVisible && groupState.selectedProfile && (
         <ProfileModal
-          visible={profileVisible}
+          visible={groupState.profileVisible}
           type="user"
-          data={selectedProfile}
-          onClose={() => {
-            setProfileVisible(false);
-            setSelectedProfile(null);
-          }}
+          data={groupState.selectedProfile}
+          onClose={() =>
+            setGroupState(prev => ({
+              ...prev,
+              profileVisible: false,
+              selectedProfile: null,
+            }))
+          }
           onSave={async updated => {
             try {
-              const res = await updateUser({
+              await updateUser({
                 userId: updated.id,
                 fullName: updated.name,
                 email: updated.email ?? '',
               });
 
-              // UI update
               setUsers(prev =>
-                prev.map(u =>
-                  u.id === updated.id ? { ...u, name: updated.name } : u,
-                ),
+                prev.map(u => (u.id === updated.id ? { ...u, name: updated.name } : u)),
               );
 
-              showSuccessToast(res?.message || 'Updated successfully');
+              showSuccessToast('Updated successfully');
             } catch {
-              showErrorToast('Failed to update user');
             } finally {
-              setProfileVisible(false);
-              setSelectedProfile(null);
+              setGroupState(prev => ({
+                ...prev,
+                profileVisible: false,
+                selectedProfile: null,
+              }));
             }
           }}
         />
