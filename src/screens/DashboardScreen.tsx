@@ -28,11 +28,10 @@ import BusinessUnitModal from '../components/customPopups/BusinessUnitModal';
 import AddModal from '../components/customPopups/AddModal';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { CustomConstants } from '../constants/CustomConstants';
-import { showSuccessToast } from '../utils/AppToast';
+import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 import { addUser, getUserRoles } from '../services/UserScreen';
 import { useBusinessUnit } from '../context/BusinessContext';
-import  {formatDate}  from '../utils/validation';
-
+import { formatDate } from '../utils/validation';
 
 interface FarmData {
   id: string;
@@ -53,27 +52,34 @@ type ModalType =
 
 const DashboardScreen = () => {
   const { setBusinessUnitId, setFarmName, setFarmLocation } = useBusinessUnit();
-
   const navigation = useNavigation<any>();
   const [activeBusinessUnitId, setActiveBusinessUnitId] = useState<
     string | null
-  >(null);
-  const [loading, setLoading] = useState(true);
-  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  >(null); //for Add User / Add Employee
+  const [loading, setLoading] = useState(true); //for LoadingOverlay.
+  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false); //for dots menu toggle.
+  const [activeModal, setActiveModal] = useState<ModalType>(null); //Drives all modals now (logout, delete, add/edit farm, add user/employee).
   const [roleItems, setRoleItems] = useState<
     { label: string; value: string }[]
-  >([]);
-  const [editingFarm, setEditingFarm] = useState<FarmData | null>(null);
-  const [selectedFarm, setSelectedFarm] = useState<FarmData | null>(null);
-  const [farms, setFarms] = useState<FarmData[]>([]);
+  >([]); //for Add User modal dropdown.
+  const [editingFarm, setEditingFarm] = useState<FarmData | null>(null); // for Add/Edit farm modal.
+  const [selectedFarm, setSelectedFarm] = useState<FarmData | null>(null); // for Delete farm confirmation.
+  const [farms, setFarms] = useState<FarmData[]>([]); // Main data source for FarmCard list.
 
   // ===== LOAD FARMS =====
   const fetchFarms = async () => {
     try {
       setLoading(true);
       const data = await getAllBusinessUnits();
-
+      // ===== CHECK IF DATA EXISTS AND IS AN ARRAY =====
+      if (!data || !Array.isArray(data)) {
+        showErrorToast(
+          'Invalid Data',
+          'Failed to load farms. Data format is incorrect.',
+        );
+        setFarms([]); // reset to empty array
+        return;
+      }
       const mappedFarms = data.map((item: any) => mapBusinessUnitToFarm(item));
 
       setFarms(mappedFarms);
@@ -89,10 +95,11 @@ const DashboardScreen = () => {
       fetchFarms();
     }, []),
   );
-  // ===== LOAD ROLES =====
+
   useEffect(() => {
     fetchUserRoles();
   }, []);
+  //[] dependency array: sirf component mount hone par ye execute hoga.
 
   const Logout = async () => {
     try {
@@ -106,17 +113,17 @@ const DashboardScreen = () => {
       console.log('Logout failed', error);
     }
   };
-
+  // helper function hai jo API se aaye data ko FarmData format me convert karta hai.
   const mapBusinessUnitToFarm = (
     item: any,
     defaults?: { users?: number; employees?: number },
   ): FarmData => ({
-    id: item.businessUnitId,
-    businessUnitId: item.businessUnitId,
+    id: item.businessUnitId, // unique identifier for React & local state
+    businessUnitId: item.businessUnitId, // API reference
     title: item.name,
     location: item.location,
-    users: defaults?.users ?? item.totalUser ?? 0,
-    employees: defaults?.employees ?? item.totalEmployee ?? 0,
+    users: defaults?.users ?? item.totalUser,
+    employees: defaults?.employees ?? item.totalEmployee,
   });
 
   const fetchUserRoles = async () => {
@@ -132,40 +139,40 @@ const DashboardScreen = () => {
       console.log('Failed to load user roles', error);
     }
   };
-const AddEmployeeFromDashboard = async (data: any) => {
-  if (!activeBusinessUnitId) {
-    console.log('No business unit selected!');
-    return;
-  }
+  const AddEmployeeFromDashboard = async (data: any) => {
+    if (!activeBusinessUnitId) {
+      showErrorToast('No business unit selected!');
+      return;
+    }
 
-  try {
-    const payload = {
-      name: data.name,
-      employeeTypeId: data.type,
-      joiningDate: formatDate(data.joiningDate),
-      salary: Number(data.salary),
-      endDate: data.endDate ? formatDate(data.endDate) : null,
-      businessUnitId: activeBusinessUnitId,
-    };
+    try {
+      const payload = {
+        name: data.name,
+        employeeTypeId: data.type,
+        joiningDate: formatDate(data.joiningDate),
+        salary: Number(data.salary),
+        endDate: data.endDate ? formatDate(data.endDate) : null,
+        businessUnitId: activeBusinessUnitId,
+      };
 
-    await addEmployee(payload);
+      await addEmployee(payload);
 
-    setFarms(prev =>
-      prev.map(farm =>
-        farm.businessUnitId === activeBusinessUnitId
-          ? { ...farm, employees: farm.employees + 1 }
-          : farm,
-      ),
-    );
+      setFarms(prev =>
+        prev.map(farm =>
+          farm.businessUnitId === activeBusinessUnitId
+            ? { ...farm, employees: farm.employees + 1 }
+            : farm,
+        ),
+      );
 
-    showSuccessToast('Employee added successfully');
-  } catch (error: any) {
-    console.log('Failed to add employee', error);
-  } finally {
-    setActiveModal(null);
-    setActiveBusinessUnitId(null);
-  }
-};
+      showSuccessToast('Employee added successfully');
+    } catch (error: any) {
+      console.log('Failed to add employee', error);
+    } finally {
+      setActiveModal(null);
+      setActiveBusinessUnitId(null);
+    }
+  };
   // ===== ADD / EDIT FARM =====
   const handleAddFarm = () => {
     setEditingFarm(null);
@@ -186,6 +193,7 @@ const AddEmployeeFromDashboard = async (data: any) => {
       setFarms(prev =>
         prev.filter(f => f.businessUnitId !== selectedFarm.businessUnitId),
       );
+      showSuccessToast('Farm Deteted successfully');
     } catch (error) {
       console.log('Delete failed', error);
     } finally {
@@ -207,6 +215,7 @@ const AddEmployeeFromDashboard = async (data: any) => {
       };
 
       if (editingFarm?.businessUnitId) {
+        // ===== EDIT =====
         const res = await updateBusinessUnit(
           editingFarm.businessUnitId,
           payload,
@@ -215,17 +224,17 @@ const AddEmployeeFromDashboard = async (data: any) => {
         setFarms(prev =>
           prev.map(f =>
             f.businessUnitId === editingFarm.businessUnitId
-              ? {
-                  ...f,
-                  title: res.data?.name ?? f.title,
-                  location: res.data?.location ?? f.location,
-                }
+              ? mapBusinessUnitToFarm(res.data, {
+                  users: f.users,
+                  employees: f.employees,
+                })
               : f,
           ),
         );
 
         showSuccessToast('Success', 'Farm updated successfully');
       } else {
+        // ===== ADD NEW =====
         const res = await addBusinessUnit(payload);
         setFarms(prev => [
           ...prev,
@@ -235,54 +244,51 @@ const AddEmployeeFromDashboard = async (data: any) => {
         showSuccessToast('Success', 'Farm added successfully');
       }
     } catch (error: any) {
-      // showErrorToast(
-      //   'Error',
-      //   error.response?.data?.message || 'Something went wrong',
-      // );
+      console.log('Failed to save farm', error);
+      // Optionally show error toast
+      // showErrorToast('Error', error.response?.data?.message || 'Something went wrong');
     } finally {
       setActiveModal(null);
-      setEditingFarm(null); // for business modal
+      setEditingFarm(null); // reset modal state
     }
   };
 
- const SaveUser = async (data: {
-  name: string;
-  role: string;
-  email: string;
-  password: string;
-}) => {
-  try {
-    const roleObj = roleItems.find(r => r.value === data.role);
-    if (!roleObj || !activeBusinessUnitId) return;
+  const SaveUser = async (data: {
+    name: string;
+    role: string;
+    email: string;
+    password: string;
+  }) => {
+    try {
+      const roleObj = roleItems.find(r => r.value === data.role);
+      if (!roleObj || !activeBusinessUnitId) return;
 
-    const payload = {
-      fullName: data.name,
-      email: data.email,
-      password: data.password,
-      userRoleId: Number(roleObj.value),
-      businessUnitId: activeBusinessUnitId,
-    };
+      const payload = {
+        fullName: data.name,
+        email: data.email,
+        password: data.password,
+        userRoleId: Number(roleObj.value),
+        businessUnitId: activeBusinessUnitId,
+      };
 
-    await addUser(payload);
+      await addUser(payload);
 
- 
-    setFarms(prev =>
-      prev.map(farm =>
-        farm.businessUnitId === activeBusinessUnitId
-          ? { ...farm, users: farm.users + 1 }
-          : farm,
-      ),
-    );
+      setFarms(prev =>
+        prev.map(farm =>
+          farm.businessUnitId === activeBusinessUnitId
+            ? { ...farm, users: farm.users + 1 }
+            : farm,
+        ),
+      );
 
-    showSuccessToast('User added successfully');
-  } catch (error) {
-    console.log('Add user failed', error);
-  } finally {
-    setActiveModal(null);
-    setActiveBusinessUnitId(null);
-  }
-};
-
+      showSuccessToast('User added successfully');
+    } catch (error) {
+      console.log('Add user failed', error);
+    } finally {
+      setActiveModal(null);
+      setActiveBusinessUnitId(null);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -291,10 +297,10 @@ const AddEmployeeFromDashboard = async (data: any) => {
           {/* HEADER */}
           <Header
             title="Poultry Farms"
-             onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
+            onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
           />
 
-           {isDotsMenuVisible && (
+          {isDotsMenuVisible && (
             <View style={styles.dotsOverlayContainer}>
               <TouchableOpacity
                 style={styles.dotsOverlay}
@@ -334,7 +340,7 @@ const AddEmployeeFromDashboard = async (data: any) => {
               <Text style={styles.addNewFarmTitle}>Add New Farm</Text>
             </View>
           </TouchableOpacity>
-          
+
           {farms.length === 0 && !loading ? (
             <View style={styles.noDataContainer}>
               <Image source={Theme.icons.nodata} style={styles.noDataImage} />
@@ -387,18 +393,14 @@ const AddEmployeeFromDashboard = async (data: any) => {
         </ScrollView>
 
         <ConfirmationModal
-          type="logout"
-          visible={activeModal === 'logout'}
-          title="Are you sure you want to logout?"
+          visible={activeModal === 'logout' || activeModal === 'delete'}
+          title={
+            activeModal === 'logout'
+              ? 'Are you sure you want to logout?'
+              : 'Are you sure you want to delete this farm?'
+          }
           onClose={() => setActiveModal(null)}
-          onConfirm={Logout}
-        />
-
-        <ConfirmationModal
-          type="delete"
-          visible={activeModal === 'delete'}
-          onClose={() => setActiveModal(null)}
-          onConfirm={ConfirmDelete}
+          onConfirm={activeModal === 'logout' ? Logout : ConfirmDelete}
         />
 
         <BusinessUnitModal
@@ -414,22 +416,16 @@ const AddEmployeeFromDashboard = async (data: any) => {
         />
 
         <AddModal
-          type="employee"
-          title="Add Employee"
-          visible={activeModal === 'addEmployee'}
-          hidePoultryFarm={true}
+          type={activeModal === 'addEmployee' ? 'employee' : 'user'}
+          title={activeModal === 'addEmployee' ? 'Add Employee' : 'Add User'}
+          roleItems={activeModal === 'addUser' ? roleItems : undefined}
           defaultBusinessUnitId={activeBusinessUnitId}
+          visible={activeModal === 'addUser' || activeModal === 'addEmployee'}
+          hidePoultryFarm={activeModal === 'addEmployee'}
           onClose={() => setActiveModal(null)}
-          onSave={AddEmployeeFromDashboard}
-        />
-
-        <AddModal
-          type="user"
-          title="Add User"
-          visible={activeModal === 'addUser'}
-          roleItems={roleItems}
-          onClose={() => setActiveModal(null)}
-          onSave={SaveUser}
+          onSave={
+            activeModal === 'addEmployee' ? AddEmployeeFromDashboard : SaveUser
+          }
         />
 
         <LoadingOverlay visible={loading} />
