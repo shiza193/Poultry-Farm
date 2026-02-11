@@ -278,53 +278,11 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
         <LoadingOverlay visible={loading} />
 
         <Header
-          title={farmName || 'Poultry Farms'} // show farm name if available
-          onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
+          title={farmName || 'Poultry Farms'}
+          showLogout={true}
+          showAdminPortal={true}
         />
 
-        {isDotsMenuVisible && (
-          <View style={styles.dotsOverlayContainer}>
-            <TouchableOpacity
-              style={styles.dotsOverlay}
-              activeOpacity={1}
-              onPress={() => setIsDotsMenuVisible(false)}
-            />
-            <View style={styles.dotsMenu}>
-              <TouchableOpacity
-                style={styles.dotsMenuItem}
-                onPress={() => {
-                  setIsDotsMenuVisible(false);
-                  setShowLogoutModal(true);
-                }}
-              >
-                <View style={styles.menuItemRow}>
-                  <Image
-                    source={Theme.icons.logout}
-                    style={styles.menuItemIcon}
-                  />
-                  <Text style={styles.dotsMenuText}>Logout</Text>
-                </View>
-              </TouchableOpacity>
-
-              <View style={styles.menuDivider} />
-              <TouchableOpacity
-                style={styles.dotsMenuItem}
-                onPress={() => {
-                  setIsDotsMenuVisible(false);
-                  navigation.navigate(CustomConstants.DASHBOARD_TABS);
-                }}
-              >
-                <View style={styles.menuItemRow}>
-                  <Image
-                    source={Theme.icons.back}
-                    style={styles.menuItemIcon}
-                  />
-                  <Text style={styles.dotsMenuText}>Admin Portal</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
         <View style={styles.dateRow}>
           {/* LEFT : DATE RANGE */}
           <View style={styles.dateRangeContainer}>
@@ -492,14 +450,14 @@ export default DashboardDetailScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.white },
- dateRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  paddingLeft: 30,    // keep left padding
-  paddingRight: 90,  // add extra space on the right
-  marginVertical: 10,
-},
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 30,    // keep left padding
+    paddingRight: 90,  // add extra space on the right
+    marginVertical: 10,
+  },
 
 
   dateRangeContainer: {
@@ -569,7 +527,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius:20,
+    borderRadius: 20,
     marginBottom: 12,
     elevation: 3,
   },

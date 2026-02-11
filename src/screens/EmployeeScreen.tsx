@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Text,ScrollView } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Text, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 
@@ -266,11 +266,12 @@ const EmployeeScreen = () => {
       ) : (
         <Header
           title="Employees"
-          onPressDots={() => setShowDotsMenu(prev => !prev)}
+          onAddNewPress={() => setIsAddModalVisible(prev => !prev)}
+          showLogout={true}
         />
       )}
 
-      {showDotsMenu && (
+      {/* {showDotsMenu && (
         <View style={styles.dotsMenu}>
           <TouchableOpacity
             onPress={() => {
@@ -281,7 +282,7 @@ const EmployeeScreen = () => {
             <Text style={styles.menuText}>+ Add New</Text>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
 
       <TopBarCard
         searchValue={search}
@@ -309,7 +310,7 @@ const EmployeeScreen = () => {
                   closeMenu();
                 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600',fontSize:13,marginLeft:12 }}>
+                <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
                   Delete Emp
                 </Text>
               </TouchableOpacity>
@@ -347,43 +348,43 @@ const EmployeeScreen = () => {
           onClose={() => setProfileModalVisible(false)}
           type="employee"
           data={selectedEmployee}
-         onSave={async updatedData => {
-  try {
-    // Prepare payload for backend
-    const payload = {
-      name: updatedData.name,
-      businessUnitId: updatedData.businessUnitId,
-      employeeTypeId: updatedData.employeeTypeId,
-    };
+          onSave={async updatedData => {
+            try {
+              // Prepare payload for backend
+              const payload = {
+                name: updatedData.name,
+                businessUnitId: updatedData.businessUnitId,
+                employeeTypeId: updatedData.employeeTypeId,
+              };
 
-    await updateEmployee(updatedData.id!, payload);
+              await updateEmployee(updatedData.id!, payload);
 
-    // Update local state
-   setEmployees(prev =>
-  prev.map(emp =>
-    emp.employeeId === updatedData.id
-      ? {
-          ...emp,
-          name: updatedData.name!,
-          poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
-          employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
-          type: updatedData.employeeType || emp.type,
-          salary: updatedData.salary ?? emp.salary,
-          joiningDate: updatedData.joiningDate ?? emp.joiningDate,
-          endDate: updatedData.endDate ?? emp.endDate,
-        }
-      : emp,
-  ),
-);
+              // Update local state
+              setEmployees(prev =>
+                prev.map(emp =>
+                  emp.employeeId === updatedData.id
+                    ? {
+                      ...emp,
+                      name: updatedData.name!,
+                      poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
+                      employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
+                      type: updatedData.employeeType || emp.type,
+                      salary: updatedData.salary ?? emp.salary,
+                      joiningDate: updatedData.joiningDate ?? emp.joiningDate,
+                      endDate: updatedData.endDate ?? emp.endDate,
+                    }
+                    : emp,
+                ),
+              );
 
 
-    showSuccessToast('Employee updated successfully');
-    setProfileModalVisible(false);
-  } catch (error) {
-    console.error('Error updating employee:', error);
-    showErrorToast('Failed to update employee');
-  }
-}}
+              showSuccessToast('Employee updated successfully');
+              setProfileModalVisible(false);
+            } catch (error) {
+              console.error('Error updating employee:', error);
+              showErrorToast('Failed to update employee');
+            }
+          }}
 
         />
       )}

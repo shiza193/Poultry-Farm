@@ -55,13 +55,8 @@ const SupplierScreen = () => {
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
-  const [dotsMenuVisible, setDotsMenuVisible] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<User | null>(null);
   const [openProfile, setOpenProfile] = useState(false);
-
-  const [open, setOpen] = useState(false);
-  const [showDotsMenu, setShowDotsMenu] = useState(false);
-
   // All suppliers fetched from API
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -331,10 +326,11 @@ const SupplierScreen = () => {
       ) : (
         <Header
           title="Suppliers"
-          onPressDots={() => setDotsMenuVisible(prev => !prev)}
+          onAddNewPress={() => setShowAddModal(prev => !prev)}
+          showLogout={true}
         />
       )}
-
+      {/* 
       {dotsMenuVisible && (
         <View style={styles.dotsMenu}>
           <TouchableOpacity
@@ -346,20 +342,7 @@ const SupplierScreen = () => {
             <Text style={styles.menuText}>+ Add New</Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {showDotsMenu && (
-        <View style={styles.dotsMenu}>
-          <TouchableOpacity
-            onPress={() => {
-              setShowAddModal(true);
-              setShowDotsMenu(false);
-            }}
-          >
-            <Text style={styles.menuText}>+ Add New</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      )} */}
       <TopBarCard
         searchValue={search}
         onSearchChange={setSearch}

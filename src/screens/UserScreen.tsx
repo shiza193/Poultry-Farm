@@ -10,7 +10,6 @@ import {
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import Header from '../components/common/LogoHeader';
 import TopBarCard from '../components/customCards/TopBarCard';
-
 import {
   addUser,
   getUserRoles,
@@ -22,7 +21,6 @@ import {
   updateUserBusinessUnits,
   updateUser,
 } from '../services/UserScreen';
-
 import AddModal from '../components/customPopups/AddModal';
 import Theme from '../theme/Theme';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
@@ -66,8 +64,6 @@ const UserScreen = () => {
     selectedRowUser: null as User | null,
   });
   const [farms, setFarms] = useState<{ id: number; name: string }[]>([]);
-  const [selectedRowUser, setSelectedRowUser] = useState<User | null>(null);
-  const [showDotsMenu, setShowDotsMenu] = useState(false);
   const [loading, setLoading] = useState(true);
   const pageSize = 50;
 
@@ -88,12 +84,10 @@ const UserScreen = () => {
     };
     fetchRoles();
   }, []);
-
   // ================= FETCH USERS =================
   const fetchUsers = async () => {
     try {
       setLoading(true);
-
       const payload: any = {
         searchKey: groupState.search || null,
         isActive:
@@ -106,22 +100,33 @@ const UserScreen = () => {
 
       if (groupState.selectedBU) payload.businessUnitId = groupState.selectedBU;
       const response = await getUsers(payload);
+      // 🔹 Check if response exists
+      if (!response) {
+        showErrorToast("Failed to fetch users: No response from server");
+        setUsers([]);
+        return;
+      }
+      // 🔹 Check if response.list is an array
+      if (!Array.isArray(response.list)) {
+        showErrorToast(
+          `Failed to fetch users: Unexpected API response structure. Please check backend.`
+        );
+        setUsers([]);
+        return;
+      }
       const list = response?.list || [];
-      setUsers(
-        list.map((u: any) => ({
-          id: u.userId,
-          name: u.fullName,
-          email: u.email,
-          isActive: u.isActive,
-          role: u.userRole || '',
-          image: u.imageLink || '',
-          businessUnitId: u.businessUnitId || '',
-          businessUnit: u.businessUnit ?? '—',
-          createdAt: u.createdAt,
-        })),
-      );
-    } catch {
-      showErrorToast('Failed to fetch users');
+      setUsers(list.map((u: any) =>
+      ({
+        id: u.userId,
+        name: u.fullName,
+        email: u.email, isActive: u.isActive,
+        role: u.userRole || '', image: u.imageLink || '',
+        businessUnitId: u.businessUnitId || '',
+        businessUnit: u.businessUnit ?? '—',
+        createdAt: u.createdAt,
+      })),);
+    } catch (error) {
+      console.error("Fetch Users Error:", error);
     } finally {
       setLoading(false);
     }
@@ -162,29 +167,41 @@ const UserScreen = () => {
     raw: u,
   }));
   // ================= HANDLERS =================
-  const handleSaveUser = async (data: any) => {
+  const AddUser = async (data: any) => {
     try {
       const roleObj = roleItems.find(r => r.value === data.role);
       if (!roleObj) return;
 
-      await addUser({
+      const newUser = await addUser({
         fullName: data.name,
         email: data.email,
         password: data.password,
         userRoleId: Number(roleObj.value),
       });
-
-      await fetchUsers();
       showSuccessToast('User added successfully');
-    } catch {
+      setUsers(prev => [
+        ...prev,
+        {
+          id: newUser.userId,
+          name: data.name,
+          email: data.email,
+          isActive: true,
+          role: roleObj.label,
+          image: '',
+          businessUnitId: '',
+          businessUnit: '—',
+        },
+      ]);
+    } catch (error) {
+
     } finally {
       setGroupState(prev => ({
         ...prev,
         showAddModal: false,
       }));
-      setShowDotsMenu(false);
     }
   };
+
   const handleToggleStatus = async (user: User) => {
     try {
       await changeUserStatus({
@@ -204,23 +221,15 @@ const UserScreen = () => {
     }
   };
 
-  const handleConfirmDelete = async () => {
+  const UserConfirmDelete = async () => {
     if (!groupState.selectedUserId) return;
-
     try {
       await deleteUser(groupState.selectedUserId);
       setUsers(prev =>
-        prev.filter(u => u.id !== groupState.selectedUserId)
+        prev.filter(u => u.id !== groupState.selectedUserId),
       );
-      setGroupState(prev => ({
-        ...prev,
-        selectedUserId: null,
-        deleteModalVisible: false,
-      }));
       showSuccessToast('User deleted successfully');
-    } catch (error: any) {
-      // const backendMessage = error?.response?.data?.message || error.message || 'Failed to delete user';
-      // showErrorToast(backendMessage);
+    } catch (error) {
     } finally {
       setGroupState(prev => ({
         ...prev,
@@ -228,10 +237,13 @@ const UserScreen = () => {
         selectedUserId: null,
       }));
     }
-  }
-  const handleAssignPoultry = async (user: User) => {
+  };
+  const AssignPoultrytouser = async (user: User) => {
     try {
-      setSelectedRowUser(user);
+      setGroupState(prev => ({
+        ...prev,
+        selectedRowUser: user
+      }));
       const farmList = await getUserFarms(user.id);
       setFarms(
         farmList.map((f: any) => ({
@@ -252,14 +264,6 @@ const UserScreen = () => {
     } finally {
     }
   };
-  // const resetFilters = () => {
-  //   setGroupState(prev => ({
-  //     ...prev,
-  //     search: '',
-  //     status: 'all',
-  //     selectedBU: null,
-  //   }));
-  // };
   const columns: TableColumn[] = [
     {
       key: 'name',
@@ -319,25 +323,14 @@ const UserScreen = () => {
       {/* ===== HEADER ===== */}
       <Header
         title="Users"
-        // onPressDots={() => setShowDotsMenu(prev => !prev)}
+        onAddNewPress={() => {
+          setGroupState(prev => ({
+            ...prev,
+            showAddModal: true,
+          }));
+        }}
+        showLogout={true}
       />
-
-      {/* ===== DOT MENU ===== */}
-      {showDotsMenu && (
-        <View style={styles.dotsMenu}>
-          <TouchableOpacity
-            onPress={() => {
-              setGroupState(prev => ({
-                ...prev,
-                showAddModal: true,
-              }));
-              setShowDotsMenu(false);
-            }}
-          >
-            <Text style={styles.menuText}>+ Add New</Text>
-          </TouchableOpacity>
-        </View>
-      )}
       {/* ===== TOP BAR ===== */}
       <TopBarCard
         searchValue={groupState.search}
@@ -411,7 +404,7 @@ const UserScreen = () => {
                 {/* ASSIGN TO POULTRY */}
                 <TouchableOpacity
                   onPress={() => {
-                    handleAssignPoultry(row.raw);
+                    AssignPoultrytouser(row.raw);
                     closeMenu();
                   }}
                   style={{ paddingVertical: 10, width: 110 }}
@@ -441,9 +434,8 @@ const UserScreen = () => {
         onClose={() =>
           setGroupState(prev => ({ ...prev, showAddModal: false }))
         }
-        onSave={handleSaveUser}
+        onSave={AddUser}
       />
-
       <ConfirmationModal
         type="delete"
         visible={groupState.deleteModalVisible}
@@ -454,7 +446,7 @@ const UserScreen = () => {
             selectedUserId: null,
           }))
         }
-        onConfirm={handleConfirmDelete}
+        onConfirm={UserConfirmDelete}
         title="Are you sure you want to delete this user?"
       />
       <BusinessUnitModal
@@ -493,7 +485,7 @@ const UserScreen = () => {
           setGroupState(prev => ({ ...prev, showAssignFarmModal: false }))
         }
         onSave={async data => {
-          if (!selectedRowUser) return;
+          if (!groupState.selectedRowUser) return;
 
           try {
             const payload = Object.keys(data).map(farmId => ({
@@ -502,9 +494,9 @@ const UserScreen = () => {
               isChecked: data[farmId]?.checked ?? false,
             }));
 
-            await updateUserBusinessUnits(selectedRowUser.id, payload);
-
+            await updateUserBusinessUnits(groupState.selectedRowUser.id, payload);
             showSuccessToast('Farms & roles updated successfully');
+
             setGroupState(prev => ({
               ...prev,
               showAssignFarmModal: false,
@@ -512,7 +504,7 @@ const UserScreen = () => {
             fetchUsers();
           } catch (error) {
             console.error(error);
-            showErrorToast('Failed to assign farms');
+            // showErrorToast('Failed to assign farms');
           }
         }}
       />
@@ -539,8 +531,7 @@ const UserScreen = () => {
               setUsers(prev =>
                 prev.map(u => (u.id === updated.id ? { ...u, name: updated.name } : u)),
               );
-
-              showSuccessToast('Updated successfully');
+              showSuccessToast('User Updated successfully');
             } catch {
             } finally {
               setGroupState(prev => ({
@@ -552,7 +543,6 @@ const UserScreen = () => {
           }}
         />
       )}
-
       <LoadingOverlay visible={loading} />
     </View>
   );

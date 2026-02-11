@@ -189,6 +189,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Theme.colors.white,
     padding: 12,
+    zIndex: 1,
   },
 
   searchInput: {
@@ -232,10 +233,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 40,
   },
-
-
   /* DROPDOWN */
-  businessDropdown: { width: 90, zIndex: 2000 }, // decreased from 110 → smaller dropdown
+  businessDropdown: { width: 90, zIndex: 2000 }, 
   dropdown: {
     borderColor: Theme.colors.success,
     borderRadius: 8,

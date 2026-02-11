@@ -291,38 +291,8 @@ const AddEmployeeFromDashboard = async (data: any) => {
           {/* HEADER */}
           <Header
             title="Poultry Farms"
-             onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
+              showLogout={true}
           />
-
-           {isDotsMenuVisible && (
-            <View style={styles.dotsOverlayContainer}>
-              <TouchableOpacity
-                style={styles.dotsOverlay}
-                activeOpacity={1}
-                onPress={() => setIsDotsMenuVisible(false)}
-              />
-
-              {/* Actual menu */}
-              <View style={styles.dotsMenu}>
-                {/* ===== LOGOUT ITEM ===== */}
-                <TouchableOpacity
-                  style={styles.dotsMenuItem}
-                  onPress={() => {
-                    setIsDotsMenuVisible(false);
-                    setActiveModal('logout');
-                  }}
-                >
-                  <View style={styles.menuItemRow}>
-                    <Image
-                      source={Theme.icons.logout}
-                      style={styles.menuItemIcon}
-                    />
-                    <Text style={styles.dotsMenuText}>Logout</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
 
           {/* ADD FARM */}
           <TouchableOpacity

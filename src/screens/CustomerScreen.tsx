@@ -291,7 +291,9 @@ const CustomerScreen = () => {
       ) : (
         <Header
           title="Customers"
-          onPressDots={() => setShowDotsMenu(prev => !prev)}
+          onAddNewPress={() => setShowAddModal(prev => !prev)}
+          showLogout={true}
+
         />
       )}
 
@@ -304,21 +306,6 @@ const CustomerScreen = () => {
             }}
           >
             <Text style={styles.menuText}>+ Add New</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {openRowDotsId && (
-        <View>
-          <TouchableOpacity
-            onPress={() => {
-              setSelectedUserId(openRowDotsId);
-              setDeleteModalVisible(true);
-              setOpenRowDotsId(null);
-            }}
-          >
-            <Text style={{ color: 'red', fontWeight: '600' }}>
-              Delete Customer
-            </Text>
           </TouchableOpacity>
         </View>
       )}
