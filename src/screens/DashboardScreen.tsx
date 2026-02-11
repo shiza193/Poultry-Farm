@@ -59,6 +59,7 @@ const DashboardScreen = () => {
     string | null
   >(null);
   const [loading, setLoading] = useState(true);
+  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [roleItems, setRoleItems] = useState<
     { label: string; value: string }[]
@@ -131,8 +132,6 @@ const DashboardScreen = () => {
       console.log('Failed to load user roles', error);
     }
   };
-
-
 const AddEmployeeFromDashboard = async (data: any) => {
   if (!activeBusinessUnitId) {
     console.log('No business unit selected!');
@@ -167,8 +166,6 @@ const AddEmployeeFromDashboard = async (data: any) => {
     setActiveBusinessUnitId(null);
   }
 };
-
-
   // ===== ADD / EDIT FARM =====
   const handleAddFarm = () => {
     setEditingFarm(null);
@@ -294,7 +291,39 @@ const AddEmployeeFromDashboard = async (data: any) => {
           {/* HEADER */}
           <Header
             title="Poultry Farms"
+             onPressDots={() => setIsDotsMenuVisible(!isDotsMenuVisible)}
           />
+
+           {isDotsMenuVisible && (
+            <View style={styles.dotsOverlayContainer}>
+              <TouchableOpacity
+                style={styles.dotsOverlay}
+                activeOpacity={1}
+                onPress={() => setIsDotsMenuVisible(false)}
+              />
+
+              {/* Actual menu */}
+              <View style={styles.dotsMenu}>
+                {/* ===== LOGOUT ITEM ===== */}
+                <TouchableOpacity
+                  style={styles.dotsMenuItem}
+                  onPress={() => {
+                    setIsDotsMenuVisible(false);
+                    setActiveModal('logout');
+                  }}
+                >
+                  <View style={styles.menuItemRow}>
+                    <Image
+                      source={Theme.icons.logout}
+                      style={styles.menuItemIcon}
+                    />
+                    <Text style={styles.dotsMenuText}>Logout</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           {/* ADD FARM */}
           <TouchableOpacity
             style={styles.addNewFarmButton}
