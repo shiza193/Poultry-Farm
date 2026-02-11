@@ -186,7 +186,7 @@ const FlocksScreen = () => {
         >
           <Image
             source={Theme.icons.dropdown}
-            style={{ width: 18, height: 18, tintColor: Theme.colors.blue }}
+            style={{ width: 18, height: 18, tintColor: Theme.colors.success }}
           />
         </TouchableOpacity>
       ),
@@ -526,7 +526,7 @@ const FlocksScreen = () => {
               <Image source={Theme.icons.nodata} style={styles.noDataImage} />
             </View>
           ) : (
-            <View style={{ flex: 1, paddingHorizontal: 13 }}>
+            <View style={{ flex: 1, paddingHorizontal: 16 }}>
               <DataCard
                 columns={columns}
                 data={tableData}
