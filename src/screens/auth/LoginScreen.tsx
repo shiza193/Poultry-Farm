@@ -36,43 +36,39 @@ const LoginScreen = ({ navigation }: any) => {
     }
   };
 
-  AsyncStorage.getItem('token').then(t => console.log(' STORED TOKEN:', t));
-const isFormValid = email.trim().length > 0 && password.length > 0;
+  const isFormValid = email.trim().length > 0 && password.length > 0;
 
-const handleLogin = async () => {
-  Keyboard.dismiss();
+  const handleLogin = async () => {
+    Keyboard.dismiss();
 
-  if (!isValidEmail(email)) {
-    setEmailError('Enter a valid email address');
-    return;
-  }
-
-  if (!isValidPassword(password)) {
-    console.log('Invalid password');
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const res = await loginUser({ email, password });
-
-    const token = res?.token;
-    const userId = res?.userId;
-
-    if (token) {
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('userId', userId?.toString() || '');
-
-      navigation.replace(CustomConstants.DASHBOARD_TABS);
+    if (!isValidEmail(email)) {
+      setEmailError('Enter a valid email address');
+      return;
     }
-  } catch (error) {
-    console.log('Login failed', error);
-  } finally {
-    setLoading(false);
-  }
-};
 
+    if (!isValidPassword(password)) {
+      console.log('Invalid password');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await loginUser({ email, password });
+
+      const token = res?.token;
+
+      if (token) {
+        // Save only token
+        await AsyncStorage.setItem('token', token);
+        navigation.replace(CustomConstants.DASHBOARD_TABS);
+      }
+    } catch (error) {
+      console.log('Login failed', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -141,6 +137,7 @@ const handleLogin = async () => {
             style={{ marginTop: 10 }}
           />
         )}
+
         {/* Signup navigation */}
         <View style={{ flexDirection: 'row', marginTop: 20 }}>
           <Text style={{ color: '#555' }}>Not an account? </Text>

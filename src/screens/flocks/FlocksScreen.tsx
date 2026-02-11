@@ -31,7 +31,6 @@ import {
   CalculateFCRPayload,
 } from '../../services/FlockService';
 import { useNavigation } from '@react-navigation/native';
-
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
 import SearchBar from '../../components/common/SearchBar';
@@ -131,6 +130,7 @@ const FlocksScreen = () => {
     const data = await getFlocks(businessUnitId);
 
     setFilterState(prev => ({
+      //...prev.options ka matlab hai: saare existing keys aur values copy karo.
       ...prev,
       options: {
         ...prev.options,
@@ -532,7 +532,6 @@ const FlocksScreen = () => {
                 data={tableData}
                 renderExpandedRow={row => {
                   const f = row.raw;
-
                   const actions = [
                     {
                       label: 'Feed',
@@ -541,6 +540,8 @@ const FlocksScreen = () => {
                       show: !f.isEnded,
                       onPress: () => {
                         setSelectedFlock(f);
+                        // prev => existing modal states ko copy karta hai, aur sirf 'feed'
+                        //  modal ko true karke open karta hai
                         setModals(prev => ({ ...prev, feed: true }));
                       },
                     },
@@ -759,7 +760,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Theme.colors.white,
+    color: Theme.colors.black,
   },
 
   noDataContainer: {

@@ -14,7 +14,6 @@ import Header from '../components/common/LogoHeader';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import {
   deleteBusinessUnit,
   addBusinessUnit,
@@ -22,7 +21,6 @@ import {
   updateBusinessUnit,
 } from '../services/BusinessUnit';
 import { addEmployee } from '../services/EmployeeService';
-
 import Theme from '../theme/Theme';
 import FarmCard from '../components/customCards/FarmCard';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
@@ -30,7 +28,7 @@ import BusinessUnitModal from '../components/customPopups/BusinessUnitModal';
 import AddModal from '../components/customPopups/AddModal';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { CustomConstants } from '../constants/CustomConstants';
-import { showErrorToast, showSuccessToast } from '../utils/AppToast';
+import { showSuccessToast } from '../utils/AppToast';
 import { addUser, getUserRoles } from '../services/UserScreen';
 import { useBusinessUnit } from '../context/BusinessContext';
 
@@ -52,26 +50,24 @@ type User = {
   role?: string;
 };
 
+type ModalType =
+  | 'logout'
+  | 'business'
+  | 'delete'
+  | 'addUser'
+  | 'addEmployee'
+  | null;
+
 const DashboardScreen = () => {
   const { setBusinessUnitId, setFarmName, setFarmLocation } = useBusinessUnit();
 
   const navigation = useNavigation<any>();
-  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
-  const [selectedBusinessUnitForEmployee, setSelectedBusinessUnitForEmployee] =
-    useState<string | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showBusinessModal, setShowBusinessModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
-  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<
+  const [activeBusinessUnitId, setActiveBusinessUnitId] = useState<
     string | null
   >(null);
-
+  const [loading, setLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [roleItems, setRoleItems] = useState<
     { label: string; value: string }[]
   >([]);
@@ -153,6 +149,11 @@ const DashboardScreen = () => {
   };
 
   const handleAddEmployeeFromDashboard = async (data: any) => {
+    if (!activeBusinessUnitId) {
+      console.log('No business unit selected!');
+      return; // stop if null
+    }
+
     try {
       const payload = {
         name: data.name,
@@ -160,33 +161,29 @@ const DashboardScreen = () => {
         joiningDate: formatDate(data.joiningDate),
         salary: Number(data.salary),
         endDate: data.endDate ? formatDate(data.endDate) : null,
-        businessUnitId: data.poultryFarm,
+        businessUnitId: activeBusinessUnitId,
       };
 
       await addEmployee(payload);
-
       showSuccessToast('Employee added successfully');
-
       await fetchFarms();
     } catch (error: any) {
-      showErrorToast(
-        'Error',
-        error?.response?.data?.message || 'Failed to add employee',
-      );
+      console.log('Failed to add employee', error);
     } finally {
-      setShowAddEmployeeModal(false);
-      setSelectedBusinessUnitForEmployee(null);
+      setActiveModal(null);
+      setActiveBusinessUnitId(null);
     }
   };
+
   // ===== ADD / EDIT FARM =====
   const handleAddFarm = () => {
     setEditingFarm(null);
-    setShowBusinessModal(true);
+    setActiveModal('business');
   };
 
   const handleEditFarm = (farm: FarmData) => {
     setEditingFarm(farm);
-    setShowBusinessModal(true);
+    setActiveModal('business');
   };
 
   // ===== DELETE FARM =====
@@ -202,7 +199,7 @@ const DashboardScreen = () => {
       console.log('Delete failed', error);
     } finally {
       setSelectedFarm(null);
-      setShowDeleteModal(false);
+      setActiveModal(null);
     }
   };
 
@@ -247,13 +244,13 @@ const DashboardScreen = () => {
         showSuccessToast('Success', 'Farm added successfully');
       }
     } catch (error: any) {
-      showErrorToast(
-        'Error',
-        error.response?.data?.message || 'Something went wrong',
-      );
+      // showErrorToast(
+      //   'Error',
+      //   error.response?.data?.message || 'Something went wrong',
+      // );
     } finally {
-      setShowBusinessModal(false);
-      setEditingFarm(null);
+      setActiveModal(null);
+      setEditingFarm(null); // for business modal
     }
   };
 
@@ -265,43 +262,27 @@ const DashboardScreen = () => {
   }) => {
     try {
       const roleObj = roleItems.find(r => r.value === data.role);
-      if (!roleObj) {
-        showErrorToast('Invalid role selected');
-        return;
-      }
+      if (!roleObj) return;
 
       const payload = {
         fullName: data.name,
         email: data.email,
         password: data.password,
         userRoleId: Number(roleObj.value),
-        businessUnitId: selectedBusinessUnitId,
+        businessUnitId: activeBusinessUnitId,
       };
 
       await addUser(payload);
-
       await fetchFarms();
-
       showSuccessToast('User added successfully');
-    } catch (error: any) {
-      console.error(error?.response?.data);
-      showErrorToast(
-        'Error',
-        error?.response?.data?.message || 'Failed to add user',
-      );
     } finally {
-      setShowAddUserModal(false);
-      setSelectedBusinessUnitId(null);
+      setActiveModal(null);
+      setActiveBusinessUnitId(null);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        backgroundColor={Theme.colors.screenBackground}
-        barStyle="dark-content"
-      />
-
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* HEADER */}
@@ -325,7 +306,7 @@ const DashboardScreen = () => {
                   style={styles.dotsMenuItem}
                   onPress={() => {
                     setIsDotsMenuVisible(false);
-                    setShowLogoutModal(true);
+                    setActiveModal('logout');
                   }}
                 >
                   <View style={styles.menuItemRow}>
@@ -351,69 +332,76 @@ const DashboardScreen = () => {
             </View>
           </TouchableOpacity>
 
-          {/* FARM CARDS */}
-          {farms.map((farm, index) => (
-            <FarmCard
-              key={index}
-              image={Theme.icons.icon}
-              title={farm.title}
-              location={farm.location}
-              users={farm.users}
-              employees={farm.employees}
-              onUserCountPress={() =>
-                navigation.navigate('User', {
-                  businessUnitId: farm.businessUnitId,
-                })
-              }
-              onEmployeeCountPress={() =>
-                navigation.navigate('Employee', {
-                  businessUnitId: farm.businessUnitId,
-                })
-              }
-              onAddUser={() => {
-                setSelectedBusinessUnitId(farm.businessUnitId!);
-                setShowAddUserModal(true);
-              }}
-              onAddEmployee={() => {
-                setSelectedBusinessUnitForEmployee(farm.businessUnitId!);
-                setShowAddEmployeeModal(true);
-              }}
-              onEdit={() => handleEditFarm(farm)}
-              onDelete={() => {
-                setSelectedFarm(farm);
-                setShowDeleteModal(true);
-              }}
-              onPressTitle={() => {
-                if (farm.businessUnitId) {
-                  console.log('Selected farm location:', farm.location);
-                  setBusinessUnitId(farm.businessUnitId);
-                  setFarmName(farm.title);
-                  setFarmLocation(farm.location || '');
-                  navigation.navigate(CustomConstants.DASHBOARD_DETAIL_SCREEN);
+          {farms.length === 0 ? (
+            <View style={styles.noDataContainer}>
+              <Image source={Theme.icons.nofarm} style={styles.noDataImage} />
+            </View>
+          ) : (
+            farms.map((farm, index) => (
+              <FarmCard
+                key={index}
+                image={Theme.icons.icon}
+                title={farm.title}
+                location={farm.location}
+                users={farm.users}
+                employees={farm.employees}
+                onUserCountPress={() =>
+                  navigation.navigate('User', {
+                    businessUnitId: farm.businessUnitId,
+                  })
                 }
-              }}
-            />
-          ))}
+                onEmployeeCountPress={() =>
+                  navigation.navigate('Employee', {
+                    businessUnitId: farm.businessUnitId,
+                  })
+                }
+                onAddUser={() => {
+                  setActiveBusinessUnitId(farm.businessUnitId!);
+                  setActiveModal('addUser');
+                }}
+                onAddEmployee={() => {
+                  setActiveBusinessUnitId(farm.businessUnitId!);
+                  setActiveModal('addEmployee');
+                }}
+                onEdit={() => handleEditFarm(farm)}
+                onDelete={() => {
+                  setSelectedFarm(farm);
+                  setActiveModal('delete');
+                }}
+                onPressTitle={() => {
+                  if (farm.businessUnitId) {
+                    setBusinessUnitId(farm.businessUnitId);
+                    setFarmName(farm.title);
+                    setFarmLocation(farm.location || '');
+                    navigation.navigate(
+                      CustomConstants.DASHBOARD_DETAIL_SCREEN,
+                    );
+                  }
+                }}
+              />
+            ))
+          )}
         </ScrollView>
         <LoadingOverlay visible={loading} />
 
         <ConfirmationModal
           type="logout"
-          visible={showLogoutModal}
+          visible={activeModal === 'logout'}
           title="Are you sure you want to logout?"
-          onClose={() => setShowLogoutModal(false)}
+          onClose={() => setActiveModal(null)}
           onConfirm={handleLogout}
         />
 
         <ConfirmationModal
           type="delete"
-          visible={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
+          visible={activeModal === 'delete'}
+          onClose={() => setActiveModal(null)}
           onConfirm={handleConfirmDelete}
         />
+
         <BusinessUnitModal
-          visible={showBusinessModal}
-          onClose={() => setShowBusinessModal(false)}
+          visible={activeModal === 'business'}
+          onClose={() => setActiveModal(null)}
           onSave={EditSaveBusinessUnit}
           mode={editingFarm ? 'edit' : 'add'}
           initialData={
@@ -426,19 +414,19 @@ const DashboardScreen = () => {
         <AddModal
           type="employee"
           title="Add Employee"
-          visible={showAddEmployeeModal}
+          visible={activeModal === 'addEmployee'}
           hidePoultryFarm={true}
-          defaultBusinessUnitId={selectedBusinessUnitForEmployee}
-          onClose={() => setShowAddEmployeeModal(false)}
+          defaultBusinessUnitId={activeBusinessUnitId}
+          onClose={() => setActiveModal(null)}
           onSave={handleAddEmployeeFromDashboard}
         />
 
         <AddModal
           type="user"
           title="Add User"
-          visible={showAddUserModal}
+          visible={activeModal === 'addUser'}
           roleItems={roleItems}
-          onClose={() => setShowAddUserModal(false)}
+          onClose={() => setActiveModal(null)}
           onSave={handleSaveUser}
         />
       </View>
@@ -471,7 +459,7 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   noDataImage: {
-    width: '80%',
+    width: '120%',
     height: undefined,
     aspectRatio: 1,
     resizeMode: 'contain',

@@ -38,6 +38,7 @@ import {
   deleteVaccine,
   Feed,
 } from '../../services/SettingService';
+import { showSuccessToast } from '../../utils/AppToast';
 
 const tabs = ['Egg Units', 'Feed Types', 'Employee Types', 'Vaccines'];
 
@@ -210,6 +211,9 @@ const SettingsScreen = () => {
         Number((current as VaccineType).vaccineNo),
         (current as VaccineType).status === 'Inactive', 
       );
+
+        showSuccessToast('Status updated successfully');
+
   } catch {
     // 8 Agar API fail ho jaye → local state ko previous items se restore
     setItems(prev => ({ ...prev, [activeTab]: prevItems }));
@@ -249,6 +253,9 @@ const SettingsScreen = () => {
         await deleteEmployeeType(deleteItem.id as number);
       else if (deleteItem.type === 'Vaccines')
         await deleteVaccine(deleteItem.id as number);
+      
+        showSuccessToast('Deleted successfully');
+
     } catch {
       setItems(prev => ({ ...prev, [deleteItem.type]: prevItems }));
     }
