@@ -22,16 +22,16 @@ import { CustomConstants } from '../constants/CustomConstants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
 
-const DashboardDetailScreen = ({ navigation, route }: any) => {
-  const { businessUnitId, farmName, farmLocation } = useBusinessUnit();
+const DashboardDetailScreen = ({ navigation }: any) => {
+  const { businessUnitId, farmName } = useBusinessUnit();
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
-  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showToPicker, setShowToPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
+
   const fetchData = async () => {
     if (!businessUnitId) return;
 
@@ -43,7 +43,6 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
       toDate?.toISOString() || null,
     );
 
-    console.log('===== POULTRY FARM SUMMARY =====');
     console.log('Total Birds:', res?.totalBirds);
     console.log('Remaining Birds:', res?.totalRemainingBirds);
     console.log('Total Eggs Produced:', res?.totalEggsProduced);
@@ -275,8 +274,6 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView>
-        <LoadingOverlay visible={loading} />
-
         <Header
           title={farmName || 'Poultry Farms'}
           showLogout={true}
@@ -289,7 +286,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
             {/* FROM */}
             <TouchableOpacity
               style={styles.dateItem}
-              onPress={() => setShowFromPicker(true)}
+              onPress={() => setActivePicker('from')}
             >
               <Text style={styles.dateLabel}>From</Text>
               <Text style={styles.dateValue}>
@@ -302,7 +299,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
             {/* TO */}
             <TouchableOpacity
               style={styles.dateItem}
-              onPress={() => setShowToPicker(true)}
+              onPress={() => setActivePicker('to')}
             >
               <Text style={styles.dateLabel}>To</Text>
               <Text style={styles.dateValue}>
@@ -310,7 +307,6 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
               </Text>
             </TouchableOpacity>
           </View>
-
           {/* RIGHT : RESET */}
           {(fromDate || toDate) && (
             <TouchableOpacity
@@ -324,43 +320,27 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
             </TouchableOpacity>
           )}
         </View>
-
         {/* Pickers */}
-        {showFromPicker && (
+        {activePicker && (
           <DateTimePicker
-            value={fromDate || new Date()}
+            value={
+              activePicker === 'from'
+                ? fromDate || new Date()
+                : toDate || new Date()
+            }
             mode="date"
             display="default"
             onChange={(event, selectedDate) => {
               if (Platform.OS === 'android') {
-                setShowFromPicker(false);
+                setActivePicker(null);
                 if (event.type === 'set' && selectedDate) {
-                  setFromDate(selectedDate);
-                }
-              } else {
-                // iOS
-                if (selectedDate) {
-                  setFromDate(selectedDate);
-                }
-              }
-            }}
-          />
-        )}
-
-        {showToPicker && (
-          <DateTimePicker
-            value={toDate || new Date()}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              if (Platform.OS === 'android') {
-                setShowToPicker(false);
-                if (event.type === 'set' && selectedDate) {
-                  setToDate(selectedDate);
+                  if (activePicker === 'from') setFromDate(selectedDate);
+                  else if (activePicker === 'to') setToDate(selectedDate);
                 }
               } else {
                 if (selectedDate) {
-                  setToDate(selectedDate);
+                  if (activePicker === 'from') setFromDate(selectedDate);
+                  else if (activePicker === 'to') setToDate(selectedDate);
                 }
               }
             }}
@@ -441,6 +421,7 @@ const DashboardDetailScreen = ({ navigation, route }: any) => {
           onClose={() => setShowLogoutModal(false)}
           onConfirm={handleLogout}
         />
+        <LoadingOverlay visible={loading} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -454,11 +435,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: 30,    // keep left padding
-    paddingRight: 90,  // add extra space on the right
+    paddingLeft: 30, // keep left padding
+    paddingRight: 90, // add extra space on the right
     marginVertical: 10,
   },
-
 
   dateRangeContainer: {
     flexDirection: 'row',
@@ -630,14 +610,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   verticalSeparator: {
     width: 1,
     height: 60,
     backgroundColor: Theme.colors.sky,
     marginRight: 12,
   },
-
   inlineRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -863,3 +863,25 @@ export const getHospitalities = async (flockId: string) => {
     throw error;
   }
 };
+
+
+export const updateFlockDetail = async (
+  flockId: string,
+  payload: any
+) => {
+  try {
+    const response = await api.put(
+      `api/Flock/update-flock-detail?flockId=${flockId}`,
+      payload
+    );
+
+    if (response.data.status === 'Success') {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.message || 'Update failed');
+    }
+  } catch (error) {
+    console.error('Error updating flock detail:', error);
+    throw error;
+  }
+};

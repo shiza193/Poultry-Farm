@@ -24,47 +24,57 @@ const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [errors, setErrors] = useState({
+    email: '',
+    password: '',
+  });
+
   const [showPassword, setShowPassword] = useState(false);
 
   // Email validation
   const handleEmailBlur = () => {
     if (!isValidEmail(email)) {
-      setEmailError('Enter a valid email address');
+      setErrors(prev => ({ ...prev, email: 'Enter a valid email address' }));
     } else {
-      setEmailError('');
+      setErrors(prev => ({ ...prev, email: '' }));
     }
   };
 
-  const isFormValid = email.trim().length > 0 && password.length > 0;
+  const handlePasswordBlur = () => {
+    if (!isValidPassword(password)) {
+      setErrors(prev => ({
+        ...prev,
+        password:
+          'Password must be 8+ chars, with uppercase, lowercase, number & special char',
+      }));
+    } else {
+      setErrors(prev => ({ ...prev, password: '' }));
+    }
+  };
+
+  // Form valid if all fields filled
+  const isFormValid =
+    email.trim().length > 0 &&
+    password.length > 0 &&
+    !errors.email &&
+    !errors.password;
 
   const handleLogin = async () => {
     Keyboard.dismiss();
-
-    if (!isValidEmail(email)) {
-      setEmailError('Enter a valid email address');
-      return;
-    }
-
-    if (!isValidPassword(password)) {
-      console.log('Invalid password');
-      return;
-    }
-
+    handleEmailBlur();
+    handlePasswordBlur();
+    if (!isFormValid) return;
     try {
       setLoading(true);
-
       const res = await loginUser({ email, password });
-
       const token = res?.token;
-
       if (token) {
         // Save only token
         await AsyncStorage.setItem('token', token);
         navigation.replace(CustomConstants.DASHBOARD_TABS);
       }
     } catch (error) {
-      console.log('Login failed', error);
+      console.log('Login failed', error); // interceptors  handel erro toast
     } finally {
       setLoading(false);
     }
@@ -86,7 +96,9 @@ const LoginScreen = ({ navigation }: any) => {
           onChangeText={setEmail}
           onBlur={handleEmailBlur}
         />
-        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+        {errors.email ? (
+          <Text style={styles.errorText}>{errors.email}</Text>
+        ) : null}
 
         {/* Password */}
         <View style={{ position: 'relative', width: '100%' }}>
@@ -96,9 +108,12 @@ const LoginScreen = ({ navigation }: any) => {
             value={password}
             secureTextEntry={!showPassword}
             onChangeText={setPassword}
+            onBlur={handlePasswordBlur}
             inputStyle={{ paddingRight: 45 }}
           />
-
+          {errors.password ? (
+            <Text style={styles.errorText}>{errors.password}</Text>
+          ) : null}
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
             style={{

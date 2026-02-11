@@ -28,8 +28,12 @@ import {
   getFlockSummary,
   getHospitalities,
   getVaccinationSchedules,
+  getFlockTypes,
+  updateFlockDetail,
 } from '../../services/FlockService';
 import LoadingOverlay from '../../components/loading/LoadingOverlay';
+import { getSuppliers } from '../../services/VaccinationService';
+import { showSuccessToast } from '../../utils/AppToast';
 
 const FlockDetailScreen = () => {
   const navigation = useNavigation();
@@ -41,6 +45,8 @@ const FlockDetailScreen = () => {
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
   const [hospitalityData, setHospitalityData] = useState<any[]>([]);
+  const [flockTypes, setFlockTypes] = useState<any[]>([]);
+  const [suppliers, setsuppliers] = useState<any[]>([]);
 
   const [flockData, setFlockData] = useState<any>(null);
   const [eggProductionData, setEggProductionData] = useState<any[]>([]);
@@ -289,6 +295,34 @@ const FlockDetailScreen = () => {
     fetchHospitality();
   }, [flockId, fromDate, toDate]);
 
+  useEffect(() => {
+    const fetchFlockTypes = async () => {
+      try {
+        const types = await getFlockTypes();
+        setFlockTypes(types);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchFlockTypes();
+  }, []);
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        if (!flockData?.businessUnitId) return;
+
+        const supplierList = await getSuppliers(flockData.businessUnitId);
+
+        setsuppliers(supplierList || []);
+      } catch (error) {
+        console.error('Error fetching suppliers:', error);
+      }
+    };
+
+    fetchSuppliers();
+  }, [flockData?.businessUnitId]);
+
   const birdStats = summaryData
     ? [
         {
@@ -347,7 +381,6 @@ const FlockDetailScreen = () => {
         },
       ]
     : [];
-
   const vaccineStats = summaryData
     ? [
         {
@@ -601,22 +634,58 @@ const FlockDetailScreen = () => {
         {flockData && (
           <ExpandableCard
             title="Flock Information"
-            initialData={{
-              quantity: flockData.quantity?.toString() ?? '--',
-              flockType: flockData.flockType ?? '--',
-              arrivalDate: flockData.arrivalDate
-                ? new Date(flockData.arrivalDate).toLocaleDateString('en-GB')
-                : '--',
-              gender: flockData.gender ?? '--',
-              supplier: flockData.supplier ?? '--',
-              averageWeight: flockData.weight?.toString() ?? '--',
-              price: flockData.price?.toString() ?? '--',
-              dateOfBirth: flockData.dateOfBirth
-                ? new Date(flockData.dateOfBirth).toLocaleDateString('en-GB')
-                : '--',
-            }}
             customLabels={{
-              averageWeight: 'Average Weight (G)',
+              flockTypeId: 'Flock Type',
+              supplierId: 'Supplier',
+            }}
+            flockTypes={flockTypes}
+            suppliers={suppliers}
+            initialData={{
+              quantity: flockData.quantity?.toString() ?? '',
+              breed: flockData.breed ?? '',
+              flockTypeId: flockData.flockTypeId ?? null,
+              arrivalDate: flockData.arrivalDate ?? '',
+              gender: flockData.isHen ? 'Hen' : 'Rooster',
+              supplierId: flockData.supplierId ?? null,
+              averageWeight: flockData.weight?.toString() ?? '',
+              price: flockData.price?.toString() ?? '',
+              dateOfBirth: flockData.dateOfBirth ?? '',
+            }}
+            onSave={async formData => {
+              try {
+                setLoading(true);
+
+                const payload = {
+                  breed: formData.breed,
+                  quantity: Number(formData.quantity),
+                  price: Number(formData.price),
+                  weight: Number(formData.averageWeight),
+                  arrivalDate: formData.arrivalDate
+                    ? new Date(formData.arrivalDate).toISOString()
+                    : null,
+                  dateOfBirth: formData.dateOfBirth
+                    ? new Date(formData.dateOfBirth).toISOString()
+                    : null,
+                  isHen: formData.gender === 'Hen',
+                  flockTypeId: formData.flockTypeId
+                    ? String(formData.flockTypeId)
+                    : null, 
+                  supplierId: formData.supplierId
+                    ? String(formData.supplierId)
+                    : null,
+                };
+
+                await updateFlockDetail(flockId, payload);
+                showSuccessToast('Flock Information Updated successfully');
+
+                // Refresh data after update
+                const updatedFlock = await getFlockDetail(flockId);
+                setFlockData(updatedFlock);
+              } catch (error) {
+                console.error(error);
+              } finally {
+                setLoading(false);
+              }
             }}
           />
         )}
