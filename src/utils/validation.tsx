@@ -13,3 +13,13 @@ export const isValidPassword = (password: string): boolean => {
   // .{8,}       -> minimum 8 characters
   return passwordRegex.test(password);
 };
+
+
+
+ export const formatDate = (date: Date) => {
+    const d = new Date(date);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${year}-${month}-${day}`;
+  };

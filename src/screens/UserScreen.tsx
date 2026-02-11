@@ -319,7 +319,7 @@ const UserScreen = () => {
       {/* ===== HEADER ===== */}
       <Header
         title="Users"
-        onPressDots={() => setShowDotsMenu(prev => !prev)}
+        // onPressDots={() => setShowDotsMenu(prev => !prev)}
       />
 
       {/* ===== DOT MENU ===== */}
