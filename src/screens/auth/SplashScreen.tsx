@@ -8,22 +8,22 @@ import Theme from "../../theme/Theme";
 const SplashScreen = () => {
   const navigation: any = useNavigation();
 
-useEffect(() => {
-  const checkLoginStatus = async () => {
-    const token = await AsyncStorage.getItem("token");
-    const userId = await AsyncStorage.getItem("userId");
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const token = await AsyncStorage.getItem("token");
 
-    if (token && userId) {
-      navigation.replace(CustomConstants.DASHBOARD_TABS);
-    } else {
-      navigation.replace(CustomConstants.LOGIN_SCREEN);
-    }
-  };
+      if (token) {
+        // If token exists, navigate to dashboard
+        navigation.replace(CustomConstants.DASHBOARD_TABS);
+      } else {
+        // Otherwise, go to login
+        navigation.replace(CustomConstants.LOGIN_SCREEN);
+      }
+    };
 
-  const timeout = setTimeout(checkLoginStatus, 2000);
-  return () => clearTimeout(timeout);
-}, [navigation]);
-
+    const timeout = setTimeout(checkLoginStatus, 2000);
+    return () => clearTimeout(timeout);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>

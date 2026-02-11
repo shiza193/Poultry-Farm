@@ -9,7 +9,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Theme from '../../theme/Theme';
-import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 
 import { getFlockStock, FlockStock } from '../../services/FlockService';
@@ -20,7 +19,6 @@ const FlockStockScreen= () => {
 
   const [data, setData] = useState<FlockStock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // ================= FETCH =================
   const fetchFlockStock = async () => {
@@ -30,9 +28,7 @@ const FlockStockScreen= () => {
       setLoading(true);
       const res = await getFlockStock(businessUnitId);
       setData(res ?? []);
-      setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch flock stock');
       setData([]);
     } finally {
       setLoading(false);
@@ -71,8 +67,6 @@ const FlockStockScreen= () => {
 
       {loading ? (
         <ActivityIndicator size="large" color={Theme.colors.primaryYellow} />
-      ) : error ? (
-        <Text style={styles.error}>{error}</Text>
       ) : tableData.length > 0 ? (
         <View style={{ flex: 1, paddingHorizontal: 16, marginTop:15, }}>
           <DataCard columns={columns} data={tableData} />

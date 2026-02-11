@@ -182,7 +182,6 @@ const UserScreen = () => {
       await fetchUsers();
       showSuccessToast('User added successfully');
     } catch {
-      showErrorToast('Failed to add user');
     } finally {
       setShowAddModal(false);
       setShowDotsMenu(false);
@@ -216,8 +215,8 @@ const UserScreen = () => {
       setUsers(prev => prev.filter(u => u.id !== selectedUserId));
       showSuccessToast('User deleted successfully');
     } catch (error: any) {
-      const backendMessage = error?.response?.data?.message || error.message || 'Failed to delete user';
-      showErrorToast(backendMessage);
+      // const backendMessage = error?.response?.data?.message || error.message || 'Failed to delete user';
+      // showErrorToast(backendMessage);
     } finally {
       setDeleteModalVisible(false);
       setSelectedUserId(null);
