@@ -227,7 +227,9 @@ const DataCard: React.FC<DataCardProps> = ({
 
                   {/* 🔽 EXPANDED ROW */}
                   {expandedIndex === globalIndex && renderExpandedRow && (
-                    <View style={{ paddingVertical: 10 }}>
+                    <View style={{ paddingVertical: 10,
+                    backgroundColor:Theme.colors.lightGrey,borderColor:Theme.colors.SeparatorColor,
+                    borderWidth:1 }}>
                       {renderExpandedRow(row)}
                     </View>
                   )}

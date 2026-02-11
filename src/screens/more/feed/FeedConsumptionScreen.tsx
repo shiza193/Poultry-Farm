@@ -24,10 +24,12 @@ const FeedConsumptionScreen: React.FC = () => {
     const { businessUnitId } = useBusinessUnit();
     const [data, setData] = useState<FeedConsumptionRecord[]>([]);
     const [loading, setLoading] = useState(false);
-    const [searchKey, setSearchKey] = useState<string>("");
-    const [feedMasterData, setFeedMasterData] = useState<{
+    const [filters, setFilters] = useState({
+        searchKey: "",
+        flockId: null ,
+    }); const [feedMasterData, setFeedMasterData] = useState<{
         feeds: { label: string; value: number }[];
-        flocks: { label: string; value: string; isSelected?: boolean }[];
+        flocks: { label: string; value: string;}[];
     }>({
         feeds: [],
         flocks: [],
@@ -42,21 +44,20 @@ const FeedConsumptionScreen: React.FC = () => {
         showFeed: false,
         delete: { visible: false },
     });
-    const fetchFeedConsumption = async (
-        search: string = searchKey,
-        flockId: string | null = null
-    ) => {
+    const fetchFeedConsumption = async () => {
         try {
+            if (!businessUnitId) return;
             setLoading(true);
 
             const payload = {
                 businessUnitId,
                 pageNumber: 1,
                 pageSize: 10,
-                searchKey: search || null,
-                flockId: flockId,
+                searchKey: filters.searchKey || null,
+                flockId: filters.flockId,
                 supplierId: null,
             };
+
             const res = await getFeedConsumptionRecords(payload);
             const mappedData = res.list.map((item: any) => ({
                 feedRecordConsumptionId: item.feedRecordConsumptionId,
@@ -80,6 +81,9 @@ const FeedConsumptionScreen: React.FC = () => {
             fetchFlocks();
         }, [businessUnitId])
     );
+    useEffect(() => {
+        fetchFeedConsumption();
+    }, [filters, businessUnitId]);
     useEffect(() => {
         const fetchFeeds = async () => {
             const res = await getFeeds();
@@ -182,8 +186,10 @@ const FeedConsumptionScreen: React.FC = () => {
                     <SearchBar
                         placeholder="Search feed..."
                         onSearch={(val) => {
-                            setSearchKey(val);
-                            fetchFeedConsumption(val,);
+                            setFilters(prev => ({
+                                ...prev,
+                                searchKey: val,
+                            }));
                         }}
                     />
                 </View>
@@ -191,42 +197,36 @@ const FeedConsumptionScreen: React.FC = () => {
                 <View style={{ width: 120, marginLeft: 10 }}>
                     <Dropdown
                         style={styles.dropdown}
-                        data={feedMasterData.flocks.length > 0 ? feedMasterData.flocks : [{ label: "No result found", value: null, disabled: true }]}
+                        data={
+                            feedMasterData.flocks.length > 0
+                                ? feedMasterData.flocks
+                                : [{ label: "No result found", value: null, disabled: true }]
+                        }
                         labelField="label"
                         valueField="value"
                         placeholder="Select Flock"
                         placeholderStyle={styles.placeholderStyle}
                         selectedTextStyle={styles.selectedTextStyle}
-                        value={feedMasterData.flocks.find(f => f.isSelected)?.value || null}
+                        value={filters.flockId}
                         onChange={(item) => {
-                            if (!item.value) return; 
-                            const updated = feedMasterData.flocks.map(f => ({
-                                ...f,
-                                isSelected: f.value === item.value,
-                            }));
-                            setFeedMasterData(prev => ({
+                            if (!item.value) return;
+                            setFilters(prev => ({
                                 ...prev,
-                                flocks: updated,
+                                flockId: item.value,
                             }));
-                            fetchFeedConsumption(searchKey, item.value);
                         }}
                     />
                 </View>
             </View>
             {/* RIGHT SIDE: RESET FILTER */}
-            {feedMasterData.flocks.some(f => f.isSelected) && (
+            {( filters.flockId) && (
                 <Text
                     style={styles.resetText}
                     onPress={() => {
-                        setFeedMasterData(prev => ({
-                            ...prev,
-                            flocks: prev.flocks.map(f => ({
-                                ...f,
-                                isSelected: false,
-                            })),
-                        }));
-
-                        fetchFeedConsumption("", null);
+                        setFilters({
+                            searchKey: "",
+                            flockId: null,
+                        });
                     }}
                 >
                     Reset Filters
@@ -248,7 +248,6 @@ const FeedConsumptionScreen: React.FC = () => {
                                 <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
                             </TouchableOpacity>
                             <View style={styles.menuSeparator} />
-
                             <TouchableOpacity
                                 onPress={() => {
                                     setModalState(prev => ({
@@ -335,7 +334,7 @@ const styles = StyleSheet.create({
         color: Theme.colors.black,
     },
     selectedTextStyle: {
-        fontSize: 13,
+        fontSize: 12,
         color: Theme.colors.black,
     },
     resetText: {

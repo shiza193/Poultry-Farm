@@ -19,11 +19,14 @@ const FeedRecordScreen: React.FC = () => {
     const { businessUnitId } = useBusinessUnit();
     const [feedData, setFeedData] = useState<FeedRecord[]>([]);
     const [loading, setLoading] = useState(false);
-    const [searchKey, setSearchKey] = useState<string>("");
+    const [filters, setFilters] = useState({
+        searchKey: "",
+        supplierId: null as string | null,
+    });
     const [feedGroupData, setFeedGroupData] = useState<{
         feeds: { label: string; value: number }[];
         feedTypes: FeedTypeItem[];
-        suppliers: { label: string; value: string; isSelected?: boolean }[];
+        suppliers: { label: string; value: string;  }[];
     }>({
         feeds: [],
         feedTypes: [],
@@ -39,21 +42,17 @@ const FeedRecordScreen: React.FC = () => {
         showFeed: false,
         delete: { visible: false },
     });
-    const fetchFeedRecords = async (
-        search: string = searchKey,
-        supplierId: string | null = null
-    ) => {
+    const fetchFeedRecords = async () => {
         try {
             if (!businessUnitId) return;
-            setLoading(true)
+            setLoading(true);
             const payload = {
                 businessUnitId,
                 pageNumber: 1,
                 pageSize: 10,
-                searchKey: search || null,
-                supplierId: supplierId,
+                searchKey: filters.searchKey || null,
+                supplierId: filters.supplierId,
             };
-
             const res = await getFeedRecords(payload);
             const mappedData = res.list.map((item: any) => ({
                 feedRecordId: item.feedRecordId,
@@ -64,7 +63,6 @@ const FeedRecordScreen: React.FC = () => {
                 quantity: item.quantity,
                 price: item.price,
             }));
-
             setFeedData(mappedData);
         } catch (e) {
             console.log("Feed Record Screen Error:", e);
@@ -72,23 +70,20 @@ const FeedRecordScreen: React.FC = () => {
             setLoading(false);
         }
     };
+
     useFocusEffect(
         useCallback(() => {
             fetchFeedRecords();
             fetchSuppliers();
         }, [businessUnitId])
     );
-    const getSelectedSupplierId = () => {
-        return feedGroupData.suppliers.find(s => s.isSelected)?.value ?? null;
-    };
+
     const fetchSuppliers = async () => {
         if (!businessUnitId) return;
-
         const res = await getSuppliers(businessUnitId);
         const dropdownData = res.map((s: any) => ({
             label: s.name,
             value: s.partyId,
-            isSelected: false,
         }));
 
         setFeedGroupData(prev => ({
@@ -96,6 +91,9 @@ const FeedRecordScreen: React.FC = () => {
             suppliers: dropdownData,
         }));
     };
+    useEffect(() => {
+        fetchFeedRecords();
+    }, [filters, businessUnitId]);
     const fetchFeedTypes = async () => {
         const res = await getFeedTypes();
         setFeedGroupData(prev => ({
@@ -182,7 +180,7 @@ const FeedRecordScreen: React.FC = () => {
                         ...prev,
                         showFeed: true
                     }))
-                } 
+                }
                 onReportPress={() => console.log("Generate Report")}
             />
             <View style={styles.filterRow}>
@@ -191,8 +189,10 @@ const FeedRecordScreen: React.FC = () => {
                     <SearchBar
                         placeholder="Search feed..."
                         onSearch={(val) => {
-                            setSearchKey(val);
-                            fetchFeedRecords(val,);
+                            setFilters(prev => ({
+                                ...prev,
+                                searchKey: val,
+                            }));
                         }}
                     />
                 </View>
@@ -203,39 +203,28 @@ const FeedRecordScreen: React.FC = () => {
                         data={feedGroupData.suppliers}
                         labelField="label"
                         valueField="value"
-                        placeholder={loading ? "Loading suppliers..." : "Supplier"}
+                        placeholder="Supplier"
                         placeholderStyle={styles.placeholderStyle}
                         selectedTextStyle={styles.selectedTextStyle}
-                        value={getSelectedSupplierId()}
+                        value={filters.supplierId}
                         onChange={(item) => {
-                            const updated = feedGroupData.suppliers.map(s => ({
-                                ...s,
-                                isSelected: s.value === item.value,
-                            }));
-                            setFeedGroupData(prev => ({
+                            setFilters(prev => ({
                                 ...prev,
-                                suppliers: updated,
+                                supplierId: item.value,
                             }));
-
-                            fetchFeedRecords(searchKey, item.value);
                         }}
                     />
                 </View>
             </View>
             {/* RIGHT SIDE: RESET FILTER */}
-            {getSelectedSupplierId() && (
+            {( filters.supplierId) && (
                 <Text
                     style={styles.resetText}
                     onPress={() => {
-                        setFeedGroupData(prev => ({
-                            ...prev,
-                            suppliers: prev.suppliers.map(s => ({
-                                ...s,
-                                isSelected: false,
-                            })),
-                        }));
-
-                        fetchFeedRecords("", null);
+                        setFilters({
+                            searchKey: "",
+                            supplierId: null,
+                        });
                     }}
                 >
                     Reset Filters
