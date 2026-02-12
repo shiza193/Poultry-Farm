@@ -20,40 +20,25 @@ interface Role {
     label: string;
     value: number;
 }
-
 interface Props {
     visible: boolean;
     farms: Farm[];
+    roleItems: Role[];
+
     getUserRoles: () => Promise<any[]>;
     onClose: () => void;
     onSave: (data: any) => void;
 }
-
 const AssignFarmRoleModal: React.FC<Props> = ({
     visible,
     farms,
-    getUserRoles,
+    roleItems,
     onClose,
     onSave,
 }) => {
-    const [roles, setRoles] = useState<Role[]>([]);
     const [selected, setSelected] = useState<any>({});
     const [openDropdowns, setOpenDropdowns] = useState<{ [key: number]: boolean }>({});
 
-    useEffect(() => {
-        loadRoles();
-    }, []);
-
-    const loadRoles = async () => {
-        const res = await getUserRoles();
-
-        setRoles(
-            res.map((r: any) => ({
-                label: r.value ?? r.name,
-                value: Number(r.key ?? r.id),
-            }))
-        );
-    };
     useEffect(() => {
         if (!visible || !farms || farms.length === 0) return;
 
@@ -61,12 +46,11 @@ const AssignFarmRoleModal: React.FC<Props> = ({
         const preSelected: any = {};
         farms.forEach((farm) => {
             preSelected[farm.id] = {
-                checked: farm.isAdded ?? false, 
+                checked: farm.isAdded ?? false,
                 roleId: farm.userRoleId ?? null,
             };
         });
         setSelected(preSelected);
-
         // Reset dropdown opens
         setOpenDropdowns({});
     }, [farms, visible]);
@@ -96,7 +80,9 @@ const AssignFarmRoleModal: React.FC<Props> = ({
             [farmId]: !prev[farmId],
         }));
     };
-
+    const isSaveDisabled = !Object.values(selected).some(
+        (item: any) => item.checked && item.roleId
+    );
     return (
         <Modal visible={visible} transparent animationType="fade">
             <View style={styles.overlay}>
@@ -105,7 +91,6 @@ const AssignFarmRoleModal: React.FC<Props> = ({
                     {/* HEADER */}
                     <View style={styles.header}>
                         <Text style={styles.title}>Assign poultry farm and role</Text>
-
                     </View>
 
                     {/* TABLE HEADER */}
@@ -113,7 +98,6 @@ const AssignFarmRoleModal: React.FC<Props> = ({
                         <Text style={styles.colFarm}>POULTRY FARM</Text>
                         <Text style={styles.colRole}>ROLE</Text>
                     </View>
-
                     {/* ROWS */}
                     {farms.map((farm, index) => (
                         <View
@@ -139,13 +123,12 @@ const AssignFarmRoleModal: React.FC<Props> = ({
                             </TouchableOpacity>
 
                             <Text style={styles.farmText}>{farm.name}</Text>
-
                             {/* DROPDOWN */}
                             <View style={styles.roleCol}>
                                 <DropDownPicker
                                     open={openDropdowns[farm.id] || false}
                                     value={selected?.[farm.id]?.roleId}
-                                    items={roles}
+                                    items={roleItems || []}
                                     placeholder="User Role"
                                     setOpen={() => toggleDropdown(farm.id)}
                                     setValue={cb =>
@@ -153,11 +136,13 @@ const AssignFarmRoleModal: React.FC<Props> = ({
                                     }
                                     listMode="SCROLLVIEW"
                                     dropDownDirection="BOTTOM"
-                                    zIndex={2000}
-                                    zIndexInverse={1000}
-                                    style={styles.dropdown}
+                                    style={[
+                                        styles.dropdown,
+                                        !selected?.[farm.id]?.checked && { opacity: 0.5 }, 
+                                    ]}
                                     dropDownContainerStyle={styles.dropdownBox}
                                     textStyle={{ fontSize: 12 }}
+                                    disabled={!selected?.[farm.id]?.checked}
                                 />
                             </View>
                         </View>
@@ -176,12 +161,15 @@ const AssignFarmRoleModal: React.FC<Props> = ({
 
                         {/* SAVE BUTTON */}
                         <TouchableOpacity
-                            style={styles.saveBtn}
+                            style={[
+                                styles.saveBtn,
+                                isSaveDisabled && { backgroundColor: Theme.colors.buttonDisabled },
+                            ]}
                             onPress={() => onSave(selected)}
+                            disabled={isSaveDisabled}
                         >
                             <Text style={styles.saveText}>Save</Text>
                         </TouchableOpacity>
-
                     </View>
                 </View>
             </View>
@@ -226,12 +214,12 @@ const styles = StyleSheet.create({
     },
     colFarm: {
         flex: 1,
-        color: '#fff',
+        color: Theme.colors.white,
         fontWeight: '700',
     },
     colRole: {
         width: 110,
-        color: '#fff',
+        color: Theme.colors.white,
         fontWeight: '700',
     },
     row: {
@@ -239,20 +227,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: Theme.colors.borderLight,
     },
     checkbox: {
         width: 22,
         height: 22,
         borderRadius: 4,
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: Theme.colors.borderColor,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 8,
     },
     tick: {
-        color: '#fff',
+        color: Theme.colors.white,
         fontWeight: '700',
         fontSize: 16,
     },

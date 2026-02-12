@@ -37,7 +37,7 @@ interface AddModalProps {
   title?: string;
   onClose: () => void;
   onSave: (data: any) => void;
-  roleItems?: { label: string; value: string }[];
+  roleItems?: { label: string; value: number }[];
   vaccineItems?: { label: string; value: number }[];
   supplierItems?: { label: string; value: string }[];
   flockItems?: { label: string; value: string }[];
@@ -83,7 +83,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const [email, setEmail] = useState('');
 
   /* ===== USER ===== */
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole] = useState<number | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -606,7 +606,6 @@ const AddModal: React.FC<AddModalProps> = ({
                   items={roleItems || []}
                   setOpen={setRoleOpen}
                   setValue={setRole}
-                  // setItems={setRoleItems} // you can remove this if screen manages the state
                   placeholder="Select role..."
                   style={styles.dropdown}
                   dropDownContainerStyle={styles.dropdownContainer}
