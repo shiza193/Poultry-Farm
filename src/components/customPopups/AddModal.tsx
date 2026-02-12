@@ -134,7 +134,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
   const [flockOpen, setFlockOpen] = useState(false);
   const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
-  /* =====  EDIT MODE PREFILL USEEFFECT (YAHAN) ===== */
+  /* =====  EDIT MODE PREFILL USEEFFECT (YAHAN) ===== */
   useEffect(() => {
     if (type === 'vaccination' && isEdit && initialData) {
       setVaccine(initialData.vaccineId);
@@ -386,11 +386,11 @@ const AddModal: React.FC<AddModalProps> = ({
 
       setIsSaveEnabled(
         selectedCustomer !== null &&
-          selectedFlock !== null &&
-          endDate !== null &&
-          price.trim().length > 0 &&
-          selectedUnit !== null &&
-          valid,
+        selectedFlock !== null &&
+        endDate !== null &&
+        price.trim().length > 0 &&
+        selectedUnit !== null &&
+        valid,
       );
       console.log('AddModal Save Data:', {
         price,
@@ -600,12 +600,12 @@ const AddModal: React.FC<AddModalProps> = ({
                 <DropDownPicker
                   listMode="SCROLLVIEW"
                   open={roleOpen}
-                  value={role} // this should now be the 'id' of the selected role
+                  value={role}
                   items={
                     roleItems?.map(r => ({ label: r.label, value: r.id })) || []
                   }
                   setOpen={setRoleOpen}
-                  setValue={setRole} // role state will hold the id
+                  setValue={setRole}
                   placeholder="Select role..."
                   style={styles.dropdown}
                   dropDownContainerStyle={styles.dropdownContainer}

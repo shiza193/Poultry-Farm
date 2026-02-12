@@ -48,7 +48,7 @@ const UserScreen = () => {
   const routeBusinessUnitId = route.params?.businessUnitId ?? null;
   const [users, setUsers] = useState<User[]>([]);
   const [roleItems, setRoleItems] = useState<
-    { label: string; value: string }[]
+    { label: string; id: string }[]
   >([]);
   const [groupState, setGroupState] = useState({
     search: '',
@@ -75,7 +75,7 @@ const UserScreen = () => {
         setRoleItems(
           roles.map((r: any) => ({
             label: r.value,
-            value: r.key.toString(),
+            id: r.key,
           })),
         );
       } catch {
@@ -141,7 +141,6 @@ const UserScreen = () => {
   const filteredUsers = users.filter(user => {
     // Destructure for cleaner code
     const { search, status, selectedBU } = groupState;
-
     // Status filter
     if (status === 'active' && !user.isActive) return false;
     if (status === 'inactive' && user.isActive) return false;
@@ -169,14 +168,14 @@ const UserScreen = () => {
   // ================= HANDLERS =================
   const AddUser = async (data: any) => {
     try {
-      const roleObj = roleItems.find(r => r.value === data.role);
+      const roleObj = roleItems.find(r => r.id === data.role);
       if (!roleObj) return;
 
       const newUser = await addUser({
         fullName: data.name,
         email: data.email,
         password: data.password,
-        userRoleId: Number(roleObj.value),
+        userRoleId: Number(roleObj.id),
       });
       showSuccessToast('User added successfully');
       setUsers(prev => [
@@ -238,30 +237,28 @@ const UserScreen = () => {
       }));
     }
   };
-  const AssignPoultrytouser = async (user: User) => {
+  // AssignPoultryToUser
+  const AssignPoultryToUser = async (user: User) => {
     try {
-      setGroupState(prev => ({
-        ...prev,
-        selectedRowUser: user
-      }));
+      setGroupState(prev => ({ ...prev, selectedRowUser: user }));
+      // fetch user farms from backend
       const farmList = await getUserFarms(user.id);
+      const existingFarms = user.businessUnit
+        ? user.businessUnit.split(', ').filter(Boolean)
+        : [];
+
       setFarms(
         farmList.map((f: any) => ({
           id: f.id,
           name: f.name,
-          isAdded: f.isAdded,
+          isAdded: existingFarms.includes(f.name) ? true : f.isAdded,
           userRoleId: f.userRoleId,
-          userRole: f.userRole,
-        })),
+        }))
       );
-      setGroupState(prev => ({
-        ...prev,
-        showAssignFarmModal: true,
-      }));
+      setGroupState(prev => ({ ...prev, showAssignFarmModal: true }));
     } catch (error) {
       console.error(error);
       showErrorToast('Failed to fetch farms');
-    } finally {
     }
   };
   const columns: TableColumn[] = [
@@ -404,7 +401,7 @@ const UserScreen = () => {
                 {/* ASSIGN TO POULTRY */}
                 <TouchableOpacity
                   onPress={() => {
-                    AssignPoultrytouser(row.raw);
+                    AssignPoultryToUser(row.raw);
                     closeMenu();
                   }}
                   style={{ paddingVertical: 10, width: 110 }}
@@ -480,10 +477,12 @@ const UserScreen = () => {
       <AssignFarmRoleModal
         visible={groupState.showAssignFarmModal}
         farms={farms}
+        roleItems={roleItems}
         getUserRoles={getUserRoles}
         onClose={() =>
           setGroupState(prev => ({ ...prev, showAssignFarmModal: false }))
         }
+        // onSave in AssignFarmRoleModal
         onSave={async data => {
           if (!groupState.selectedRowUser) return;
 
@@ -497,14 +496,26 @@ const UserScreen = () => {
             await updateUserBusinessUnits(groupState.selectedRowUser.id, payload);
             showSuccessToast('Farms & roles updated successfully');
 
+            // 🔹 Update local state
+            setUsers(prev =>
+              prev.map(u =>
+                u.id === groupState.selectedRowUser!.id
+                  ? {
+                    ...u,
+                    businessUnit: farms
+                      .filter(f => data[f.id]?.checked)
+                      .map(f => f.name)
+                      .join(', ') || '—',
+                  }
+                  : u
+              )
+            );
             setGroupState(prev => ({
               ...prev,
               showAssignFarmModal: false,
             }));
-            fetchUsers();
           } catch (error) {
             console.error(error);
-            // showErrorToast('Failed to assign farms');
           }
         }}
       />
