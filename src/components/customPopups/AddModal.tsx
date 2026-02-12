@@ -18,7 +18,10 @@ import DateTimePicker, {
 
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
-import { getEggProducedUnits, getFlockTotalEggs } from '../../services/EggsService';
+import {
+  getEggProducedUnits,
+  getFlockTotalEggs,
+} from '../../services/EggsService';
 import { Dropdown } from 'react-native-element-dropdown';
 
 type ModalType =
@@ -37,7 +40,7 @@ interface AddModalProps {
   title?: string;
   onClose: () => void;
   onSave: (data: any) => void;
-  roleItems?: { label: string; value: string }[];
+  roleItems?: { label: string; id: string }[];
   vaccineItems?: { label: string; value: number }[];
   supplierItems?: { label: string; value: string }[];
   flockItems?: { label: string; value: string }[];
@@ -46,7 +49,6 @@ interface AddModalProps {
   feedItems?: { label: string; value: number }[];
   feedTypeItems?: { label: string; value: number }[];
 
-  // ✅ Add this line
   setUnitItems?: React.Dispatch<
     React.SetStateAction<{ label: string; value: number }[]>
   >;
@@ -76,7 +78,6 @@ const AddModal: React.FC<AddModalProps> = ({
   hidePoultryFarm = false,
   hideBusinessUnit = false,
   defaultBusinessUnitId = null,
-
 }) => {
   /* ===== COMMON ===== */
   const [name, setName] = useState('');
@@ -114,9 +115,9 @@ const AddModal: React.FC<AddModalProps> = ({
     number | null
   >(null);
 
-  const [typeItems, setTypeItems] = useState<
-    { label: string; value: number }[]
-  >([]);
+  const [typeItems, setTypeItems] = useState<{ label: string; id: string }[]>(
+    [],
+  );
   const [showJoiningPicker, setShowJoiningPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   /* ===== VACCINATION ===== */
@@ -159,13 +160,9 @@ const AddModal: React.FC<AddModalProps> = ({
     if (type === 'vaccination Schedule' && initialData && visible) {
       setVaccine(initialData.vaccineId ?? null);
       setSelectedFlock(initialData.flockId ?? null);
-      setQuantity(
-        initialData.quantity ? String(initialData.quantity) : ''
-      );
+      setQuantity(initialData.quantity ? String(initialData.quantity) : '');
       setVaccinationDate(
-        initialData.scheduledDate
-          ? new Date(initialData.scheduledDate)
-          : null
+        initialData.scheduledDate ? new Date(initialData.scheduledDate) : null,
       );
     }
 
@@ -177,8 +174,7 @@ const AddModal: React.FC<AddModalProps> = ({
   /* ===== Eggs States ===== */
   const [intactEggs, setIntactEggs] = useState<number>(0);
   const [brokenEggs, setBrokenEggs] = useState<number>(0);
-  const totalEggs =
-    (Number(intactEggs) || 0) + (Number(brokenEggs) || 0);
+  const totalEggs = (Number(intactEggs) || 0) + (Number(brokenEggs) || 0);
   const [unitOpen, setUnitOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<number | null>(null);
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -189,9 +185,7 @@ const AddModal: React.FC<AddModalProps> = ({
     if (initialData && visible) {
       setSelectedFlock(initialData.flockId);
       setSelectedUnit(
-        initialData.unitId !== null
-          ? Number(initialData.unitId)
-          : null
+        initialData.unitId !== null ? Number(initialData.unitId) : null,
       );
       setEndDate(initialData.date ? new Date(initialData.date) : null);
       setIntactEggs(initialData.fertileEggs ?? 0);
@@ -209,7 +203,9 @@ const AddModal: React.FC<AddModalProps> = ({
   }, [initialData, visible]);
   /* ===== FEED RECORD ===== */
   const [selectedFeedId, setSelectedFeedId] = useState<number | null>(null);
-  const [selectedFeedTypeId, setSelectedFeedTypeId] = useState<number | null>(null);
+  const [selectedFeedTypeId, setSelectedFeedTypeId] = useState<number | null>(
+    null,
+  );
   const [feedDate, setFeedDate] = useState<Date | null>(null);
   const [showFeedDatePicker, setShowFeedDatePicker] = useState(false);
   const [feedOpen, setFeedOpen] = useState(false);
@@ -221,7 +217,11 @@ const AddModal: React.FC<AddModalProps> = ({
   const [eggCount, setEggCount] = useState('');
   const [trayError, setTrayError] = useState('');
   const [eggError, setEggError] = useState('');
-  const [flockEggs, setFlockEggs] = useState<{ tray: number; eggs: number; patti: number } | null>(null);
+  const [flockEggs, setFlockEggs] = useState<{
+    tray: number;
+    eggs: number;
+    patti: number;
+  } | null>(null);
   const [loadingFlockEggs, setLoadingFlockEggs] = useState(false);
   const [patti, setPatti] = useState('');
   const [totalPrice, setTotalPrice] = useState(0);
@@ -233,7 +233,8 @@ const AddModal: React.FC<AddModalProps> = ({
     const pricePerEgg = pattiPrice / 360;
     const pricePerTray = pricePerEgg * 30;
     const pricePerPatti = pricePerEgg * 360;
-    const total = eggs * pricePerEgg + pattis * pricePerPatti + trays * pricePerTray;
+    const total =
+      eggs * pricePerEgg + pattis * pricePerPatti + trays * pricePerTray;
     setTotalPrice(total);
   };
   useEffect(() => {
@@ -357,9 +358,7 @@ const AddModal: React.FC<AddModalProps> = ({
     }
     if (type === 'Egg production') {
       const isValid =
-        selectedFlock !== null &&
-        selectedUnit !== null &&
-        endDate !== null;
+        selectedFlock !== null && selectedUnit !== null && endDate !== null;
 
       setIsSaveEnabled(isValid);
       return;
@@ -383,17 +382,17 @@ const AddModal: React.FC<AddModalProps> = ({
       } else {
         setEggError('');
       }
-      console.log("unitItems in modal:", unitItems);
+      console.log('unitItems in modal:', unitItems);
 
       setIsSaveEnabled(
         selectedCustomer !== null &&
-        selectedFlock !== null &&
-        endDate !== null &&
-        price.trim().length > 0 &&
-        selectedUnit !== null &&
-        valid
+          selectedFlock !== null &&
+          endDate !== null &&
+          price.trim().length > 0 &&
+          selectedUnit !== null &&
+          valid,
       );
-      console.log("AddModal Save Data:", {
+      console.log('AddModal Save Data:', {
         price,
         eggs,
       });
@@ -518,8 +517,7 @@ const AddModal: React.FC<AddModalProps> = ({
         scheduledDate: vaccinationDate,
         quantity,
       });
-    }
-    else if (type === 'Egg production') {
+    } else if (type === 'Egg production') {
       onSave({
         flockId: selectedFlock,
         unitId: selectedUnit,
@@ -528,8 +526,7 @@ const AddModal: React.FC<AddModalProps> = ({
         totalEggs,
         date: endDate,
       });
-    }
-    else if (type === 'Egg sale') {
+    } else if (type === 'Egg sale') {
       onSave({
         customerId: selectedCustomer,
         flockId: selectedFlock,
@@ -540,20 +537,18 @@ const AddModal: React.FC<AddModalProps> = ({
         date: endDate,
         note,
       });
-    }
-    else if (type === 'Feed Record') {
+    } else if (type === 'Feed Record') {
       onSave({
-        feedId: selectedFeedId,   
-        feedTypeId: selectedFeedTypeId, 
+        feedId: selectedFeedId,
+        feedTypeId: selectedFeedTypeId,
         quantity,
         date: feedDate,
-        supplierId: supplier,        
+        supplierId: supplier,
         price,
         note,
         paymentStatus,
       });
-    }
-    else if (type === 'Feed Consumption') {
+    } else if (type === 'Feed Consumption') {
       onSave({
         flockId: selectedFlock,
         feedId: selectedFeedId,
@@ -577,9 +572,12 @@ const AddModal: React.FC<AddModalProps> = ({
             keyboardShouldPersistTaps="handled"
           >
             {/* NAME */}
-            {type !== 'vaccination' && type !== 'vaccination Schedule' &&
-              type !== 'Egg production' && type !== 'Egg sale' &&
-              type !== 'Feed Record' && type !== 'Feed Consumption' && (
+            {type !== 'vaccination' &&
+              type !== 'vaccination Schedule' &&
+              type !== 'Egg production' &&
+              type !== 'Egg sale' &&
+              type !== 'Feed Record' &&
+              type !== 'Feed Consumption' && (
                 <>
                   <Text style={styles.label}>
                     Name<Text style={styles.required}>*</Text>
@@ -602,11 +600,12 @@ const AddModal: React.FC<AddModalProps> = ({
                 <DropDownPicker
                   listMode="SCROLLVIEW"
                   open={roleOpen}
-                  value={role}
-                  items={roleItems || []}
+                  value={role} // this should now be the 'id' of the selected role
+                  items={
+                    roleItems?.map(r => ({ label: r.label, value: r.id })) || []
+                  }
                   setOpen={setRoleOpen}
-                  setValue={setRole}
-                  // setItems={setRoleItems} // you can remove this if screen manages the state
+                  setValue={setRole} // role state will hold the id
                   placeholder="Select role..."
                   style={styles.dropdown}
                   dropDownContainerStyle={styles.dropdownContainer}
@@ -629,7 +628,9 @@ const AddModal: React.FC<AddModalProps> = ({
                   }}
                 />
                 {emailError ? (
-                  <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
+                  <Text style={{ color: 'red', fontSize: 12 }}>
+                    {emailError}
+                  </Text>
                 ) : null}
 
                 <Text style={styles.label}>
@@ -726,13 +727,18 @@ const AddModal: React.FC<AddModalProps> = ({
                   }}
                 />
                 {emailError ? (
-                  <Text style={{ color: 'red', fontSize: 12 }}>{emailError}</Text>
+                  <Text style={{ color: 'red', fontSize: 12 }}>
+                    {emailError}
+                  </Text>
                 ) : null}
 
                 {/* ADDRESS */}
                 <Text style={styles.label}>Address</Text>
                 <TextInput
-                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  style={[
+                    styles.input,
+                    { height: 80, textAlignVertical: 'top' },
+                  ]}
                   placeholder="Enter address..."
                   multiline
                   value={address}
@@ -902,7 +908,6 @@ const AddModal: React.FC<AddModalProps> = ({
                 </Text>
                 <DropDownPicker
                   listMode="SCROLLVIEW"
-
                   open={supplierOpen}
                   value={supplier}
                   items={supplierItems || []}
@@ -926,7 +931,10 @@ const AddModal: React.FC<AddModalProps> = ({
                 {/* NOTE */}
                 <Text style={styles.label}>Note</Text>
                 <TextInput
-                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  style={[
+                    styles.input,
+                    { height: 80, textAlignVertical: 'top' },
+                  ]}
                   placeholder="Enter note..."
                   multiline
                   value={note}
@@ -965,7 +973,6 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Text style={styles.label}>Vaccine Name</Text>
                 <DropDownPicker
                   listMode="SCROLLVIEW"
-
                   open={vaccineOpen}
                   value={vaccine}
                   items={vaccineItems || []}
@@ -1194,7 +1201,13 @@ const AddModal: React.FC<AddModalProps> = ({
                   dropDownContainerStyle={styles.dropdownContainer}
                 />
                 {/* PRICE PER TRAY */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 5,
+                  }}
+                >
                   <Text style={styles.label}>Patti</Text>
                   {selectedFlock && (
                     <View style={styles.stockPill}>
@@ -1213,7 +1226,13 @@ const AddModal: React.FC<AddModalProps> = ({
                 />
 
                 {/* TRAYS */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 5,
+                  }}
+                >
                   <Text style={styles.label}>Trays</Text>
                   {selectedFlock && (
                     <View style={styles.stockPill}>
@@ -1239,7 +1258,13 @@ const AddModal: React.FC<AddModalProps> = ({
                 ) : null}
 
                 {/* EGGS */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 5,
+                  }}
+                >
                   <Text style={styles.label}>Eggs</Text>
                   {selectedFlock && (
                     <View style={styles.stockPill}>
@@ -1275,22 +1300,37 @@ const AddModal: React.FC<AddModalProps> = ({
                 {/* NOTE (OPTIONAL) */}
                 <Text style={styles.label}>Note</Text>
                 <TextInput
-                  style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
+                  style={[
+                    styles.input,
+                    { height: 60, textAlignVertical: 'top' },
+                  ]}
                   placeholder="Enter note..."
                   multiline
                   value={note}
                   onChangeText={setNote}
                 />
                 {/* Total Price */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Total Price :</Text>
-                  <Text style={{ fontSize: 16, marginRight: 130 }}>Rs. {totalPrice.toFixed(2)}</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: 10,
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: 'bold' }}>
+                    Total Price :
+                  </Text>
+                  <Text style={{ fontSize: 16, marginRight: 130 }}>
+                    Rs. {totalPrice.toFixed(2)}
+                  </Text>
                 </View>
               </>
             )}
             {type === 'Feed Record' && (
               <>
-                 {/* FEED */}
+                {/* FEED */}
                 <Text style={styles.label}>
                   Feed<Text style={styles.required}>*</Text>
                 </Text>
@@ -1298,9 +1338,16 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedFeedId}
                   data={feedItems || []}
                   placeholder="Select feed..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  style={[
+                    styles.dropdown,
+                    {
+                      height: 45,
+                      borderColor: Theme.colors.borderLight,
+                      borderWidth: 1,
+                    },
+                  ]}
                   containerStyle={styles.dropdownContainer}
-                  onChange={(item) => setSelectedFeedId(item.value)}
+                  onChange={item => setSelectedFeedId(item.value)}
                   labelField="label"
                   valueField="value"
                 />
@@ -1340,7 +1387,9 @@ const AddModal: React.FC<AddModalProps> = ({
                   onPress={() => setShowFeedDatePicker(true)}
                 >
                   <Text style={{ flex: 1 }}>
-                    {feedDate ? feedDate.toLocaleDateString('en-GB') : 'DD/MM/YYYY'}
+                    {feedDate
+                      ? feedDate.toLocaleDateString('en-GB')
+                      : 'DD/MM/YYYY'}
                   </Text>
                   <Image source={Theme.icons.date} style={styles.dateIcon} />
                 </TouchableOpacity>
@@ -1386,7 +1435,10 @@ const AddModal: React.FC<AddModalProps> = ({
                 {/* NOTE */}
                 <Text style={styles.label}>Note</Text>
                 <TextInput
-                  style={[styles.input, { height: 70, textAlignVertical: 'top' }]}
+                  style={[
+                    styles.input,
+                    { height: 70, textAlignVertical: 'top' },
+                  ]}
                   placeholder="Enter note..."
                   multiline
                   value={note}
@@ -1394,11 +1446,13 @@ const AddModal: React.FC<AddModalProps> = ({
                 />
                 {/* PAYMENT STATUS */}
                 <View style={styles.radioRow}>
-                  {['Paid', 'Unpaid'].map((status) => (
+                  {['Paid', 'Unpaid'].map(status => (
                     <TouchableOpacity
                       key={status}
                       style={styles.radioContainer}
-                      onPress={() => setPaymentStatus(status as 'Paid' | 'Unpaid')}
+                      onPress={() =>
+                        setPaymentStatus(status as 'Paid' | 'Unpaid')
+                      }
                     >
                       <View
                         style={[
@@ -1443,7 +1497,9 @@ const AddModal: React.FC<AddModalProps> = ({
                   onPress={() => setShowFeedDatePicker(true)}
                 >
                   <Text style={{ flex: 1 }}>
-                    {feedDate ? feedDate.toLocaleDateString('en-GB') : 'DD/MM/YYYY'}
+                    {feedDate
+                      ? feedDate.toLocaleDateString('en-GB')
+                      : 'DD/MM/YYYY'}
                   </Text>
                   <Image source={Theme.icons.date} style={styles.dateIcon} />
                 </TouchableOpacity>
@@ -1467,9 +1523,16 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedFeedId}
                   data={feedItems || []}
                   placeholder="Select feed..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  style={[
+                    styles.dropdown,
+                    {
+                      height: 45,
+                      borderColor: Theme.colors.borderLight,
+                      borderWidth: 1,
+                    },
+                  ]}
                   containerStyle={styles.dropdownContainer}
-                  onChange={(item) => setSelectedFeedId(item.value)}
+                  onChange={item => setSelectedFeedId(item.value)}
                   labelField="label"
                   valueField="value"
                 />
@@ -1486,7 +1549,6 @@ const AddModal: React.FC<AddModalProps> = ({
                 />
               </>
             )}
-
           </ScrollView>
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>
@@ -1693,5 +1755,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.black,
   },
-
 });

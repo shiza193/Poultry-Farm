@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useNavigation } from '@react-navigation/native';
 import ConfirmationModal from '../customPopups/ConfirmationModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Logout } from '../../navigation/NavigationService';
 
 interface HeaderProps {
   title: string;
@@ -35,21 +35,12 @@ const Header: React.FC<HeaderProps> = ({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.clear();
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-      });
-    } catch (error) {
-      console.log('Logout failed', error);
-    }
+    console.log('Header logout pressed');
+    await Logout(); // calls global logout with console logs
   };
   return (
     <>
       <View style={[styles.topHeader, containerStyle]}>
-
         {/* ===== LOGO LEFT ===== */}
         <Image source={Theme.icons.poultrycloud1} style={styles.logo} />
 
@@ -88,7 +79,6 @@ const Header: React.FC<HeaderProps> = ({
             onPress={() => setShowMenu(false)}
           >
             <View style={styles.menu}>
-
               {/* ===== ADD NEW ===== */}
               {onAddNewPress && (
                 <>
@@ -116,7 +106,10 @@ const Header: React.FC<HeaderProps> = ({
                       onReportPress();
                     }}
                   >
-                    <Image source={Theme.icons.report} style={styles.menuIcon} />
+                    <Image
+                      source={Theme.icons.report}
+                      style={styles.menuIcon}
+                    />
                     <Text style={styles.menuText}>Report</Text>
                   </TouchableOpacity>
                   <View style={styles.menuSeparator} />
@@ -168,7 +161,6 @@ const Header: React.FC<HeaderProps> = ({
     </>
   );
 };
-
 
 export default Header;
 const styles = StyleSheet.create({
@@ -269,5 +261,4 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.SeparatorColor,
     marginHorizontal: 8,
   },
-
 });
