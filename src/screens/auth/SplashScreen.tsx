@@ -4,26 +4,26 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CustomConstants } from "../../constants/CustomConstants";
 import Theme from "../../theme/Theme";
+import { initToken } from "../../api/Api";
 
 const SplashScreen = () => {
   const navigation: any = useNavigation();
+useEffect(() => {
+  const checkLoginStatus = async () => {
+    const token = await AsyncStorage.getItem('token');
 
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      const token = await AsyncStorage.getItem("token");
+    if (token) {
+      await initToken(); // load token in memory
+      navigation.replace(CustomConstants.DASHBOARD_TABS);
+    } else {
+      navigation.replace(CustomConstants.LOGIN_SCREEN);
+    }
+  };
 
-      if (token) {
-        // If token exists, navigate to dashboard
-        navigation.replace(CustomConstants.DASHBOARD_TABS);
-      } else {
-        // Otherwise, go to login
-        navigation.replace(CustomConstants.LOGIN_SCREEN);
-      }
-    };
+  const timeout = setTimeout(checkLoginStatus, 2000);
+  return () => clearTimeout(timeout);
+}, [navigation]);
 
-    const timeout = setTimeout(checkLoginStatus, 2000);
-    return () => clearTimeout(timeout);
-  }, [navigation]);
 
   return (
     <View style={styles.container}>

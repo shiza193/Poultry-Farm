@@ -48,7 +48,7 @@ const UserScreen = () => {
   const routeBusinessUnitId = route.params?.businessUnitId ?? null;
   const [users, setUsers] = useState<User[]>([]);
   const [roleItems, setRoleItems] = useState<
-    { label: string; value: number }[]
+    { label: string; id: string }[]
   >([]);
   const [groupState, setGroupState] = useState({
     search: '',
@@ -75,7 +75,7 @@ const UserScreen = () => {
         setRoleItems(
           roles.map((r: any) => ({
             label: r.value,
-            value: r.key,
+            id: r.key,
           })),
         );
       } catch {
@@ -168,14 +168,14 @@ const UserScreen = () => {
   // ================= HANDLERS =================
   const AddUser = async (data: any) => {
     try {
-      const roleObj = roleItems.find(r => r.value === data.role);
+      const roleObj = roleItems.find(r => r.id === data.role);
       if (!roleObj) return;
 
       const newUser = await addUser({
         fullName: data.name,
         email: data.email,
         password: data.password,
-        userRoleId: Number(roleObj.value),
+        userRoleId: Number(roleObj.id),
       });
       showSuccessToast('User added successfully');
       setUsers(prev => [

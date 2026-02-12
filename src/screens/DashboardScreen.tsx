@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
   Text,
   Image,
 } from 'react-native';
@@ -13,13 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../components/common/LogoHeader';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   deleteBusinessUnit,
   addBusinessUnit,
   getAllBusinessUnits,
   updateBusinessUnit,
 } from '../services/BusinessUnit';
+import { Logout } from '../navigation/NavigationService';
 import { addEmployee } from '../services/EmployeeService';
 import Theme from '../theme/Theme';
 import FarmCard from '../components/customCards/FarmCard';
@@ -32,6 +31,7 @@ import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 import { addUser, getUserRoles } from '../services/UserScreen';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { formatDate } from '../utils/validation';
+import { normalizeDataFormat } from '../utils/normalizeDataFormat';
 
 interface FarmData {
   id: string;
@@ -58,32 +58,29 @@ const DashboardScreen = () => {
   >(null); //for Add User / Add Employee
   const [loading, setLoading] = useState(true); //for LoadingOverlay.
   const [activeModal, setActiveModal] = useState<ModalType>(null); //Drives all modals now (logout, delete, add/edit farm, add user/employee).
-  const [roleItems, setRoleItems] = useState<
-    { label: string; value: string }[]
-  >([]); //for Add User modal dropdown.
+  const [roleItems, setRoleItems] = useState<{ label: string; id: string }[]>(
+    [],
+  );
+  //for Add User modal dropdown.
   const [editingFarm, setEditingFarm] = useState<FarmData | null>(null); // for Add/Edit farm modal.
   const [selectedFarm, setSelectedFarm] = useState<FarmData | null>(null); // for Delete farm confirmation.
   const [farms, setFarms] = useState<FarmData[]>([]); // Main data source for FarmCard list.
 
-  // ===== LOAD FARMS =====
   const fetchFarms = async () => {
     try {
       setLoading(true);
-      const data = await getAllBusinessUnits();
-      // ===== CHECK IF DATA EXISTS AND IS AN ARRAY =====
-      if (!data || !Array.isArray(data)) {
-        showErrorToast(
-          'Invalid Data',
-          'Failed to load farms. Data format is incorrect.',
-        );
-        setFarms([]); // reset to empty array
-        return;
-      }
-      const mappedFarms = data.map((item: any) => mapBusinessUnitToFarm(item));
 
+      const response = await getAllBusinessUnits();
+
+      const normalizedData = normalizeDataFormat(response, 'array', 'Farms');
+
+      const mappedFarms = normalizedData.map((item: any) =>
+        mapBusinessUnitToFarm(item),
+      );
       setFarms(mappedFarms);
     } catch (error) {
       console.log('Failed to fetch farms', error);
+      setFarms([]);
     } finally {
       setLoading(false);
     }
@@ -100,18 +97,6 @@ const DashboardScreen = () => {
   }, []);
   //[] dependency array: sirf component mount hone par ye execute hoga.
 
-  const Logout = async () => {
-    try {
-      await AsyncStorage.clear();
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-      });
-    } catch (error) {
-      console.log('Logout failed', error);
-    }
-  };
   // helper function hai jo API se aaye data ko FarmData format me convert karta hai.
   const mapBusinessUnitToFarm = (
     item: any,
@@ -127,17 +112,29 @@ const DashboardScreen = () => {
 
   const fetchUserRoles = async () => {
     try {
-      const roles = await getUserRoles();
+      const rolesResponse = await getUserRoles();
+
+      const rolesNormalized = normalizeDataFormat(
+        rolesResponse,
+        'array',
+        'Roles',
+      );
+      const rolesArray = Array.isArray(rolesNormalized)
+        ? rolesNormalized
+        : rolesNormalized.items ?? [];
+
       setRoleItems(
-        roles.map((r: any) => ({
+        rolesArray.map((r: any) => ({
           label: r.value,
-          value: r.key.toString(),
+          id: r.key?.toString() ?? '',
         })),
       );
     } catch (error) {
       console.log('Failed to load user roles', error);
+      setRoleItems([]);
     }
   };
+
   const AddEmployeeFromDashboard = async (data: any) => {
     if (!activeBusinessUnitId) {
       showErrorToast('No business unit selected!');
@@ -154,8 +151,19 @@ const DashboardScreen = () => {
         businessUnitId: activeBusinessUnitId,
       };
 
-      await addEmployee(payload);
+      const res = await addEmployee(payload);
 
+      // Normalize backend response safely
+      const normalizedEmployeeData = normalizeDataFormat(
+        res,
+        'object',
+        'Employee',
+      );
+      const employee = Array.isArray(normalizedEmployeeData.items)
+        ? normalizedEmployeeData.items[0]
+        : normalizedEmployeeData;
+
+      // Update farms safely
       setFarms(prev =>
         prev.map(farm =>
           farm.businessUnitId === activeBusinessUnitId
@@ -165,13 +173,14 @@ const DashboardScreen = () => {
       );
 
       showSuccessToast('Employee added successfully');
-    } catch (error: any) {
+    } catch (error) {
       console.log('Failed to add employee', error);
     } finally {
       setActiveModal(null);
       setActiveBusinessUnitId(null);
     }
   };
+
   // ===== ADD / EDIT FARM =====
   const handleAddFarm = () => {
     setEditingFarm(null);
@@ -188,11 +197,17 @@ const DashboardScreen = () => {
     if (!selectedFarm?.businessUnitId) return;
 
     try {
-      await deleteBusinessUnit(selectedFarm.businessUnitId);
+      const res = await deleteBusinessUnit(selectedFarm.businessUnitId);
+
+      // Normalize response: usually we expect an object
+      normalizeDataFormat(res, 'object', 'Delete Farm');
+
+      // Update farms in state
       setFarms(prev =>
         prev.filter(f => f.businessUnitId !== selectedFarm.businessUnitId),
       );
-      showSuccessToast('Farm Deteted successfully');
+
+      showSuccessToast('Farm deleted successfully');
     } catch (error) {
       console.log('Delete failed', error);
     } finally {
@@ -214,16 +229,18 @@ const DashboardScreen = () => {
       };
 
       if (editingFarm?.businessUnitId) {
-        // ===== EDIT =====
         const res = await updateBusinessUnit(
           editingFarm.businessUnitId,
           payload,
         );
 
+        // Normalize backend response
+        const updatedData = normalizeDataFormat(res?.data, 'object', 'Farm');
+
         setFarms(prev =>
           prev.map(f =>
             f.businessUnitId === editingFarm.businessUnitId
-              ? mapBusinessUnitToFarm(res.data, {
+              ? mapBusinessUnitToFarm(updatedData, {
                   users: f.users,
                   employees: f.employees,
                 })
@@ -233,45 +250,53 @@ const DashboardScreen = () => {
 
         showSuccessToast('Success', 'Farm updated successfully');
       } else {
-        // ===== ADD NEW =====
         const res = await addBusinessUnit(payload);
+
+        // Normalize backend response
+        const newFarm = normalizeDataFormat(res?.data, 'object', 'Farm');
+
         setFarms(prev => [
           ...prev,
-          mapBusinessUnitToFarm(res.data, { users: 0, employees: 0 }),
+          mapBusinessUnitToFarm(newFarm, { users: 0, employees: 0 }),
         ]);
 
         showSuccessToast('Success', 'Farm added successfully');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.log('Failed to save farm', error);
-      // Optionally show error toast
-      // showErrorToast('Error', error.response?.data?.message || 'Something went wrong');
     } finally {
       setActiveModal(null);
-      setEditingFarm(null); // reset modal state
+      setEditingFarm(null);
     }
   };
 
-  const SaveUser = async (data: {
+  const AddUser = async (data: {
     name: string;
     role: string;
     email: string;
     password: string;
   }) => {
     try {
-      const roleObj = roleItems.find(r => r.value === data.role);
+      const roleObj = roleItems.find(r => r.id === data.role);
       if (!roleObj || !activeBusinessUnitId) return;
 
       const payload = {
         fullName: data.name,
         email: data.email,
         password: data.password,
-        userRoleId: Number(roleObj.value),
+        userRoleId: Number(roleObj.id),
         businessUnitId: activeBusinessUnitId,
       };
 
-      await addUser(payload);
+      const res = await addUser(payload);
 
+      // Normalize backend response safely
+      const normalizedUserData = normalizeDataFormat(res, 'object', 'User');
+      const user = Array.isArray(normalizedUserData.items)
+        ? normalizedUserData.items[0]
+        : normalizedUserData;
+
+      // Update farms safely
       setFarms(prev =>
         prev.map(farm =>
           farm.businessUnitId === activeBusinessUnitId
@@ -294,10 +319,7 @@ const DashboardScreen = () => {
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* HEADER */}
-          <Header
-            title="Poultry Farms"
-              showLogout={true}
-          />
+          <Header title="Poultry Farms" showLogout={true} />
           {/* ADD FARM */}
           <TouchableOpacity
             style={styles.addNewFarmButton}
@@ -392,7 +414,7 @@ const DashboardScreen = () => {
           hidePoultryFarm={activeModal === 'addEmployee'}
           onClose={() => setActiveModal(null)}
           onSave={
-            activeModal === 'addEmployee' ? AddEmployeeFromDashboard : SaveUser
+            activeModal === 'addEmployee' ? AddEmployeeFromDashboard : AddUser
           }
         />
 

@@ -8,17 +8,15 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-
 import InputField from '../../components/customInputs/Input';
 import PrimaryButton from '../../components/customButtons/customButton';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { isValidEmail, isValidPassword } from '../../utils/validation';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { loginUser } from '../../services/AuthService';
 
 import styles from './style';
 import Theme from '../../theme/Theme';
+import { saveToken } from '../../api/Api';
 
 const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
@@ -69,12 +67,12 @@ const LoginScreen = ({ navigation }: any) => {
       const res = await loginUser({ email, password });
       const token = res?.token;
       if (token) {
-        // Save only token
-        await AsyncStorage.setItem('token', token);
+        // Save token in memory + AsyncStorage
+        await saveToken(token);
         navigation.replace(CustomConstants.DASHBOARD_TABS);
       }
     } catch (error) {
-      console.log('Login failed', error); // interceptors  handel erro toast
+      console.log('Login failed', error); // interceptors  handel error toast
     } finally {
       setLoading(false);
     }

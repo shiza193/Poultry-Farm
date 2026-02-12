@@ -18,7 +18,7 @@ interface Farm {
 
 interface Role {
     label: string;
-    value: number;
+    id: string;
 }
 interface Props {
     visible: boolean;
