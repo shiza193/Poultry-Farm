@@ -257,7 +257,7 @@ const DataCard: React.FC<DataCardProps> = ({
               position: 'absolute',
               top: floatingMenu.y, 
               left: floatingMenu.x,
-              minWidth: 90,
+              minWidth: 110,
               backgroundColor: Theme.colors.white,
               borderRadius: 6,
               elevation: 6,

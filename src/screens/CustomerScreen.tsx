@@ -1,9 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
-
 import Header from '../components/common/LogoHeader';
 import BackArrow from '../components/common/ScreenHeaderWithBack';
 import TopBarCard from '../components/customCards/TopBarCard';
@@ -15,10 +13,9 @@ import StatusToggle from '../components/common/StatusToggle';
 import ProfileModal, {
   ProfileData,
 } from '../components/customPopups/ProfileModal';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Theme from '../theme/Theme';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
-
 import {
   getPartyBySearchAndFilter,
   addParty,
@@ -42,48 +39,39 @@ const CustomerScreen = () => {
   const route = useRoute<any>();
   const fromMenu = route.params?.fromMenu === true;
   const farmBU = route.params?.businessUnitId ?? null;
-
-  const insets = useSafeAreaInsets();
   const { businessUnitId: contextBU } = useBusinessUnit();
 
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [selectedBU, setSelectedBU] = useState<string | null>(farmBU);
-  const [openRowDotsId, setOpenRowDotsId] = useState<string | null>(null);
-
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<ProfileData | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showDotsMenu, setShowDotsMenu] = useState(false);
-
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-  const itemsPerPage = 100;
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [filters, setFilters] = React.useState({
+    search: '',
+    status: 'all' as 'all' | 'active' | 'inactive',
+    businessUnit: farmBU || null,
+  });
+  const [modals, setModals] = React.useState({
+    showAdd: false,
+    profileUser: null as ProfileData | null, // for ProfileModal
+    deleteUserId: null as string | null, // only id for delete
+    deleteVisible: false,
+  });
+  const [loading, setLoading] = React.useState(false);
+  const pageSize = 100;
 
   // ================= FETCH CUSTOMERS =================
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-
       const payload = {
-        searchKey: search || null,
-        isActive: status === 'all' ? null : status === 'active',
-        pageNumber: currentPage,
-        pageSize: itemsPerPage,
+        searchKey: filters.search || null,
+        isActive: filters.status === 'all' ? null : filters.status === 'active',
+        pageNumber: 1,
+        pageSize,
         partyTypeId: 0,
-        businessUnitId: selectedBU || null, // automatically filtered if opened from farm
+        businessUnitId: filters.businessUnit || null,
       };
-
       const response = await getPartyBySearchAndFilter(payload);
 
-      if (!response || !Array.isArray(response.list)) {
+      if (!response?.list || !Array.isArray(response.list)) {
         setUsers([]);
-        setTotalCount(0);
         return;
       }
 
@@ -95,39 +83,39 @@ const CustomerScreen = () => {
         address: item.address,
         isActive: item.isActive,
         businessUnitId: item.businessUnitId || null,
-        businessUnit: item.businessUnitName || '—',
+        businessUnit: item.businessUnit?.trim() || '—',
       }));
 
       setUsers(formatted);
-      setTotalCount(response.totalCount ?? 0);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching customers:', error);
-      showErrorToast('Error', 'Failed to load customers');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenProfile = (user: User) => {
-    const profileData: ProfileData = {
-      id: user.id,
-      name: user.name,
-      phone: user.phone ?? '',
-      email: user.email ?? '',
-      address: user.address ?? '',
-      businessUnitId: user.businessUnitId ?? null,
-      isActive: user.isActive,
-    };
-
-    setSelectedUser(profileData);
-    setShowProfileModal(true);
-  };
-
   useFocusEffect(
     useCallback(() => {
       fetchCustomers();
-    }, [currentPage, search, status, selectedBU]),
+    }, [filters]),
   );
+
+  // ================= OPEN PROFILE =================
+  const handleOpenProfile = (user: User) => {
+    setModals(prev => ({
+      ...prev,
+      profileUser: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone ?? '',
+        email: user.email ?? '',
+        address: user.address ?? '',
+        businessUnitId: user.businessUnitId ?? null,
+        isActive: user.isActive,
+      },
+    }));
+  };
 
   // ================= ADD CUSTOMER =================
   const handleAddCustomer = async (formData: {
@@ -144,14 +132,13 @@ const CustomerScreen = () => {
         email: formData.email?.trim() || null,
         address: formData.address?.trim() || '',
         partyTypeId: 0,
-        businessUnitId: selectedBU || contextBU,
+        businessUnitId: filters.businessUnit || contextBU,
       };
 
       const response = await addParty(payload);
       if (response) {
         showSuccessToast('Success', 'Customer added successfully');
-        setShowAddModal(false);
-        setCurrentPage(1);
+        setModals(prev => ({ ...prev, showAdd: false }));
         fetchCustomers();
       }
     } catch (error: any) {
@@ -184,18 +171,26 @@ const CustomerScreen = () => {
   };
 
   // ================= DELETE CUSTOMER =================
+  const handleDeletePress = (userId: string) => {
+    setModals(prev => ({
+      ...prev,
+      deleteUserId: userId,
+      deleteVisible: true,
+    }));
+  };
+
   const handleConfirmDelete = async () => {
-    if (!selectedUserId) return;
+    if (!modals.deleteUserId) return;
 
     try {
-      const res = await deleteParty(selectedUserId);
+      const res = await deleteParty(modals.deleteUserId);
       if (res.error || res.success === false) {
         return showErrorToast(
           'Error',
           res.error || res.message || 'Failed to delete customer',
         );
       }
-      setUsers(prev => prev.filter(u => u.id !== selectedUserId));
+      setUsers(prev => prev.filter(u => u.id !== modals.deleteUserId));
       showSuccessToast(
         'Success',
         res.message || 'Customer deleted successfully',
@@ -206,24 +201,30 @@ const CustomerScreen = () => {
         error?.message ||
         'Failed to delete customer';
       showErrorToast('Error', msg);
-      console.error('Delete customer failed', error);
     } finally {
-      setDeleteModalVisible(false);
-      setSelectedUserId(null);
+      setModals(prev => ({
+        ...prev,
+        deleteVisible: false,
+        deleteUserId: null,
+      }));
     }
   };
 
   const resetFilters = () => {
-    setSearch('');
-    setStatus('all');
-    if (!fromMenu) setSelectedBU(null); // keep BU filter if opened from farm
-    setCurrentPage(1);
+    setFilters(prev => ({
+      search: '',
+      status: 'all',
+      businessUnit: fromMenu ? prev.businessUnit : null,
+    }));
   };
 
-  // ================= TABLE SETUP =================
+  // ================= FILTERED USERS =================
   const filteredUsers = users.filter(user => {
+    const { search, status, businessUnit } = filters;
+
     if (status === 'active' && !user.isActive) return false;
     if (status === 'inactive' && user.isActive) return false;
+
     if (search) {
       const q = search.toLowerCase();
       if (
@@ -232,7 +233,9 @@ const CustomerScreen = () => {
       )
         return false;
     }
-    if (selectedBU && user.businessUnitId !== selectedBU) return false;
+
+    if (businessUnit && user.businessUnitId !== businessUnit) return false;
+
     return true;
   });
 
@@ -259,9 +262,6 @@ const CustomerScreen = () => {
           </Text>
         </TouchableOpacity>
       ),
-      onDotsPress: row => {
-        setOpenRowDotsId(prev => (prev === row.raw.id ? null : row.raw.id));
-      },
     },
     { key: 'email', title: 'EMAIL', width: 130 },
     { key: 'phone', title: 'PHONE', width: 120 },
@@ -281,40 +281,26 @@ const CustomerScreen = () => {
 
   // ================= UI =================
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.safeArea}>
       {fromMenu ? (
         <BackArrow
           title="Customers"
-          showBack={true}
-          onAddNewPress={() => setShowAddModal(true)}
+          showBack
+          onAddNewPress={() => setModals(prev => ({ ...prev, showAdd: true }))}
         />
       ) : (
         <Header
           title="Customers"
-          onAddNewPress={() => setShowAddModal(prev => !prev)}
-          showLogout={true}
-
+          onAddNewPress={() => setModals(prev => ({ ...prev, showAdd: true }))}
+          showLogout
         />
       )}
 
-      {showDotsMenu && (
-        <View style={styles.dotsMenu}>
-          <TouchableOpacity
-            onPress={() => {
-              setShowAddModal(true);
-              setShowDotsMenu(false);
-            }}
-          >
-            <Text style={styles.menuText}>+ Add New</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {selectedUser && (
+      {modals.profileUser && (
         <ProfileModal
-          visible={showProfileModal}
-          onClose={() => setShowProfileModal(false)}
-          data={selectedUser}
+          visible={true}
+          onClose={() => setModals(prev => ({ ...prev, profileUser: null }))}
+          data={modals.profileUser}
           type="customer"
           onSave={async updatedData => {
             try {
@@ -327,33 +313,31 @@ const CustomerScreen = () => {
                 partyTypeId: 0,
                 businessUnitId: updatedData.businessUnitId || contextBU || '',
               };
-
               const response = await updateParty(updatedData.id, payload);
-
               if (response) {
                 showSuccessToast('Success', 'Customer updated successfully');
-                setShowProfileModal(false);
+                setModals(prev => ({ ...prev, profileUser: null }));
                 fetchCustomers();
               }
-            } catch (error: any) {
+            } catch (error) {
               console.error('Update customer error:', error);
-              const errMsg =
-                error?.response?.data?.message || 'Failed to update customer';
-              showErrorToast('Error', errMsg);
             } finally {
               setLoading(false);
             }
           }}
         />
       )}
-
       <TopBarCard
-        searchValue={search}
-        onSearchChange={text => setSearch(text)}
-        status={status === 'all' ? null : status}
-        onStatusChange={s => setStatus(s ?? 'all')}
-        value={selectedBU}
-        onBusinessUnitChange={fromMenu ? undefined : setSelectedBU} // lock BU if opened from farm
+        searchValue={filters.search}
+        onSearchChange={text => setFilters(prev => ({ ...prev, search: text }))}
+        status={filters.status === 'all' ? null : filters.status}
+        onStatusChange={s =>
+          setFilters(prev => ({ ...prev, status: s ?? 'all' }))
+        }
+        value={filters.businessUnit}
+        onBusinessUnitChange={bu =>
+          setFilters(prev => ({ ...prev, businessUnit: bu }))
+        }
         onReset={resetFilters}
         hideBUDropdown={fromMenu}
       />
@@ -363,17 +347,23 @@ const CustomerScreen = () => {
           <DataCard
             columns={columns}
             data={tableData}
-            itemsPerPage={itemsPerPage}
+            itemsPerPage={10}
             renderRowMenu={(row, closeMenu) => (
               <TouchableOpacity
                 onPress={() => {
-                  setSelectedUserId(row.raw.id);
-                  setDeleteModalVisible(true);
+                  handleDeletePress(row.raw.id);
                   closeMenu();
                 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
-                  Delete Cus
+                <Text
+                  style={{
+                    color: 'red',
+                    fontWeight: '600',
+                    fontSize: 12,
+                    marginLeft: 12,
+                  }}
+                >
+                  Delete Customer
                 </Text>
               </TouchableOpacity>
             )}
@@ -388,50 +378,37 @@ const CustomerScreen = () => {
       )}
 
       <AddModal
-        visible={showAddModal}
+        visible={modals.showAdd}
         type="customer"
         title="Add Customer"
-        onClose={() => setShowAddModal(false)}
+        onClose={() => setModals(prev => ({ ...prev, showAdd: false }))}
         onSave={handleAddCustomer}
         hideBusinessUnit={fromMenu}
       />
 
       <ConfirmationModal
         type="delete"
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
+        visible={modals.deleteVisible}
+        onClose={() =>
+          setModals(prev => ({
+            ...prev,
+            deleteVisible: false,
+            deleteUserId: null,
+          }))
+        }
         onConfirm={handleConfirmDelete}
         title="Are you sure you want to delete this customer?"
       />
 
       <LoadingOverlay visible={loading} />
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default CustomerScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.white },
-  dotsMenu: {
-    position: 'absolute',
-    top: 40,
-    right: 16,
-    backgroundColor: Theme.colors.white,
-    padding: 12,
-    borderRadius: 8,
-    elevation: 6,
-    zIndex: 999,
-  },
-  menuText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Theme.colors.success,
-  },
+  safeArea: { flex: 1, backgroundColor: Theme.colors.white },
   noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
-  noDataImage: {
-    width: 290,
-    height: 290,
-    resizeMode: 'contain',
-  },
+  noDataImage: { width: 290, height: 290, resizeMode: 'contain' },
 });

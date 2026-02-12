@@ -590,7 +590,6 @@ const AddModal: React.FC<AddModalProps> = ({
                   />
                 </>
               )}
-
             {/* USER */}
             {type === 'user' && (
               <>

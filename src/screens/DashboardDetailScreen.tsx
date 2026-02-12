@@ -18,17 +18,16 @@ import Header from '../components/common/LogoHeader';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { getPoultryFarmSummary } from '../services/BusinessUnit';
 import { useBusinessUnit } from '../context/BusinessContext';
-import { CustomConstants } from '../constants/CustomConstants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import ConfirmationModal from '../components/customPopups/ConfirmationModal';
+import { normalizeDataFormat } from '../utils/NormalizeDataFormat';
 
 const DashboardDetailScreen = ({ navigation }: any) => {
   const { businessUnitId, farmName } = useBusinessUnit();
-  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
-  const [fromDate, setFromDate] = useState<Date | null>(null);
-  const [toDate, setToDate] = useState<Date | null>(null);
+  const [dateRange, setDateRange] = useState<{
+    from: Date | null;
+    to: Date | null;
+  }>({ from: null, to: null });
+
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
 
@@ -39,33 +38,25 @@ const DashboardDetailScreen = ({ navigation }: any) => {
 
     const res = await getPoultryFarmSummary(
       businessUnitId,
-      fromDate?.toISOString() || null,
-      toDate?.toISOString() || null,
+      dateRange.from?.toISOString() || null,
+      dateRange.to?.toISOString() || null,
     );
 
-    console.log('Total Birds:', res?.totalBirds);
-    console.log('Remaining Birds:', res?.totalRemainingBirds);
-    console.log('Total Eggs Produced:', res?.totalEggsProduced);
-    console.log('Production % (API):', res?.totalEggsProductionsPercentage);
+    // Normalize API response as object
+    const formattedData = normalizeDataFormat(
+      res,
+      'object',
+      'Poultry Farm Summary',
+    );
 
-    if (res?.totalEggsProduced && res?.totalEggsProductionsPercentage) {
-      const calculatedLayingBirds =
-        (res.totalEggsProduced * 100) / res.totalEggsProductionsPercentage;
-
-      console.log(
-        'Calculated Active Laying Birds:',
-        calculatedLayingBirds.toFixed(2),
-      );
-    }
-
-    setData(res);
+    setData(formattedData);
     setLoading(false);
   };
 
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [businessUnitId, fromDate, toDate]),
+    }, [businessUnitId, dateRange.from, dateRange.to]),
   );
 
   /** InlineStat for simple numbers */
@@ -89,18 +80,6 @@ const DashboardDetailScreen = ({ navigation }: any) => {
     );
   };
 
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.clear();
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-      });
-    } catch (error) {
-      console.log('Logout failed', error);
-    }
-  };
   const InlineRowWithDividers = ({ stats }: any) => (
     <View style={styles.inlineRow}>
       {stats.map((stat: any, index: number) => (
@@ -290,7 +269,9 @@ const DashboardDetailScreen = ({ navigation }: any) => {
             >
               <Text style={styles.dateLabel}>From</Text>
               <Text style={styles.dateValue}>
-                {fromDate ? fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+                {dateRange.from
+                  ? dateRange.from.toLocaleDateString('en-GB')
+                  : 'DD/MM/YY'}
               </Text>
             </TouchableOpacity>
 
@@ -303,30 +284,28 @@ const DashboardDetailScreen = ({ navigation }: any) => {
             >
               <Text style={styles.dateLabel}>To</Text>
               <Text style={styles.dateValue}>
-                {toDate ? toDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+                {dateRange.to
+                  ? dateRange.to.toLocaleDateString('en-GB')
+                  : 'DD/MM/YY'}
               </Text>
             </TouchableOpacity>
           </View>
           {/* RIGHT : RESET */}
-          {(fromDate || toDate) && (
+          {(dateRange.from || dateRange.to) && (
             <TouchableOpacity
               style={styles.resetInlineBtn}
-              onPress={() => {
-                setFromDate(null);
-                setToDate(null);
-              }}
+              onPress={() => setDateRange({ from: null, to: null })}
             >
               <Text style={styles.resetInlineText}>Reset Filters</Text>
             </TouchableOpacity>
           )}
         </View>
-        {/* Pickers */}
         {activePicker && (
           <DateTimePicker
             value={
               activePicker === 'from'
-                ? fromDate || new Date()
-                : toDate || new Date()
+                ? dateRange.from || new Date()
+                : dateRange.to || new Date()
             }
             mode="date"
             display="default"
@@ -334,13 +313,17 @@ const DashboardDetailScreen = ({ navigation }: any) => {
               if (Platform.OS === 'android') {
                 setActivePicker(null);
                 if (event.type === 'set' && selectedDate) {
-                  if (activePicker === 'from') setFromDate(selectedDate);
-                  else if (activePicker === 'to') setToDate(selectedDate);
+                  if (activePicker === 'from')
+                    setDateRange({ ...dateRange, from: selectedDate });
+                  else if (activePicker === 'to')
+                    setDateRange({ ...dateRange, to: selectedDate });
                 }
               } else {
                 if (selectedDate) {
-                  if (activePicker === 'from') setFromDate(selectedDate);
-                  else if (activePicker === 'to') setToDate(selectedDate);
+                  if (activePicker === 'from')
+                    setDateRange({ ...dateRange, from: selectedDate });
+                  else if (activePicker === 'to')
+                    setDateRange({ ...dateRange, to: selectedDate });
                 }
               }
             }}
@@ -414,13 +397,7 @@ const DashboardDetailScreen = ({ navigation }: any) => {
             />
           </View>
         )}
-        <ConfirmationModal
-          type="logout"
-          visible={showLogoutModal}
-          title="Are you sure you want to logout?"
-          onClose={() => setShowLogoutModal(false)}
-          onConfirm={handleLogout}
-        />
+
         <LoadingOverlay visible={loading} />
       </ScrollView>
     </SafeAreaView>
