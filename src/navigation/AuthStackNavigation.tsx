@@ -5,7 +5,6 @@ import SplashScreen from "../screens/auth/SplashScreen";
 import { CustomConstants } from "../constants/CustomConstants";
 import DashboardScreen from "../screens/DashboardScreen";
 import BootomTabNavigation from "./BootomTabNavigation";
-import UserScreen from "../screens/UserScreen";
 import CustomerScreen from "../screens/CustomerScreen";
 import FlocksScreen from "../screens/flocks/FlocksScreen";
 import FlockSaleScreen from "../screens/flocks/FlockSaleScreen";
@@ -45,11 +44,6 @@ const AuthStackNavigation = () => {
         <Stack.Screen
         name={CustomConstants.SIGN_UP_SCREEN}
         component={SignupScreen}
-      />
-      
-       <Stack.Screen
-        name={CustomConstants.USER_SCREEN}
-        component={UserScreen}
       />
         <Stack.Screen
         name={CustomConstants.CUSTOMER_SCREEN}

@@ -31,7 +31,7 @@ import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 import { addUser, getUserRoles } from '../services/UserScreen';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { formatDate } from '../utils/validation';
-import { normalizeDataFormat } from '../utils/normalizeDataFormat';
+import { normalizeDataFormat } from '../utils/NormalizeDataFormat';
 
 interface FarmData {
   id: string;
@@ -182,7 +182,7 @@ const DashboardScreen = () => {
   };
 
   // ===== ADD / EDIT FARM =====
-  const handleAddFarm = () => {
+  const AddFarm = () => {
     setEditingFarm(null);
     setActiveModal('business');
   };
@@ -323,7 +323,7 @@ const DashboardScreen = () => {
           {/* ADD FARM */}
           <TouchableOpacity
             style={styles.addNewFarmButton}
-            onPress={handleAddFarm}
+            onPress={AddFarm}
           >
             <View style={styles.addNewFarmContent}>
               <Image source={Theme.icons.add} style={styles.addNewFarmIcon} />
@@ -345,12 +345,12 @@ const DashboardScreen = () => {
                 users={farm.users}
                 employees={farm.employees}
                 onUserCountPress={() =>
-                  navigation.navigate('User', {
+                  navigation.navigate(CustomConstants.USER_SCREEN, {
                     businessUnitId: farm.businessUnitId,
                   })
                 }
                 onEmployeeCountPress={() =>
-                  navigation.navigate('Employee', {
+                  navigation.navigate(CustomConstants.EMPLOYEE_SCREEN, {
                     businessUnitId: farm.businessUnitId,
                   })
                 }

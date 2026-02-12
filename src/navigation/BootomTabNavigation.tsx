@@ -9,6 +9,7 @@ import UserScreen from '../screens/UserScreen';
 import CustomerScreen from '../screens/CustomerScreen';
 import SupplierScreen from '../screens/SupplierScreen';
 import EmployeeScreen from '../screens/EmployeeScreen';
+import { CustomConstants } from '../constants/CustomConstants';
 
 const Tab = createBottomTabNavigator();
 
@@ -20,9 +21,7 @@ const renderIcon = (icon: any, focused: boolean) => {
       style={[
         styles.icon,
         {
-          tintColor: focused
-            ? Theme.colors.primaryYellow 
-            : Theme.colors.blue,       
+          tintColor: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
         },
       ]}
     />
@@ -37,7 +36,7 @@ const BootomTabNavigation = () => (
     }}
   >
     <Tab.Screen
-      name="Home"
+      name={CustomConstants.DASHBOARD_SCREEN}
       component={DashboardScreen}
       options={{
         tabBarLabel: ({ focused }) => (
@@ -45,22 +44,19 @@ const BootomTabNavigation = () => (
             style={[
               styles.label,
               {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
               },
             ]}
           >
             Home
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.home, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.home, focused),
       }}
     />
 
     <Tab.Screen
-      name="User"
+      name={CustomConstants.USER_SCREEN}
       component={UserScreen}
       options={{
         tabBarLabel: ({ focused }) => (
@@ -68,22 +64,19 @@ const BootomTabNavigation = () => (
             style={[
               styles.label,
               {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
               },
             ]}
           >
             User
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.user, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.user, focused),
       }}
     />
 
     <Tab.Screen
-      name="Customer"
+      name={CustomConstants.CUSTOMER_SCREEN}
       component={CustomerScreen}
       options={{
         tabBarLabel: ({ focused }) => (
@@ -91,22 +84,19 @@ const BootomTabNavigation = () => (
             style={[
               styles.label,
               {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
               },
             ]}
           >
             Customer
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.customer, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.customer, focused),
       }}
     />
 
     <Tab.Screen
-      name="Supplier"
+      name={CustomConstants.SUPPILER_SCREEN}
       component={SupplierScreen}
       options={{
         tabBarLabel: ({ focused }) => (
@@ -114,22 +104,19 @@ const BootomTabNavigation = () => (
             style={[
               styles.label,
               {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
               },
             ]}
           >
             Supplier
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.supplier, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.supplier, focused),
       }}
     />
 
     <Tab.Screen
-      name="Employee"
+      name={CustomConstants.EMPLOYEE_SCREEN}
       component={EmployeeScreen}
       options={{
         tabBarLabel: ({ focused }) => (
@@ -137,17 +124,14 @@ const BootomTabNavigation = () => (
             style={[
               styles.label,
               {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
               },
             ]}
           >
             Employee
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.employee, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.employee, focused),
       }}
     />
   </Tab.Navigator>
