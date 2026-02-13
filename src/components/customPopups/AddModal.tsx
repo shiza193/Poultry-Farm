@@ -15,7 +15,6 @@ import { getBusinessUnits } from '../../services/BusinessUnit';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-
 import { isValidEmail, isValidPassword } from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 import {
@@ -23,7 +22,6 @@ import {
   getFlockTotalEggs,
 } from '../../services/EggsService';
 import { Dropdown } from 'react-native-element-dropdown';
-
 type ModalType =
   | 'user'
   | 'customer'
@@ -257,6 +255,13 @@ const AddModal: React.FC<AddModalProps> = ({
     { label: string; value: number }[]
   >([]);
 
+
+  useEffect(() => {
+  if (!visible) {
+    reset();
+  }
+}, [visible]);
+
   useEffect(() => {
     const fetchUnits = async () => {
       if (!selectedFlock) {
@@ -386,11 +391,11 @@ const AddModal: React.FC<AddModalProps> = ({
 
       setIsSaveEnabled(
         selectedCustomer !== null &&
-        selectedFlock !== null &&
-        endDate !== null &&
-        price.trim().length > 0 &&
-        selectedUnit !== null &&
-        valid,
+          selectedFlock !== null &&
+          endDate !== null &&
+          price.trim().length > 0 &&
+          selectedUnit !== null &&
+          valid,
       );
       console.log('AddModal Save Data:', {
         price,
@@ -441,17 +446,29 @@ const AddModal: React.FC<AddModalProps> = ({
     bag,
   ]);
   const reset = () => {
+    // Common
     setName('');
     setEmail('');
-    setRole(null);
+    setEmailError('');
     setPassword('');
     setShowPassword(false);
+    setRole(null);
+
+    // Customer
     setBusinessUnit(null);
     setPhone('');
     setAddress('');
-    setRoleOpen(false);
-    setBuOpen(false);
-    setEmailError('');
+
+    // Employee
+    setSelectedEmployeeTypeId(null);
+    setSalary('');
+    setJoiningDate(null);
+    setEndDate(null);
+    setTypeOpen(false);
+    setShowJoiningPicker(false);
+    setShowEndPicker(false);
+
+    // Vaccination
     setVaccine(null);
     setSupplier(null);
     setQuantity('');
@@ -459,6 +476,20 @@ const AddModal: React.FC<AddModalProps> = ({
     setPrice('');
     setNote('');
     setPaymentStatus('Paid');
+
+    // Egg
+    setSelectedFlock(null);
+    setSelectedUnit(null);
+    setIntactEggs(0);
+    setBrokenEggs(0);
+
+    // Feed
+    setSelectedFeedId(null);
+    setSelectedFeedTypeId(null);
+    setFeedDate(null);
+    setbag('1');
+
+    setIsSaveEnabled(false);
   };
 
   useEffect(() => {
@@ -1553,7 +1584,10 @@ const AddModal: React.FC<AddModalProps> = ({
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.discardButton]}
-              onPress={onClose}
+              onPress={() => {
+                reset();
+                onClose();
+              }}
             >
               <Text style={styles.discardText}>Discard</Text>
             </TouchableOpacity>

@@ -26,7 +26,6 @@ const DashboardDetailScreen = ({ navigation }: any) => {
     from: Date | null;
     to: Date | null;
   }>({ from: null, to: null });
-
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);

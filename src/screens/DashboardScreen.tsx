@@ -34,7 +34,6 @@ import { formatDate } from '../utils/validation';
 import { normalizeDataFormat } from '../utils/NormalizeDataFormat';
 
 interface FarmData {
-  id: string;
   businessUnitId?: string;
   title: string;
   location: string;
@@ -51,32 +50,40 @@ type ModalType =
   | null;
 
 const DashboardScreen = () => {
-  const { setBusinessUnitId, setFarmName, setFarmLocation } = useBusinessUnit();
+  const { setBusinessUnitId, setFarmName, setFarmLocation } = useBusinessUnit(); //Context Values
   const navigation = useNavigation<any>();
-  const [activeBusinessUnitId, setActiveBusinessUnitId] = useState<
-    string | null
-  >(null); //for Add User / Add Employee
+  const [farmState, setFarmState] = useState<{
+    businessUnitId: string | null;
+    editingFarm: FarmData | null;
+    selectedFarm: FarmData | null;
+  }>({
+    businessUnitId: null,
+    editingFarm: null,
+    selectedFarm: null,
+  });
+  //for Add User / Add Employee
   const [loading, setLoading] = useState(true); //for LoadingOverlay.
   const [activeModal, setActiveModal] = useState<ModalType>(null); //Drives all modals now (logout, delete, add/edit farm, add user/employee).
   const [roleItems, setRoleItems] = useState<{ label: string; id: string }[]>(
     [],
-  );
-  //for Add User modal dropdown.
-  const [editingFarm, setEditingFarm] = useState<FarmData | null>(null); // for Add/Edit farm modal.
-  const [selectedFarm, setSelectedFarm] = useState<FarmData | null>(null); // for Delete farm confirmation.
+  ); //for Add User modal dropdown.
+
   const [farms, setFarms] = useState<FarmData[]>([]); // Main data source for FarmCard list.
 
   const fetchFarms = async () => {
     try {
       setLoading(true);
-
       const response = await getAllBusinessUnits();
-
       const normalizedData = normalizeDataFormat(response, 'array', 'Farms');
 
-      const mappedFarms = normalizedData.map((item: any) =>
-        mapBusinessUnitToFarm(item),
-      );
+      const mappedFarms = normalizedData.map((item: any) => ({
+        businessUnitId: item.businessUnitId,
+        title: item.name,
+        location: item.location,
+        users: item.totalUser ?? 0,
+        employees: item.totalEmployee ?? 0,
+      }));
+
       setFarms(mappedFarms);
     } catch (error) {
       console.log('Failed to fetch farms', error);
@@ -97,34 +104,14 @@ const DashboardScreen = () => {
   }, []);
   //[] dependency array: sirf component mount hone par ye execute hoga.
 
-  // helper function hai jo API se aaye data ko FarmData format me convert karta hai.
-  const mapBusinessUnitToFarm = (
-    item: any,
-    defaults?: { users?: number; employees?: number },
-  ): FarmData => ({
-    id: item.businessUnitId, // unique identifier for React & local state
-    businessUnitId: item.businessUnitId, // API reference
-    title: item.name,
-    location: item.location,
-    users: defaults?.users ?? item.totalUser,
-    employees: defaults?.employees ?? item.totalEmployee,
-  });
-
   const fetchUserRoles = async () => {
     try {
       const rolesResponse = await getUserRoles();
 
-      const rolesNormalized = normalizeDataFormat(
-        rolesResponse,
-        'array',
-        'Roles',
-      );
-      const rolesArray = Array.isArray(rolesNormalized)
-        ? rolesNormalized
-        : rolesNormalized.items ?? [];
+      const roles = normalizeDataFormat(rolesResponse, 'array', 'Roles');
 
       setRoleItems(
-        rolesArray.map((r: any) => ({
+        roles.map((r: any) => ({
           label: r.value,
           id: r.key?.toString() ?? '',
         })),
@@ -136,7 +123,7 @@ const DashboardScreen = () => {
   };
 
   const AddEmployeeFromDashboard = async (data: any) => {
-    if (!activeBusinessUnitId) {
+    if (!farmState.businessUnitId) {
       showErrorToast('No business unit selected!');
       return;
     }
@@ -148,25 +135,16 @@ const DashboardScreen = () => {
         joiningDate: formatDate(data.joiningDate),
         salary: Number(data.salary),
         endDate: data.endDate ? formatDate(data.endDate) : null,
-        businessUnitId: activeBusinessUnitId,
+        businessUnitId: farmState.businessUnitId,
       };
 
       const res = await addEmployee(payload);
 
-      // Normalize backend response safely
-      const normalizedEmployeeData = normalizeDataFormat(
-        res,
-        'object',
-        'Employee',
-      );
-      const employee = Array.isArray(normalizedEmployeeData.items)
-        ? normalizedEmployeeData.items[0]
-        : normalizedEmployeeData;
+      normalizeDataFormat(res, 'object', 'Employee');
 
-      // Update farms safely
       setFarms(prev =>
         prev.map(farm =>
-          farm.businessUnitId === activeBusinessUnitId
+          farm.businessUnitId === farmState.businessUnitId
             ? { ...farm, employees: farm.employees + 1 }
             : farm,
         ),
@@ -177,41 +155,55 @@ const DashboardScreen = () => {
       console.log('Failed to add employee', error);
     } finally {
       setActiveModal(null);
-      setActiveBusinessUnitId(null);
+      setFarmState(prev => ({
+        ...prev,
+        businessUnitId: null,
+      }));
     }
   };
 
   // ===== ADD / EDIT FARM =====
   const AddFarm = () => {
-    setEditingFarm(null);
+    setFarmState(prev => ({
+      ...prev,
+      editingFarm: null,
+    }));
     setActiveModal('business');
   };
 
   const handleEditFarm = (farm: FarmData) => {
-    setEditingFarm(farm);
+    setFarmState(prev => ({
+      ...prev,
+      editingFarm: farm,
+    }));
     setActiveModal('business');
   };
 
   // ===== DELETE FARM =====
   const ConfirmDelete = async () => {
-    if (!selectedFarm?.businessUnitId) return;
+    if (!farmState.selectedFarm?.businessUnitId) return;
 
     try {
-      const res = await deleteBusinessUnit(selectedFarm.businessUnitId);
+      const res = await deleteBusinessUnit(
+        farmState.selectedFarm.businessUnitId,
+      );
 
-      // Normalize response: usually we expect an object
       normalizeDataFormat(res, 'object', 'Delete Farm');
 
-      // Update farms in state
       setFarms(prev =>
-        prev.filter(f => f.businessUnitId !== selectedFarm.businessUnitId),
+        prev.filter(
+          f => f.businessUnitId !== farmState.selectedFarm?.businessUnitId,
+        ),
       );
 
       showSuccessToast('Farm deleted successfully');
     } catch (error) {
       console.log('Delete failed', error);
     } finally {
-      setSelectedFarm(null);
+      setFarmState(prev => ({
+        ...prev,
+        selectedFarm: null,
+      }));
       setActiveModal(null);
     }
   };
@@ -228,45 +220,54 @@ const DashboardScreen = () => {
         businessTypeId: data.businessTypeId ?? 1,
       };
 
-      if (editingFarm?.businessUnitId) {
-        const res = await updateBusinessUnit(
-          editingFarm.businessUnitId,
+      let res;
+
+      if (farmState.editingFarm?.businessUnitId) {
+        res = await updateBusinessUnit(
+          farmState.editingFarm.businessUnitId,
           payload,
         );
-
-        // Normalize backend response
-        const updatedData = normalizeDataFormat(res?.data, 'object', 'Farm');
-
-        setFarms(prev =>
-          prev.map(f =>
-            f.businessUnitId === editingFarm.businessUnitId
-              ? mapBusinessUnitToFarm(updatedData, {
-                  users: f.users,
-                  employees: f.employees,
-                })
-              : f,
-          ),
-        );
-
         showSuccessToast('Success', 'Farm updated successfully');
       } else {
-        const res = await addBusinessUnit(payload);
-
-        // Normalize backend response
-        const newFarm = normalizeDataFormat(res?.data, 'object', 'Farm');
-
-        setFarms(prev => [
-          ...prev,
-          mapBusinessUnitToFarm(newFarm, { users: 0, employees: 0 }),
-        ]);
-
+        res = await addBusinessUnit(payload);
         showSuccessToast('Success', 'Farm added successfully');
       }
+
+      const farmData = normalizeDataFormat(res?.data, 'object', 'Farm');
+
+      setFarms(prev =>
+        farmState.editingFarm
+          ? prev.map(f =>
+              f.businessUnitId === farmState.editingFarm?.businessUnitId
+                ? {
+                    businessUnitId: farmData.businessUnitId,
+                    title: farmData.name,
+                    location: farmData.location,
+                    users: f.users,
+                    employees: f.employees,
+                  }
+                : f,
+            )
+          : [
+              ...prev,
+              {
+                businessUnitId: farmData.businessUnitId,
+                title: farmData.name,
+                location: farmData.location,
+                users: 0,
+                employees: 0,
+              },
+            ],
+      );
     } catch (error) {
       console.log('Failed to save farm', error);
     } finally {
       setActiveModal(null);
-      setEditingFarm(null);
+      setFarmState({
+        businessUnitId: null,
+        editingFarm: null,
+        selectedFarm: null,
+      });
     }
   };
 
@@ -278,28 +279,23 @@ const DashboardScreen = () => {
   }) => {
     try {
       const roleObj = roleItems.find(r => r.id === data.role);
-      if (!roleObj || !activeBusinessUnitId) return;
+      if (!roleObj || !farmState.businessUnitId) return;
 
       const payload = {
         fullName: data.name,
         email: data.email,
         password: data.password,
         userRoleId: Number(roleObj.id),
-        businessUnitId: activeBusinessUnitId,
+        businessUnitId: farmState.businessUnitId,
       };
 
       const res = await addUser(payload);
 
-      // Normalize backend response safely
-      const normalizedUserData = normalizeDataFormat(res, 'object', 'User');
-      const user = Array.isArray(normalizedUserData.items)
-        ? normalizedUserData.items[0]
-        : normalizedUserData;
+      normalizeDataFormat(res, 'object', 'User');
 
-      // Update farms safely
       setFarms(prev =>
         prev.map(farm =>
-          farm.businessUnitId === activeBusinessUnitId
+          farm.businessUnitId === farmState.businessUnitId
             ? { ...farm, users: farm.users + 1 }
             : farm,
         ),
@@ -310,7 +306,10 @@ const DashboardScreen = () => {
       console.log('Add user failed', error);
     } finally {
       setActiveModal(null);
-      setActiveBusinessUnitId(null);
+      setFarmState(prev => ({
+        ...prev,
+        businessUnitId: null,
+      }));
     }
   };
 
@@ -321,10 +320,7 @@ const DashboardScreen = () => {
           {/* HEADER */}
           <Header title="Poultry Farms" showLogout={true} />
           {/* ADD FARM */}
-          <TouchableOpacity
-            style={styles.addNewFarmButton}
-            onPress={AddFarm}
-          >
+          <TouchableOpacity style={styles.addNewFarmButton} onPress={AddFarm}>
             <View style={styles.addNewFarmContent}>
               <Image source={Theme.icons.add} style={styles.addNewFarmIcon} />
               <Text style={styles.addNewFarmTitle}>Add New Farm</Text>
@@ -355,18 +351,27 @@ const DashboardScreen = () => {
                   })
                 }
                 onAddUser={() => {
-                  setActiveBusinessUnitId(farm.businessUnitId!);
+                  setFarmState(prev => ({
+                    ...prev,
+                    businessUnitId: farm.businessUnitId!,
+                  }));
                   setActiveModal('addUser');
                 }}
                 onAddEmployee={() => {
-                  setActiveBusinessUnitId(farm.businessUnitId!);
+                  setFarmState(prev => ({
+                    ...prev,
+                    businessUnitId: farm.businessUnitId!,
+                  }));
                   setActiveModal('addEmployee');
                 }}
-                onEdit={() => handleEditFarm(farm)}
                 onDelete={() => {
-                  setSelectedFarm(farm);
+                  setFarmState(prev => ({
+                    ...prev,
+                    selectedFarm: farm,
+                  }));
                   setActiveModal('delete');
                 }}
+                onEdit={() => handleEditFarm(farm)}
                 onPressTitle={() => {
                   if (farm.businessUnitId) {
                     setBusinessUnitId(farm.businessUnitId);
@@ -397,19 +402,21 @@ const DashboardScreen = () => {
           visible={activeModal === 'business'}
           onClose={() => setActiveModal(null)}
           onSave={EditSaveBusinessUnit}
-          mode={editingFarm ? 'edit' : 'add'}
+          mode={farmState.editingFarm ? 'edit' : 'add'}
           initialData={
-            editingFarm
-              ? { name: editingFarm.title, location: editingFarm.location }
+            farmState.editingFarm
+              ? {
+                  name: farmState.editingFarm.title,
+                  location: farmState.editingFarm.location,
+                }
               : undefined
           }
         />
-
         <AddModal
           type={activeModal === 'addEmployee' ? 'employee' : 'user'}
           title={activeModal === 'addEmployee' ? 'Add Employee' : 'Add User'}
           roleItems={activeModal === 'addUser' ? roleItems : undefined}
-          defaultBusinessUnitId={activeBusinessUnitId}
+          defaultBusinessUnitId={farmState.businessUnitId}
           visible={activeModal === 'addUser' || activeModal === 'addEmployee'}
           hidePoultryFarm={activeModal === 'addEmployee'}
           onClose={() => setActiveModal(null)}
