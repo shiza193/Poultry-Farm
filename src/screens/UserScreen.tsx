@@ -33,9 +33,9 @@ import AssignFarmRoleModal from '../components/customPopups/AssignRolePopup';
 import ProfileModal, {
   ProfileData,
 } from '../components/customPopups/ProfileModal';
+import { normalizeDataFormat } from '../utils/NormalizeDataFormat';
 type User = {
   id: string;
-  image: string;
   name: string;
   email: string;
   isActive: boolean;
@@ -71,7 +71,9 @@ const UserScreen = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const roles = await getUserRoles();
+        const response = await getUserRoles();
+        // Ensure response is always an array
+        const roles = normalizeDataFormat(response, 'array', 'Roles');
         setRoleItems(
           roles.map((r: any) => ({
             label: r.value,
@@ -100,31 +102,18 @@ const UserScreen = () => {
 
       if (groupState.selectedBU) payload.businessUnitId = groupState.selectedBU;
       const response = await getUsers(payload);
-      // 🔹 Check if response exists
-      if (!response) {
-        showErrorToast("Failed to fetch users: No response from server");
-        setUsers([]);
-        return;
-      }
-      // 🔹 Check if response.list is an array
-      if (!Array.isArray(response.list)) {
-        showErrorToast(
-          `Failed to fetch users: Unexpected API response structure. Please check backend.`
-        );
-        setUsers([]);
-        return;
-      }
-      const list = response?.list || [];
-      setUsers(list.map((u: any) =>
-      ({
+      const list = normalizeDataFormat(response?.list, 'array', 'Users');
+      setUsers(list.map((u: any) => ({
         id: u.userId,
         name: u.fullName,
-        email: u.email, isActive: u.isActive,
-        role: u.userRole || '', image: u.imageLink || '',
+        email: u.email,
+        isActive: u.isActive,
+        role: u.userRole || '',
+        image: u.imageLink || '',
         businessUnitId: u.businessUnitId || '',
         businessUnit: u.businessUnit ?? '—',
         createdAt: u.createdAt,
-      })),);
+      })));
     } catch (error) {
       console.error("Fetch Users Error:", error);
     } finally {
@@ -171,12 +160,15 @@ const UserScreen = () => {
       const roleObj = roleItems.find(r => r.id === data.role);
       if (!roleObj) return;
 
-      const newUser = await addUser({
+      const response = await addUser({
         fullName: data.name,
         email: data.email,
         password: data.password,
         userRoleId: Number(roleObj.id),
       });
+
+      // 🔹 Normalize response to always be object
+      const newUser = normalizeDataFormat(response, 'object', 'New User');
       showSuccessToast('User added successfully');
       setUsers(prev => [
         ...prev,
@@ -192,7 +184,8 @@ const UserScreen = () => {
         },
       ]);
     } catch (error) {
-
+      console.error('Add User Error:', error);
+      showErrorToast('Failed to add user');
     } finally {
       setGroupState(prev => ({
         ...prev,
@@ -200,7 +193,6 @@ const UserScreen = () => {
       }));
     }
   };
-
   const handleToggleStatus = async (user: User) => {
     try {
       await changeUserStatus({
@@ -241,8 +233,13 @@ const UserScreen = () => {
   const AssignPoultryToUser = async (user: User) => {
     try {
       setGroupState(prev => ({ ...prev, selectedRowUser: user }));
+
       // fetch user farms from backend
-      const farmList = await getUserFarms(user.id);
+      let farmList = await getUserFarms(user.id);
+
+      // normalize API response
+      farmList = normalizeDataFormat(farmList, 'array', 'User Farms');
+
       const existingFarms = user.businessUnit
         ? user.businessUnit.split(', ').filter(Boolean)
         : [];
@@ -255,6 +252,7 @@ const UserScreen = () => {
           userRoleId: f.userRoleId,
         }))
       );
+
       setGroupState(prev => ({ ...prev, showAssignFarmModal: true }));
     } catch (error) {
       console.error(error);
@@ -421,7 +419,6 @@ const UserScreen = () => {
           </View>
         )
       )}
-
       {/* ===== MODALS ===== */}
       <AddModal
         visible={groupState.showAddModal}
@@ -460,12 +457,13 @@ const UserScreen = () => {
             return;
           }
           try {
-            await resetPassword({
+            const response = await resetPassword({
               userId: groupState.selectedUserForReset.id,
               newPassword,
               conformPassword: confirmPassword,
             });
-
+            // Now you can normalize it
+            normalizeDataFormat(response, 'object', 'Reset Password Response');
             showSuccessToast('Password reset successfully');
             setGroupState(prev => ({ ...prev, selectedUserForReset: null }));
           } catch (error) {
@@ -492,10 +490,14 @@ const UserScreen = () => {
               userRoleId: data[farmId]?.roleId ?? null,
               isChecked: data[farmId]?.checked ?? false,
             }));
-
-            await updateUserBusinessUnits(groupState.selectedRowUser.id, payload);
+            // Call API
+            const response = await updateUserBusinessUnits(
+              groupState.selectedRowUser.id,
+              payload
+            );
+            // 🔹 Normalize API response
+            normalizeDataFormat(response, 'object', 'Update User Business Units');
             showSuccessToast('Farms & roles updated successfully');
-
             // 🔹 Update local state
             setUsers(prev =>
               prev.map(u =>
@@ -533,12 +535,13 @@ const UserScreen = () => {
           }
           onSave={async updated => {
             try {
-              await updateUser({
+              const response = await updateUser({
                 userId: updated.id,
                 fullName: updated.name,
                 email: updated.email ?? '',
               });
-
+              // Normalize API response
+              normalizeDataFormat(response, 'object', 'Update User');
               setUsers(prev =>
                 prev.map(u => (u.id === updated.id ? { ...u, name: updated.name } : u)),
               );

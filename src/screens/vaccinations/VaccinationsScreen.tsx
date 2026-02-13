@@ -208,7 +208,7 @@ const VaccinationsScreen: React.FC<Props> = ({
                                 }}
                                 style={{ marginBottom: 8 }}
                             >
-                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
+                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600',fontSize:16,  marginLeft: 20 }}>Edit</Text>
                             </TouchableOpacity>
                             <View style={styles.menuSeparator} />
                             <TouchableOpacity
@@ -219,7 +219,7 @@ const VaccinationsScreen: React.FC<Props> = ({
                                 }}
                                 style={{ marginTop: 8 }}
                             >
-                                <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
+                                <Text style={{ color: 'red', fontWeight: '600', fontSize:16, marginLeft: 20 }}>Delete</Text>
                             </TouchableOpacity>
                         </View>
                     )}

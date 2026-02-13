@@ -9,29 +9,35 @@ type GetEmployeesParams = {
   pageSize?: number;
   businessUnitId?: string | null;
 };
-
 export const getEmployees = async ({
-  searchKey = null,
-  isActive = null,
+  searchKey,
+  isActive,
   pageNumber = 1,
   pageSize = 10,
-  businessUnitId = null, // 👈 ADD THIS
+  businessUnitId,
 }: GetEmployeesParams = {}) => {
   try {
+    const searchDto: any = {};
+    if (searchKey) searchDto.searchKey = searchKey;
+    if (isActive !== null && isActive !== undefined) searchDto.isActive = isActive;
+
+    const payload: any = {
+      pageNumber,
+      pageSize,
+    };
+
+    // Only add searchDto if it has something
+    if (Object.keys(searchDto).length > 0) payload.searchDto = searchDto;
+
+    if (businessUnitId) payload.businessUnitId = businessUnitId;
+
     const response = await api.post(
       'api/Employee/get-employee-by-search-and-filter-with-pagination',
-      {
-        searchKey,
-        isActive,
-        pageNumber,
-        pageSize,
-        businessUnitId, // 👈 SEND TO BACKEND
-      },
+      payload
     );
-
     return response.data;
-  } catch (error) {
-    console.error('Error fetching employees:', error);
+  } catch (error: any) {
+    console.error('Error fetching employees:', error.response?.data || error);
     throw error;
   }
 };
@@ -77,7 +83,7 @@ export const addEmployee = async (payload: AddEmployeePayload & { businessUnitId
       joiningDate: payload.joiningDate,
       salary: payload.salary,
       endDate: payload.endDate ?? null,
-      businessUnitId: payload.businessUnitId, 
+      businessUnitId: payload.businessUnitId,
     });
 
     return response.data;

@@ -11,7 +11,7 @@ import EggProductionScreen from "../screens/eggs/EggProductionScreen";
 import EggSaleScreen from "../screens/eggs/EggSaleScreen";
 import EggStockScreen from "../screens/eggs/EggStockScreen";
 import ConfirmationModal from "../components/customPopups/ConfirmationModal";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Logout } from "./NavigationService";
 
 type TabType = "production" | "sale" | "stock";
 
@@ -53,29 +53,6 @@ const EggMainScreen = () => {
             setGlobalLoading={setGlobalLoading}
           />
         );
-    }
-  };
-  // ================= HEADER TITLE =================
-  // const getHeaderTitle = () => {
-  //   switch (activeTab) {
-  //     case "sale":
-  //       return "Eggs";
-  //     case "stock":
-  //       return "Eggs";
-  //     default:
-  //       return "Eggs";
-  //   }
-  // };
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.clear();
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-      });
-    } catch (error) {
-      console.log('Logout failed', error);
     }
   };
   // ================= TAB BUTTON =================
@@ -211,7 +188,7 @@ const EggMainScreen = () => {
         visible={showLogoutModal}
         title="Are you sure you want to logout?"
         onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleLogout}
+        onConfirm={Logout}
       />
     </View>
   );

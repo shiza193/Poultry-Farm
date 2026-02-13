@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
   // Tabs container
   tabsWrapper: {
     paddingHorizontal: 13,
+    marginTop:18,
   },
   tabContainerScroll: {
     flexDirection: 'row',

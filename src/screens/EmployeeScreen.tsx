@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -11,18 +11,15 @@ import LoadingOverlay from '../components/loading/LoadingOverlay';
 import Theme from '../theme/Theme';
 import StatusToggle from '../components/common/StatusToggle';
 import TopBarCard from '../components/customCards/TopBarCard';
-import ProfileModal, {
-  ProfileData,
-} from '../components/customPopups/ProfileModal';
-import {
-  getEmployees,
-  updateEmployeeIsActive,
-  addEmployee,
-  deleteEmployee,
-  updateEmployee,
+import ProfileModal, { ProfileData } from '../components/customPopups/ProfileModal';
+import { 
+  getEmployees, 
+  updateEmployeeIsActive, 
+  addEmployee, 
+  deleteEmployee, 
+  updateEmployee 
 } from '../services/EmployeeService';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
-import BackArrow from '../components/common/ScreenHeaderWithBack';
 
 type EmployeeStatus = 'Active' | 'Inactive';
 
@@ -32,65 +29,50 @@ interface Employee {
   type: string;
   employeeTypeId: number;
   salary: number;
-  poultryFarmId: string; // Add ID
-  poultryFarm: string; // Name
+  poultryFarmId: string; 
+  poultryFarm: string; 
   joiningDate: string;
   endDate: string;
   status: EmployeeStatus;
 }
 
 const EmployeeScreen = () => {
-  const insets = useSafeAreaInsets();
   const route = useRoute<any>();
-  console.log('EmployeeScreen route params:', route.params);
-  const fromMenu = route.params?.fromMenu === true;
+  const fromMenu = route.params?.fromMenu ?? false;
+  const initialBU = route.params?.businessUnitId ?? null;
+
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<ProfileData | null>(
-    null,
-  );
-
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [showDotsMenu, setShowDotsMenu] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
-    null,
-  );
-  const pageSize = 50;
-
-  const routeBU = route.params?.businessUnitId ?? null;
-  const [selectedBU, setSelectedBU] = useState<string | null>(routeBU);
-
-  useFocusEffect(
-    useCallback(() => {
-      const bu = route.params?.businessUnitId ?? null;
-      setSelectedBU(bu);
-      fetchEmployees(bu);
-      setSearch('');
-      setStatus('all');
-    }, [route.params?.businessUnitId]),
-  );
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all' as 'all' | 'active' | 'inactive',
+    businessUnit: initialBU as string | null,
+  });
+  const [modalState, setModalState] = useState({
+    AddModal: false,
+    deleteModal: false,
+    profileModal: false,
+    selectedEmployeeId: null as string | null,
+    selectedEmployee: null as ProfileData | null,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
 
   // ================= FETCH EMPLOYEES =================
-  const fetchEmployees = async (bu: string | null = null) => {
+  const fetchEmployees = async (page: number = 1) => {
     try {
       setLoading(true);
-      const params: any = { pageNumber: 1, pageSize };
-
-      //  Only pass businessUnitId if a BU is specified
-      if (bu) params.businessUnitId = bu;
+      const params: any = { pageNumber: page, pageSize };
+      if (filters.businessUnit) params.businessUnitId = filters.businessUnit;
 
       const data = await getEmployees(params);
-
       const mapped: Employee[] = data.list.map((emp: any) => ({
         employeeId: emp.employeeId,
         name: emp.name,
         type: emp.employeeType,
         employeeTypeId: emp.employeeTypeId,
-        salary: emp.salary,
+        salary: Number(emp.salary) || 0,
         poultryFarmId: emp.businessUnitId,
         poultryFarm: emp.businessUnit,
         joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
@@ -99,25 +81,26 @@ const EmployeeScreen = () => {
       }));
 
       setEmployees(mapped);
+      setTotalRecords(data.totalCount);
     } catch (error) {
       showErrorToast('Failed to fetch employees');
     } finally {
       setLoading(false);
     }
   };
-
   useFocusEffect(
     useCallback(() => {
-      fetchEmployees();
-    }, [selectedBU]),
+      setCurrentPage(1);
+      fetchEmployees(1);
+    }, [filters.businessUnit]),
   );
+
   // ================= FILTER =================
   const filteredEmployees = employees.filter(emp => {
-    if (status === 'active' && emp.status !== 'Active') return false;
-    if (status === 'inactive' && emp.status !== 'Inactive') return false;
-
-    if (search) {
-      const q = search.toLowerCase();
+    if (filters.status === 'active' && emp.status !== 'Active') return false;
+    if (filters.status === 'inactive' && emp.status !== 'Inactive') return false;
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
       if (
         !emp.name.toLowerCase().includes(q) &&
         !emp.type.toLowerCase().includes(q) &&
@@ -125,18 +108,9 @@ const EmployeeScreen = () => {
       )
         return false;
     }
-
-    //  Only filter by BU if a BU is selected
-    if (selectedBU) {
-      if (emp.poultryFarmId !== selectedBU) return false;
-    }
-
+    if (filters.businessUnit && emp.poultryFarmId !== filters.businessUnit) return false;
     return true;
   });
-
-  console.log('Filtered employees for table:', filteredEmployees);
-
-  console.log('Filtered employees for table:', filteredEmployees);
 
   // ================= TABLE COLUMNS =================
   const columns: TableColumn[] = [
@@ -146,26 +120,28 @@ const EmployeeScreen = () => {
       width: 120,
       isTitle: true,
       showDots: true,
-      render: (value, row) => (
+      render: (_, row) => (
         <TouchableOpacity
-          onPress={() => {
-            // Open ProfileModal for this employee
-            setSelectedEmployee({
-              id: row.employeeId!,
-              name: row.name,
-              employeeTypeId: row.employeeTypeId,
-              isActive: row.status === 'Active',
-              businessUnitId: row.poultryFarmId,
-              employeeType: row.type,
-              salary: row.salary,
-              joiningDate: row.joiningDate,
-              endDate: row.endDate,
-            });
-            setProfileModalVisible(true);
-          }}
+          onPress={() =>
+            setModalState(prev => ({
+              ...prev,
+              selectedEmployee: {
+                id: row.employeeId!,
+                name: row.name,
+                employeeTypeId: row.employeeTypeId,
+                isActive: row.status === 'Active',
+                businessUnitId: row.poultryFarmId,
+                employeeType: row.type,
+                salary: row.salary,
+                joiningDate: row.joiningDate,
+                endDate: row.endDate,
+              },
+              profileModal: true,
+            }))
+          }
         >
           <Text style={{ color: Theme.colors.black, fontWeight: '600' }}>
-            {value || 'N/A'}
+            {row.name || 'N/A'}
           </Text>
         </TouchableOpacity>
       ),
@@ -179,19 +155,19 @@ const EmployeeScreen = () => {
       key: 'status',
       title: 'STATUS',
       width: 120,
-      render: (value, row) => (
+      render: (_, row) => (
         <StatusToggle
           isActive={row.status === 'Active'}
-          onToggle={() => handleToggleStatus(row)}
+          onToggle={() => toggleStatus(row)}
         />
       ),
     },
   ];
 
   // ================= HANDLERS =================
-  const handleToggleStatus = async (emp: Employee) => {
+  const toggleStatus = async (emp: Employee) => {
     try {
-      const newStatus = emp.status === 'Active' ? false : true;
+      const newStatus = emp.status !== 'Active';
       await updateEmployeeIsActive(emp.employeeId!, newStatus);
       setEmployees(prev =>
         prev.map(e =>
@@ -217,101 +193,83 @@ const EmployeeScreen = () => {
         joiningDate: new Date(data.joiningDate).toISOString(),
         salary: Number(data.salary),
         endDate: data.endDate ? new Date(data.endDate).toISOString() : null,
-        businessUnitId: selectedBU ?? data.poultryFarm,
+        businessUnitId: filters.businessUnit ?? data.poultryFarm,
       };
-      console.log('Add payload:', payload);
-
       await addEmployee(payload);
       fetchEmployees();
       showSuccessToast('Employee added successfully');
-      setIsAddModalVisible(false);
-    } catch (error) {
-      console.error('Add employee error:', error);
+      setModalState(prev => ({ ...prev, add: false }));
+    } catch {
       showErrorToast('Failed to add employee');
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!selectedEmployeeId) return;
+  const handleDelete = async () => {
+    if (!modalState.selectedEmployeeId) return;
     try {
-      await deleteEmployee(selectedEmployeeId);
+      await deleteEmployee(modalState.selectedEmployeeId);
       setEmployees(prev =>
-        prev.filter(e => e.employeeId !== selectedEmployeeId),
+        prev.filter(e => e.employeeId !== modalState.selectedEmployeeId),
       );
       showSuccessToast('Employee deleted successfully');
     } catch {
       showErrorToast('Failed to delete employee');
     } finally {
-      setDeleteModalVisible(false);
-      setSelectedEmployeeId(null);
+      setModalState(prev => ({
+        ...prev,
+        delete: false,
+        selectedEmployeeId: null,
+      }));
     }
   };
 
   const resetFilters = () => {
-    setSearch('');
-    setStatus('all');
-    setSelectedBU(null);
+    setFilters({ search: '', status: 'all', businessUnit: null });
   };
 
-  const tableData = filteredEmployees.map(emp => ({ ...emp }));
-
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
       {fromMenu ? (
-        <BackArrow
-          title="Employees"
-          showBack={true}
-          onAddNewPress={() => setIsAddModalVisible(true)}
-        />
+        <Header title="Employees" onAddNewPress={() => setModalState(prev => ({ ...prev, AddModal: true }))} />
       ) : (
-        <Header
-          title="Employees"
-          onAddNewPress={() => setIsAddModalVisible(prev => !prev)}
-          showLogout={true}
-        />
+        <Header title="Employees" showLogout onAddNewPress={() => setModalState(prev => ({ ...prev, AddModal: true }))} />
       )}
-
-      {/* {showDotsMenu && (
-        <View style={styles.dotsMenu}>
-          <TouchableOpacity
-            onPress={() => {
-              setIsAddModalVisible(true);
-              setShowDotsMenu(false);
-            }}
-          >
-            <Text style={styles.menuText}>+ Add New</Text>
-          </TouchableOpacity>
-        </View>
-      )} */}
-
       <TopBarCard
-        searchValue={search}
-        onSearchChange={setSearch}
-        status={status === 'all' ? null : status}
-        onStatusChange={s => setStatus(s ?? 'all')}
-        value={selectedBU}
-        onBusinessUnitChange={setSelectedBU}
+        searchValue={filters.search}
+        onSearchChange={value => setFilters(prev => ({ ...prev, search: value }))}
+        status={filters.status === 'all' ? null : filters.status}
+        onStatusChange={s => setFilters(prev => ({ ...prev, status: s ?? 'all' }))}
+        value={filters.businessUnit}
+        onBusinessUnitChange={bu => setFilters(prev => ({ ...prev, businessUnit: bu }))}
         onReset={resetFilters}
         hideBUDropdown={fromMenu}
       />
 
-      {tableData.length > 0 ? (
+      {filteredEmployees.length > 0 ? (
         <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard
             columns={columns}
-            data={tableData}
-            itemsPerPage={10}
+            data={filteredEmployees}
+            itemsPerPage={pageSize}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchEmployees(page);
+            }}
             renderRowMenu={(row, closeMenu) => (
               <TouchableOpacity
                 onPress={() => {
-                  setSelectedEmployeeId(row.employeeId);
-                  setSelectedEmployeeId(row.employeeId);
-                  setDeleteModalVisible(true);
+                  setModalState(prev => ({
+                    ...prev,
+                    deleteModal: true,
+                    selectedEmployeeId: row.employeeId,
+                  }));
                   closeMenu();
                 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
-                  Delete Emp
+                <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 7 }}>
+                  Delete Employee
                 </Text>
               </TouchableOpacity>
             )}
@@ -325,94 +283,77 @@ const EmployeeScreen = () => {
         )
       )}
 
+      {/* Modals */}
       <AddModal
-        visible={isAddModalVisible}
+        visible={modalState.AddModal}
         type="employee"
         title="Add Employee"
-        onClose={() => setIsAddModalVisible(false)}
+        onClose={() => setModalState(prev => ({ ...prev, add: false }))}
         onSave={handleAddEmployee}
         hidePoultryFarm={!!fromMenu}
-        defaultBusinessUnitId={selectedBU}
+        defaultBusinessUnitId={filters.businessUnit}
       />
 
       <ConfirmationModal
         type="delete"
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
-        onConfirm={handleConfirmDelete}
+        visible={modalState.deleteModal}
+        onClose={() => setModalState(prev => ({ ...prev, delete: false }))}
+        onConfirm={handleDelete}
         title="Are you sure you want to delete this employee?"
       />
-      {selectedEmployee && (
+
+      {modalState.selectedEmployee && (
         <ProfileModal
-          visible={profileModalVisible}
-          onClose={() => setProfileModalVisible(false)}
+          visible={modalState.profileModal}
+          onClose={() => setModalState(prev => ({ ...prev, profile: false, selectedEmployee: null }))}
           type="employee"
-          data={selectedEmployee}
+          data={modalState.selectedEmployee}
           onSave={async updatedData => {
             try {
-              // Prepare payload for backend
               const payload = {
                 name: updatedData.name,
                 businessUnitId: updatedData.businessUnitId,
                 employeeTypeId: updatedData.employeeTypeId,
+                salary: updatedData.salary,
+                joiningDate: updatedData.joiningDate,
+                endDate: updatedData.endDate,
               };
-
               await updateEmployee(updatedData.id!, payload);
 
-              // Update local state
               setEmployees(prev =>
                 prev.map(emp =>
                   emp.employeeId === updatedData.id
                     ? {
-                      ...emp,
-                      name: updatedData.name!,
-                      poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
-                      employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
-                      type: updatedData.employeeType || emp.type,
-                      salary: updatedData.salary ?? emp.salary,
-                      joiningDate: updatedData.joiningDate ?? emp.joiningDate,
-                      endDate: updatedData.endDate ?? emp.endDate,
-                    }
+                        ...emp,
+                        name: updatedData.name!,
+                        poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
+                        employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
+                        type: updatedData.employeeType || emp.type,
+                        salary: updatedData.salary ?? emp.salary,
+                        joiningDate: updatedData.joiningDate ?? emp.joiningDate,
+                        endDate: updatedData.endDate ?? emp.endDate,
+                      }
                     : emp,
                 ),
               );
-
-
               showSuccessToast('Employee updated successfully');
-              setProfileModalVisible(false);
-            } catch (error) {
-              console.error('Error updating employee:', error);
+              setModalState(prev => ({ ...prev, profile: false, selectedEmployee: null }));
+            } catch {
               showErrorToast('Failed to update employee');
             }
           }}
-
         />
       )}
 
       <LoadingOverlay visible={loading} />
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default EmployeeScreen;
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: Theme.colors.white },
+  container: { flex: 1, backgroundColor: Theme.colors.white },
   noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
-  noDataImage: {
-    width: 290,
-    height: 290,
-    resizeMode: 'contain',
-  },
-  dotsMenu: {
-    position: 'absolute',
-    top: 45,
-    right: 35,
-    backgroundColor: Theme.colors.white,
-    padding: 12,
-    borderRadius: 8,
-    elevation: 6,
-    zIndex: 999,
-  },
-  menuText: { fontSize: 15, fontWeight: '600', color: Theme.colors.success },
+  noDataImage: { width: 290, height: 290, resizeMode: 'contain' },
 });

@@ -33,6 +33,11 @@ interface DataCardProps {
   onRowPress?: (row: any) => void;
   renderRowMenu?: (row: any, closeMenu: () => void) => React.ReactNode;
   renderExpandedRow?: (row: any) => React.ReactNode;
+
+  // Server-side pagination
+  currentPage?: number;
+  totalRecords?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const DataCard: React.FC<DataCardProps> = ({
@@ -42,10 +47,12 @@ const DataCard: React.FC<DataCardProps> = ({
   onRowPress,
   renderRowMenu,
   renderExpandedRow,
+  currentPage = 1,
+  totalRecords = 0,
+  onPageChange,
 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [floatingMenu, setFloatingMenu] = useState<any>(null);
-  const [activePage, setActivePage] = useState(1);
   const [scrollX, setScrollX] = useState(0);
   const [contentWidth, setContentWidth] = useState(1);
   const [containerWidth, setContainerWidth] = useState(1);
@@ -53,15 +60,9 @@ const DataCard: React.FC<DataCardProps> = ({
   const scrollRef = useRef<ScrollView>(null);
   const dotRefs = useRef<{ [key: number]: View | null }>({});
 
-  const totalRecords = data.length;
   const totalPages = Math.max(Math.ceil(totalRecords / itemsPerPage), 1);
-  const paginatedData = data.slice(
-    (activePage - 1) * itemsPerPage,
-    activePage * itemsPerPage,
-  );
-
-  const isFirstPage = activePage === 1;
-  const isLastPage = activePage === totalPages;
+  const isFirstPage = currentPage === 1;
+  const isLastPage = currentPage === totalPages;
 
   const toggleExpand = (index: number) => {
     setExpandedIndex(prev => (prev === index ? null : index));
@@ -106,7 +107,7 @@ const DataCard: React.FC<DataCardProps> = ({
           </View>
 
           {/* ===== ROWS ===== */}
-          {paginatedData.length === 0 ? (
+          {data.length === 0 ? (
             <View
               style={{
                 alignItems: 'flex-start',
@@ -122,8 +123,8 @@ const DataCard: React.FC<DataCardProps> = ({
               />
             </View>
           ) : (
-            paginatedData.map((row, index) => {
-              const globalIndex = (activePage - 1) * itemsPerPage + index;
+            data.map((row, index) => {
+              const globalIndex = (currentPage - 1) * itemsPerPage + index; // For numbering
               const RowWrapper = onRowPress ? TouchableOpacity : View;
 
               return (
@@ -225,11 +226,13 @@ const DataCard: React.FC<DataCardProps> = ({
                     })}
                   </RowWrapper>
 
-                  {/* 🔽 EXPANDED ROW */}
+                  {/* EXPANDED ROW */}
                   {expandedIndex === globalIndex && renderExpandedRow && (
-                    <View style={{ paddingVertical: 10,
-                    backgroundColor:Theme.colors.lightGrey,borderColor:Theme.colors.SeparatorColor,
-                    borderWidth:1 }}>
+                    <View style={{
+                      paddingVertical: 10,
+                      backgroundColor: Theme.colors.lightGrey, borderColor: Theme.colors.SeparatorColor,
+                      borderWidth: 1
+                    }}>
                       {renderExpandedRow(row)}
                     </View>
                   )}
@@ -255,7 +258,7 @@ const DataCard: React.FC<DataCardProps> = ({
           <View
             style={{
               position: 'absolute',
-              top: floatingMenu.y, 
+              top: floatingMenu.y,
               left: floatingMenu.x,
               minWidth: 110,
               backgroundColor: Theme.colors.white,
@@ -289,7 +292,10 @@ const DataCard: React.FC<DataCardProps> = ({
       <View style={styles.paginationContainer}>
         <TouchableOpacity
           disabled={isFirstPage}
-          onPress={() => setActivePage(1)}
+          onPress={() => {
+            const newPage = 1;
+            onPageChange?.(newPage); 
+          }}
           style={[styles.pageButton, isFirstPage && styles.disabled]}
         >
           <Text style={styles.pageText}>⏮</Text>
@@ -297,22 +303,28 @@ const DataCard: React.FC<DataCardProps> = ({
 
         <TouchableOpacity
           disabled={isFirstPage}
-          onPress={() => setActivePage(activePage - 1)}
+          onPress={() => {
+            const newPage = currentPage - 1;
+            onPageChange?.(newPage); 
+          }}
           style={[styles.pageButton, isFirstPage && styles.disabled]}
         >
           <Text style={styles.pageText}>◀</Text>
         </TouchableOpacity>
 
-        <Text style={styles.pageInfo}>{`${
-          (activePage - 1) * itemsPerPage + 1
-        } – ${Math.min(
-          activePage * itemsPerPage,
-          totalRecords,
-        )} of ${totalRecords}`}</Text>
+        <Text style={styles.pageInfo}>
+          {`${(currentPage - 1) * itemsPerPage + 1} – ${Math.min(
+            currentPage * itemsPerPage,
+            totalRecords,
+          )} of ${totalRecords}`}
+        </Text>
 
         <TouchableOpacity
           disabled={isLastPage}
-          onPress={() => setActivePage(activePage + 1)}
+          onPress={() => {
+            const newPage = currentPage + 1;
+            onPageChange?.(newPage); 
+          }}
           style={[styles.pageButton, isLastPage && styles.disabled]}
         >
           <Text style={styles.pageText}>▶</Text>
@@ -320,12 +332,16 @@ const DataCard: React.FC<DataCardProps> = ({
 
         <TouchableOpacity
           disabled={isLastPage}
-          onPress={() => setActivePage(totalPages)}
+          onPress={() => {
+            const newPage = totalPages;
+            onPageChange?.(newPage); 
+          }}
           style={[styles.pageButton, isLastPage && styles.disabled]}
         >
           <Text style={styles.pageText}>⏭</Text>
         </TouchableOpacity>
       </View>
+
     </View>
   );
 };

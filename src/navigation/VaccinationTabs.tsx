@@ -8,8 +8,8 @@ import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen
 import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
 import LoadingOverlay from "../components/loading/LoadingOverlay";
 import { CustomConstants } from "../constants/CustomConstants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import ConfirmationModal from "../components/customPopups/ConfirmationModal";
+import { Logout } from "./NavigationService";
 
 type TabType = "vaccinations" | "schedule" | "stock";
 
@@ -64,18 +64,6 @@ const VaccinationMainScreen = () => {
     //             return "Vaccinations";
     //     }
     // };
-    const handleLogout = async () => {
-        try {
-            await AsyncStorage.clear();
-
-            navigation.reset({
-                index: 0,
-                routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-            });
-        } catch (error) {
-            console.log('Logout failed', error);
-        }
-    };
     const TabButton = ({
         title,
         active,
@@ -218,7 +206,7 @@ const VaccinationMainScreen = () => {
                 visible={showLogoutModal}
                 title="Are you sure you want to logout?"
                 onClose={() => setShowLogoutModal(false)}
-                onConfirm={handleLogout}
+                onConfirm={Logout}
             />
         </View>
     );
