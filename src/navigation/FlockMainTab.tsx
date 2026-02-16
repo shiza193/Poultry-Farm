@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomConstants } from '../constants/CustomConstants';
 import { getFlocksExcel } from '../screens/Report/ReportHelpers';
 import { useBusinessUnit } from '../context/BusinessContext';
+import { Logout } from './NavigationService';
 
 type TabType = 'flocks' | 'mortality' | 'stock' | 'sale' | 'hospitality';
 
@@ -50,30 +51,8 @@ const FlockMainScreen = () => {
     }
   };
 
-  // ================= HEADER TITLE =================
-  const getHeaderTitle = () => {
-    switch (activeTab) {
-      case 'mortality':
-        return 'Flocks Mortality';
-      case 'stock':
-        return 'Flock Stock';
-      case 'sale':
-        return 'Flock Sale';
-      case 'hospitality':
-        return 'Hospitality';
-      default:
-        return 'Flocks';
-    }
-  };
 
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.clear();
-      navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] });
-    } catch (error) {
-      console.log('Logout failed', error);
-    }
-  };
+
 
   // ================= TAB BUTTON =================
   const TabButton = ({
@@ -229,7 +208,7 @@ const FlockMainScreen = () => {
         visible={showLogoutModal}
         title="Are you sure you want to logout?"
         onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleLogout}
+        onConfirm={Logout}
       />
     </SafeAreaView>
   );
