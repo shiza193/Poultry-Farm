@@ -24,7 +24,7 @@ import {
   updateParty,
 } from '../services/PartyService';
 
-type User = {
+type Customer = {
   id: string;
   name: string;
   email: string | null;
@@ -41,18 +41,20 @@ const CustomerScreen = () => {
   const farmBU = route.params?.businessUnitId ?? null;
   const { businessUnitId: contextBU } = useBusinessUnit();
 
-  const [users, setUsers] = React.useState<User[]>([]);
+  const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [filters, setFilters] = React.useState({
     search: '',
     status: 'all' as 'all' | 'active' | 'inactive',
     businessUnit: farmBU || null,
   });
+
   const [modals, setModals] = React.useState({
     showAdd: false,
-    profileUser: null as ProfileData | null, // for ProfileModal
-    deleteUserId: null as string | null, // only id for delete
+    profileCustomer: null as ProfileData | null,
+    deleteCustomerId: null as string | null,
     deleteVisible: false,
   });
+
   const [loading, setLoading] = React.useState(false);
   const pageSize = 100;
 
@@ -60,6 +62,7 @@ const CustomerScreen = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
+
       const payload = {
         searchKey: filters.search || null,
         isActive: filters.status === 'all' ? null : filters.status === 'active',
@@ -68,28 +71,19 @@ const CustomerScreen = () => {
         partyTypeId: 0,
         businessUnitId: filters.businessUnit || null,
       };
+
       const response = await getPartyBySearchAndFilter(payload);
 
       if (!response?.list || !Array.isArray(response.list)) {
-        setUsers([]);
+        setCustomers([]);
         return;
       }
 
-      const formatted: User[] = response.list.map((item: any) => ({
-        id: item.partyId,
-        name: item.name,
-        email: item.email,
-        phone: item.phone,
-        address: item.address,
-        isActive: item.isActive,
-        businessUnitId: item.businessUnitId || null,
-        businessUnit: item.businessUnit?.trim() || '—',
-      }));
-
-      setUsers(formatted);
+      const formatted: Customer[] = response.list.map(formatCustomer);
+      setCustomers(formatted);
     } catch (error) {
       console.error('Error fetching customers:', error);
-      setUsers([]);
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
@@ -101,24 +95,35 @@ const CustomerScreen = () => {
     }, [filters]),
   );
 
+  const formatCustomer = (item: any): Customer => ({
+    id: item.partyId,
+    name: item.name,
+    email: item.email,
+    phone: item.phone,
+    address: item.address,
+    isActive: item.isActive,
+    businessUnitId: item.businessUnitId || null,
+    businessUnit: item.businessUnit?.trim() || '—',
+  });
+
   // ================= OPEN PROFILE =================
-  const handleOpenProfile = (user: User) => {
+  const OpenProfile = (customer: Customer) => {
     setModals(prev => ({
       ...prev,
-      profileUser: {
-        id: user.id,
-        name: user.name,
-        phone: user.phone ?? '',
-        email: user.email ?? '',
-        address: user.address ?? '',
-        businessUnitId: user.businessUnitId ?? null,
-        isActive: user.isActive,
+      profileCustomer: {
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone ?? '',
+        email: customer.email ?? '',
+        address: customer.address ?? '',
+        businessUnitId: customer.businessUnitId ?? null,
+        isActive: customer.isActive,
       },
     }));
   };
 
   // ================= ADD CUSTOMER =================
-  const handleAddCustomer = async (formData: {
+  const AddCustomer = async (formData: {
     name: string;
     phone?: string | null;
     email?: string | null;
@@ -126,6 +131,7 @@ const CustomerScreen = () => {
   }) => {
     try {
       setLoading(true);
+
       const payload = {
         name: formData.name.trim(),
         phone: formData.phone?.trim() || null,
@@ -136,34 +142,41 @@ const CustomerScreen = () => {
       };
 
       const response = await addParty(payload);
-      if (response) {
-        showSuccessToast('Success', 'Customer added successfully');
-        setModals(prev => ({ ...prev, showAdd: false }));
-        fetchCustomers();
-      }
-    } catch (error: any) {
-      console.error('Add customer error:', error);
-      const errMsg = error?.response?.data?.message || 'Failed to add customer';
-      showErrorToast('Error', errMsg);
+
+      if (!response) return;
+
+  
+      setCustomers(prev => [formatCustomer(response), ...prev]);
+
+      showSuccessToast('Success', 'Customer added successfully');
+      setModals(prev => ({ ...prev, showAdd: false }));
+    } catch (error) {
+      console.log('Add customer failed', error);
     } finally {
       setLoading(false);
     }
   };
 
   // ================= TOGGLE STATUS =================
-  const handleToggleStatus = async (user: User) => {
+  const ToggleStatus = async (customer: Customer) => {
     try {
       setLoading(true);
-      await updatePartyIsActive(user.id, !user.isActive);
-      setUsers(prev =>
-        prev.map(u => (u.id === user.id ? { ...u, isActive: !u.isActive } : u)),
+
+      await updatePartyIsActive(customer.id, !customer.isActive);
+
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === customer.id ? { ...c, isActive: !customer.isActive } : c,
+        ),
       );
+
       showSuccessToast(
         'Success',
-        `Customer status updated to ${!user.isActive ? 'Active' : 'Inactive'}`,
+        `Customer status updated to ${
+          !customer.isActive ? 'Active' : 'Inactive'
+        }`,
       );
-    } catch (error: any) {
-      console.error('Error updating status:', error);
+    } catch (error) {
       showErrorToast('Error', 'Failed to update customer status');
     } finally {
       setLoading(false);
@@ -171,41 +184,31 @@ const CustomerScreen = () => {
   };
 
   // ================= DELETE CUSTOMER =================
-  const handleDeletePress = (userId: string) => {
+  const DeletePress = (customerId: string) => {
     setModals(prev => ({
       ...prev,
-      deleteUserId: userId,
+      deleteCustomerId: customerId,
       deleteVisible: true,
     }));
   };
 
-  const handleConfirmDelete = async () => {
-    if (!modals.deleteUserId) return;
+  const ConfirmDelete = async () => {
+    if (!modals.deleteCustomerId) return;
 
     try {
-      const res = await deleteParty(modals.deleteUserId);
-      if (res.error || res.success === false) {
-        return showErrorToast(
-          'Error',
-          res.error || res.message || 'Failed to delete customer',
-        );
-      }
-      setUsers(prev => prev.filter(u => u.id !== modals.deleteUserId));
+      const res = await deleteParty(modals.deleteCustomerId);
+
+      setCustomers(prev => prev.filter(c => c.id !== modals.deleteCustomerId));
+
       showSuccessToast(
         'Success',
         res.message || 'Customer deleted successfully',
       );
-    } catch (error: any) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to delete customer';
-      showErrorToast('Error', msg);
     } finally {
       setModals(prev => ({
         ...prev,
         deleteVisible: false,
-        deleteUserId: null,
+        deleteCustomerId: null,
       }));
     }
   };
@@ -218,34 +221,34 @@ const CustomerScreen = () => {
     }));
   };
 
-  // ================= FILTERED USERS =================
-  const filteredUsers = users.filter(user => {
+  // ================= FILTERED CUSTOMERS =================
+  const filteredCustomers = customers.filter(customer => {
     const { search, status, businessUnit } = filters;
 
-    if (status === 'active' && !user.isActive) return false;
-    if (status === 'inactive' && user.isActive) return false;
+    if (status === 'active' && !customer.isActive) return false;
+    if (status === 'inactive' && customer.isActive) return false;
 
     if (search) {
       const q = search.toLowerCase();
       if (
-        !user.name.toLowerCase().includes(q) &&
-        !user.email?.toLowerCase().includes(q)
+        !customer.name.toLowerCase().includes(q) &&
+        !customer.email?.toLowerCase().includes(q)
       )
         return false;
     }
 
-    if (businessUnit && user.businessUnitId !== businessUnit) return false;
+    if (businessUnit && customer.businessUnitId !== businessUnit) return false;
 
     return true;
   });
 
-  const tableData = filteredUsers.map(u => ({
-    name: u.name,
-    email: u.email ?? '—',
-    phone: u.phone ?? '—',
-    address: u.address ?? '—',
-    status: u.isActive,
-    raw: u,
+  const tableData = filteredCustomers.map(c => ({
+    name: c.name,
+    email: c.email ?? '—',
+    phone: c.phone ?? '—',
+    address: c.address ?? '—',
+    status: c.isActive ?? '—',
+    raw: c,
   }));
 
   const columns: TableColumn[] = [
@@ -256,7 +259,7 @@ const CustomerScreen = () => {
       isTitle: true,
       showDots: true,
       render: (value, row) => (
-        <TouchableOpacity onPress={() => handleOpenProfile(row.raw)}>
+        <TouchableOpacity onPress={() => OpenProfile(row.raw)}>
           <Text style={{ color: Theme.colors.black, fontWeight: 'bold' }}>
             {value}
           </Text>
@@ -271,17 +274,14 @@ const CustomerScreen = () => {
       title: 'STATUS',
       width: 130,
       render: (value, row) => (
-        <StatusToggle
-          isActive={value}
-          onToggle={() => handleToggleStatus(row.raw)}
-        />
+        <StatusToggle isActive={value} onToggle={() => ToggleStatus(row.raw)} />
       ),
     },
   ];
 
-  // ================= UI =================
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header */}
       {fromMenu ? (
         <BackArrow
           title="Customers"
@@ -296,15 +296,19 @@ const CustomerScreen = () => {
         />
       )}
 
-      {modals.profileUser && (
+      {/* Profile Modal */}
+      {modals.profileCustomer && (
         <ProfileModal
           visible={true}
-          onClose={() => setModals(prev => ({ ...prev, profileUser: null }))}
-          data={modals.profileUser}
+          onClose={() =>
+            setModals(prev => ({ ...prev, profileCustomer: null }))
+          }
+          data={modals.profileCustomer}
           type="customer"
           onSave={async updatedData => {
             try {
               setLoading(true);
+
               const payload = {
                 name: updatedData.name.trim(),
                 email: updatedData.email?.trim() || null,
@@ -313,20 +317,24 @@ const CustomerScreen = () => {
                 partyTypeId: 0,
                 businessUnitId: updatedData.businessUnitId || contextBU || '',
               };
+
               const response = await updateParty(updatedData.id, payload);
+
               if (response) {
                 showSuccessToast('Success', 'Customer updated successfully');
-                setModals(prev => ({ ...prev, profileUser: null }));
+                setModals(prev => ({
+                  ...prev,
+                  profileCustomer: null,
+                }));
                 fetchCustomers();
               }
-            } catch (error) {
-              console.error('Update customer error:', error);
             } finally {
               setLoading(false);
             }
           }}
         />
       )}
+
       <TopBarCard
         searchValue={filters.search}
         onSearchChange={text => setFilters(prev => ({ ...prev, search: text }))}
@@ -351,7 +359,7 @@ const CustomerScreen = () => {
             renderRowMenu={(row, closeMenu) => (
               <TouchableOpacity
                 onPress={() => {
-                  handleDeletePress(row.raw.id);
+                  DeletePress(row.raw.id);
                   closeMenu();
                 }}
               >
@@ -382,7 +390,7 @@ const CustomerScreen = () => {
         type="customer"
         title="Add Customer"
         onClose={() => setModals(prev => ({ ...prev, showAdd: false }))}
-        onSave={handleAddCustomer}
+        onSave={AddCustomer}
         hideBusinessUnit={fromMenu}
       />
 
@@ -393,10 +401,10 @@ const CustomerScreen = () => {
           setModals(prev => ({
             ...prev,
             deleteVisible: false,
-            deleteUserId: null,
+            deleteCustomerId: null,
           }))
         }
-        onConfirm={handleConfirmDelete}
+        onConfirm={ConfirmDelete}
         title="Are you sure you want to delete this customer?"
       />
 

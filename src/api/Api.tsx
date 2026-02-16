@@ -3,30 +3,30 @@ import { Logout } from '../navigation/NavigationService';
 import { showErrorToast, showSuccessToast } from '../utils/AppToast';
 import axios, { AxiosRequestConfig } from 'axios';
 
-/**
- * Extend AxiosRequestConfig to optionally show success toast
- */
+
+ // Extend AxiosRequestConfig to optionally show success toast
+
 interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   showSuccessToast?: boolean;
 }
 
-/**
- * AsyncStorage keys used in the app
- */
+
+ //AsyncStorage keys used in the app
+ 
 export const AsyncKeyLiterals = {
   token: 'token',
   userId: 'userId',
 };
 
-/**
- * In-memory token to avoid reading AsyncStorage on every API call
- */
+
+ //In-memory token to avoid reading AsyncStorage on every API call
+
 let token: string | null = null;
 
-/**
- * Save token in memory and AsyncStorage
- * Call this function after login or token refresh
- */
+
+ // Save token in memory and AsyncStorage
+ //Call this function after login or token refresh
+ 
 export async function saveToken(data: string) {
   token = data;
   try {
@@ -36,10 +36,10 @@ export async function saveToken(data: string) {
   }
 }
 
-/**
- * Initialize token from AsyncStorage on app start
- * Call this in App.tsx or main entry point
- */
+
+ // Initialize token from AsyncStorage on app start
+ //Call this in App.tsx or main entry point
+ 
 export async function initToken() {
   try {
     const storedToken = await AsyncStorage.getItem(AsyncKeyLiterals.token);
@@ -49,9 +49,9 @@ export async function initToken() {
   }
 }
 
-/**
- * Axios instance
- */
+
+ // Axios instance
+
 const api = axios.create({
   baseURL: 'https://inventstarts.com:5003/',
   headers: {
@@ -59,10 +59,10 @@ const api = axios.create({
   },
 });
 
-/**
- * Request interceptor
- * Automatically attaches token from memory to Authorization header
- */
+
+ // Request interceptor
+ //Automatically attaches token from memory to Authorization header
+
 // Request interceptor: attach token
 api.interceptors.request.use(async config => {
   // Use in-memory token first
@@ -84,10 +84,10 @@ api.interceptors.request.use(async config => {
   return config;
 });
 
-/**
- * Response interceptor
- * Centralized success handling + defensive response validation
- */
+
+ //Response interceptor
+  //Centralized success handling + defensive response validation
+ 
 api.interceptors.response.use(
   response => {
     // Cast config to custom type
@@ -105,7 +105,6 @@ api.interceptors.response.use(
     const message =
       error.response?.data?.message || error.message || 'Something went wrong';
 
-    //  Handle known HTTP status codes
     switch (status) {
       case 400:
         showErrorToast(
@@ -155,9 +154,9 @@ api.interceptors.response.use(
   },
 );
 
-/**
- * Utility function to save any key-value pair in AsyncStorage
- */
+
+ //Utility function to save any key-value pair in AsyncStorage
+
 export const saveToStorage = async (key: string, value: string) => {
   try {
     await AsyncStorage.setItem(key, value);
@@ -166,9 +165,9 @@ export const saveToStorage = async (key: string, value: string) => {
   }
 };
 
-/**
- * Utility function to get any key from AsyncStorage
- */
+
+ // Utility function to get any key from AsyncStorage
+
 export const getFromStorage = async (key: string) => {
   try {
     return await AsyncStorage.getItem(key);

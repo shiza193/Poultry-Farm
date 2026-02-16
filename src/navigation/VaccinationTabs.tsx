@@ -53,17 +53,6 @@ const VaccinationMainScreen = () => {
                 );
         }
     };
-
-    // const getHeaderTitle = () => {
-    //     switch (activeTab) {
-    //         case "schedule":
-    //             return "Vaccinations";
-    //         case "stock":
-    //             return "Vaccinations";
-    //         default:
-    //             return "Vaccinations";
-    //     }
-    // };
     const TabButton = ({
         title,
         active,
@@ -92,7 +81,6 @@ const VaccinationMainScreen = () => {
             </TouchableOpacity>
         );
     };
-
     return (
         <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
             <LoadingOverlay visible={globalLoading} text="Loading..." />
@@ -213,7 +201,6 @@ const VaccinationMainScreen = () => {
 };
 
 export default VaccinationMainScreen;
-
 const styles = StyleSheet.create({
     tabContainer: {
         flexDirection: "row",
@@ -299,5 +286,6 @@ const styles = StyleSheet.create({
         width: 16,
         height: 16,
         marginRight: 10,
+    
     },
 });

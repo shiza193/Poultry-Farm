@@ -26,7 +26,6 @@ const DashboardDetailScreen = ({ navigation }: any) => {
     from: Date | null;
     to: Date | null;
   }>({ from: null, to: null });
-
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -483,7 +482,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Theme.colors.white,
     borderRadius: 20,
     marginBottom: 12,
     elevation: 3,

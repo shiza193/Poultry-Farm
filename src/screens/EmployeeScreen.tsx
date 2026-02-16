@@ -1,8 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text, ScrollView } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
-
 import Header from '../components/common/LogoHeader';
 import DataCard, { TableColumn } from '../components/customCards/DataCard';
 import AddModal from '../components/customPopups/AddModal';
@@ -12,12 +10,12 @@ import Theme from '../theme/Theme';
 import StatusToggle from '../components/common/StatusToggle';
 import TopBarCard from '../components/customCards/TopBarCard';
 import ProfileModal, { ProfileData } from '../components/customPopups/ProfileModal';
-import { 
-  getEmployees, 
-  updateEmployeeIsActive, 
-  addEmployee, 
-  deleteEmployee, 
-  updateEmployee 
+import {
+  getEmployees,
+  updateEmployeeIsActive,
+  addEmployee,
+  deleteEmployee,
+  updateEmployee,
 } from '../services/EmployeeService';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
 
@@ -29,18 +27,16 @@ interface Employee {
   type: string;
   employeeTypeId: number;
   salary: number;
-  poultryFarmId: string; 
-  poultryFarm: string; 
+  poultryFarmId: string;
+  poultryFarm: string;
   joiningDate: string;
   endDate: string;
   status: EmployeeStatus;
 }
-
 const EmployeeScreen = () => {
   const route = useRoute<any>();
   const fromMenu = route.params?.fromMenu ?? false;
   const initialBU = route.params?.businessUnitId ?? null;
-
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -65,7 +61,6 @@ const EmployeeScreen = () => {
       setLoading(true);
       const params: any = { pageNumber: page, pageSize };
       if (filters.businessUnit) params.businessUnitId = filters.businessUnit;
-
       const data = await getEmployees(params);
       const mapped: Employee[] = data.list.map((emp: any) => ({
         employeeId: emp.employeeId,
@@ -79,7 +74,6 @@ const EmployeeScreen = () => {
         endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
         status: emp.isActive ? 'Active' : 'Inactive',
       }));
-
       setEmployees(mapped);
       setTotalRecords(data.totalCount);
     } catch (error) {
@@ -94,7 +88,6 @@ const EmployeeScreen = () => {
       fetchEmployees(1);
     }, [filters.businessUnit]),
   );
-
   // ================= FILTER =================
   const filteredEmployees = employees.filter(emp => {
     if (filters.status === 'active' && emp.status !== 'Active') return false;
@@ -111,7 +104,6 @@ const EmployeeScreen = () => {
     if (filters.businessUnit && emp.poultryFarmId !== filters.businessUnit) return false;
     return true;
   });
-
   // ================= TABLE COLUMNS =================
   const columns: TableColumn[] = [
     {
@@ -184,7 +176,6 @@ const EmployeeScreen = () => {
       showErrorToast('Failed to update status');
     }
   };
-
   const handleAddEmployee = async (data: any) => {
     try {
       const payload = {
@@ -195,15 +186,29 @@ const EmployeeScreen = () => {
         endDate: data.endDate ? new Date(data.endDate).toISOString() : null,
         businessUnitId: filters.businessUnit ?? data.poultryFarm,
       };
-      await addEmployee(payload);
-      fetchEmployees();
+      const res = await addEmployee(payload);
+      const emp = res.data;
+      const newEmp: Employee = {
+        employeeId: emp.employeeId,
+        name: emp.name,
+        type: emp.employeeType,
+        employeeTypeId: emp.employeeTypeId,
+        salary: emp.salary,
+        poultryFarmId: emp.businessUnitId,
+        poultryFarm: emp.businessUnit,
+        joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
+        endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
+        status: emp.isActive ? 'Active' : 'Inactive',
+      };
+      setEmployees(prev => [newEmp, ...prev]);
+      setTotalRecords(prev => prev + 1);
+      setCurrentPage(1);
       showSuccessToast('Employee added successfully');
-      setModalState(prev => ({ ...prev, add: false }));
+      setModalState(prev => ({ ...prev, AddModal: false }));
     } catch {
       showErrorToast('Failed to add employee');
     }
   };
-
   const handleDelete = async () => {
     if (!modalState.selectedEmployeeId) return;
     try {
@@ -211,22 +216,22 @@ const EmployeeScreen = () => {
       setEmployees(prev =>
         prev.filter(e => e.employeeId !== modalState.selectedEmployeeId),
       );
+      setTotalRecords(prev => prev - 1);
+      setCurrentPage(prev => Math.min(prev, Math.ceil((totalRecords - 1) / pageSize)));
       showSuccessToast('Employee deleted successfully');
     } catch {
       showErrorToast('Failed to delete employee');
     } finally {
       setModalState(prev => ({
         ...prev,
-        delete: false,
+        deleteModal: false,
         selectedEmployeeId: null,
       }));
     }
   };
-
   const resetFilters = () => {
     setFilters({ search: '', status: 'all', businessUnit: null });
   };
-
   return (
     <View style={styles.container}>
       {fromMenu ? (
@@ -244,7 +249,6 @@ const EmployeeScreen = () => {
         onReset={resetFilters}
         hideBUDropdown={fromMenu}
       />
-
       {filteredEmployees.length > 0 ? (
         <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard
@@ -293,7 +297,6 @@ const EmployeeScreen = () => {
         hidePoultryFarm={!!fromMenu}
         defaultBusinessUnitId={filters.businessUnit}
       />
-
       <ConfirmationModal
         type="delete"
         visible={modalState.deleteModal}
@@ -301,7 +304,6 @@ const EmployeeScreen = () => {
         onConfirm={handleDelete}
         title="Are you sure you want to delete this employee?"
       />
-
       {modalState.selectedEmployee && (
         <ProfileModal
           visible={modalState.profileModal}
@@ -315,41 +317,36 @@ const EmployeeScreen = () => {
                 businessUnitId: updatedData.businessUnitId,
                 employeeTypeId: updatedData.employeeTypeId,
                 salary: updatedData.salary,
-                joiningDate: updatedData.joiningDate,
-                endDate: updatedData.endDate,
               };
               await updateEmployee(updatedData.id!, payload);
-
               setEmployees(prev =>
                 prev.map(emp =>
                   emp.employeeId === updatedData.id
                     ? {
-                        ...emp,
-                        name: updatedData.name!,
-                        poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
-                        employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
-                        type: updatedData.employeeType || emp.type,
-                        salary: updatedData.salary ?? emp.salary,
-                        joiningDate: updatedData.joiningDate ?? emp.joiningDate,
-                        endDate: updatedData.endDate ?? emp.endDate,
-                      }
+                      ...emp,
+                      name: updatedData.name!,
+                      poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
+                      employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
+                      type: updatedData.employeeType || emp.type,
+                      salary: updatedData.salary ?? emp.salary,
+                      joiningDate: updatedData.joiningDate ?? emp.joiningDate,
+                      endDate: updatedData.endDate ?? emp.endDate,
+                    }
                     : emp,
                 ),
               );
               showSuccessToast('Employee updated successfully');
-              setModalState(prev => ({ ...prev, profile: false, selectedEmployee: null }));
+              setModalState(prev => ({ ...prev, profileModal: false, selectedEmployee: null }));
             } catch {
               showErrorToast('Failed to update employee');
             }
           }}
         />
       )}
-
       <LoadingOverlay visible={loading} />
     </View>
   );
 };
-
 export default EmployeeScreen;
 
 const styles = StyleSheet.create({
