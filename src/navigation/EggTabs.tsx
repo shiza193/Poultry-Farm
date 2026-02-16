@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
-import Theme from "../theme/Theme";
-import Header from "../components/common/LogoHeader";
-import { useNavigation } from "@react-navigation/native";
-import LoadingOverlay from "../components/loading/LoadingOverlay";
-import { CustomConstants } from "../constants/CustomConstants";
+import React, { useState, useContext } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import Theme from '../theme/Theme';
+import Header from '../components/common/LogoHeader';
+import { useNavigation } from '@react-navigation/native';
+import LoadingOverlay from '../components/loading/LoadingOverlay';
+import { CustomConstants } from '../constants/CustomConstants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🔹 EGG SCREENS
 import EggProductionScreen from "../screens/eggs/EggProductionScreen";
@@ -12,21 +13,35 @@ import EggSaleScreen from "../screens/eggs/EggSaleScreen";
 import EggStockScreen from "../screens/eggs/EggStockScreen";
 import ConfirmationModal from "../components/customPopups/ConfirmationModal";
 import { Logout } from "./NavigationService";
+// Context / screens
+import { useBusinessUnit } from '../context/BusinessContext';
 
-type TabType = "production" | "sale" | "stock";
+import {
+  getEggProductionExcel,
+  getEggStockExcel,
+} from '../screens/Report/ReportHelpers';
+
+type TabType = 'production' | 'sale' | 'stock';
 
 const EggMainScreen = () => {
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState<TabType>("production");
+  const { businessUnitId } = useBusinessUnit(); 
+  const [activeTab, setActiveTab] = useState<TabType>('production');
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [openAddModal, setOpenAddModal] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // Filters for report
+  const [searchText, setSearchText] = useState<string>('');
+  const [masterData, setMasterData] = useState<{
+    selectedFlock: string | null;
+  }>({ selectedFlock: null });
+
   // ================= RENDER SCREEN =================
   const renderScreen = () => {
     switch (activeTab) {
-      case "sale":
+      case 'sale':
         return (
           <EggSaleScreen
             openAddModal={openAddModal}
@@ -34,8 +49,7 @@ const EggMainScreen = () => {
             setGlobalLoading={setGlobalLoading}
           />
         );
-
-      case "stock":
+      case 'stock':
         return (
           <EggStockScreen
             openAddModal={openAddModal}
@@ -43,7 +57,6 @@ const EggMainScreen = () => {
             setGlobalLoading={setGlobalLoading}
           />
         );
-
       default:
         return (
           <EggProductionScreen
@@ -55,6 +68,20 @@ const EggMainScreen = () => {
         );
     }
   };
+
+  // ================= LOGOUT =================
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
+      });
+    } catch (error) {
+      console.log('Logout failed', error);
+    }
+  };
+
   // ================= TAB BUTTON =================
   const TabButton = ({
     title,
@@ -74,15 +101,14 @@ const EggMainScreen = () => {
       </Text>
     </TouchableOpacity>
   );
+
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
       <LoadingOverlay visible={globalLoading} text="Loading..." />
 
       {/* ===== HEADER ===== */}
-      <Header
-        title="Eggs" 
-        onPressDots={() => setIsDotsMenuVisible(true)}
-      />
+      <Header title="Eggs" onPressDots={() => setIsDotsMenuVisible(true)} />
+
       {/* ===== DOTS MENU ===== */}
       {isDotsMenuVisible && (
         <TouchableOpacity
@@ -92,7 +118,7 @@ const EggMainScreen = () => {
         >
           <View style={styles.dotsMenu}>
             {/* ADD NEW (Production / Sale) */}
-            {(activeTab === "production" || activeTab === "sale") && (
+            {(activeTab === 'production' || activeTab === 'sale') && (
               <TouchableOpacity
                 style={styles.dotsMenuItemCustom}
                 onPress={() => {
@@ -104,25 +130,51 @@ const EggMainScreen = () => {
               </TouchableOpacity>
             )}
             <View style={styles.menuSeparator} />
-
-            {/* REPORT (Sale / Stock) */}
-            {(activeTab === "production" || activeTab === "stock") && (
+            {/* REPORT (Production / Stock) */}
+            {(activeTab === 'production' || activeTab === 'stock') && (
               <TouchableOpacity
                 style={styles.dotsMenuItemCustom}
-                onPress={() => {
+                onPress={async () => {
                   setIsDotsMenuVisible(false);
-                  // export logic
+                  try {
+                    setGlobalLoading(true);
+                    if (!businessUnitId) return;
+
+                    console.log(' Report Payload:', {
+                      businessUnitId,
+                      flockId: masterData.selectedFlock,
+                      searchKey: searchText || null,
+                      pageNumber: 1,
+                      pageSize: 100,
+                    });
+
+                    if (activeTab === 'production') {
+                      //  Production API
+                      await getEggProductionExcel('EggProduction_2026', {
+                        businessUnitId,
+                        flockId: masterData.selectedFlock,
+                        searchKey: searchText || null,
+                        pageNumber: 1,
+                        pageSize: 100,
+                      });
+                    } else if (activeTab === 'stock') {
+                      // Stock API
+                      await getEggStockExcel('EggStock_2026', businessUnitId);
+                    }
+                  } catch (error) {
+                    console.log(' Error opening report:', error);
+                  } finally {
+                    setGlobalLoading(false);
+                  }
                 }}
               >
                 <View style={styles.menuItemRowCustom}>
-                  <Image
-                    source={Theme.icons.report}
-                    style={styles.menuIcon}
-                  />
+                  <Image source={Theme.icons.report} style={styles.menuIcon} />
                   <Text style={styles.dotsMenuText}>Report</Text>
                 </View>
               </TouchableOpacity>
             )}
+
             <View style={styles.menuSeparator} />
 
             {/* LOGOUT */}
@@ -149,10 +201,7 @@ const EggMainScreen = () => {
               }}
             >
               <View style={styles.menuItemRowCustom}>
-                <Image
-                  source={Theme.icons.back}
-                  style={styles.logoutIcon}
-                />
+                <Image source={Theme.icons.back} style={styles.logoutIcon} />
                 <Text style={styles.dotsMenuText}>Admin Portal</Text>
               </View>
             </TouchableOpacity>
@@ -164,25 +213,25 @@ const EggMainScreen = () => {
       <View style={styles.tabContainer}>
         <TabButton
           title="Production"
-          active={activeTab === "production"}
-          onPress={() => setActiveTab("production")}
+          active={activeTab === 'production'}
+          onPress={() => setActiveTab('production')}
         />
         <View style={styles.separator} />
         <TabButton
           title="Sale"
-          active={activeTab === "sale"}
-          onPress={() => setActiveTab("sale")}
+          active={activeTab === 'sale'}
+          onPress={() => setActiveTab('sale')}
         />
         <View style={styles.separator} />
         <TabButton
           title="Stock"
-          active={activeTab === "stock"}
-          onPress={() => setActiveTab("stock")}
+          active={activeTab === 'stock'}
+          onPress={() => setActiveTab('stock')}
         />
       </View>
-
       {/* ===== SCREEN CONTENT ===== */}
       <View style={{ flex: 1 }}>{renderScreen()}</View>
+      {/* LOGOUT CONFIRM */}
       <ConfirmationModal
         type="logout"
         visible={showLogoutModal}
@@ -193,11 +242,12 @@ const EggMainScreen = () => {
     </View>
   );
 };
+
 export default EggMainScreen;
 
 const styles = StyleSheet.create({
   tabContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     margin: 14,
     backgroundColor: Theme.colors.white,
     borderColor: Theme.colors.borderColor,
@@ -208,25 +258,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 15,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
   },
-  activeTabButton: {
-    flex: 1,
-    backgroundColor: Theme.colors.mainButton,
+  dotsMenuText: {
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
   },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Theme.colors.black,
-  },
-  activeTabText: {
-    color: Theme.colors.white,
-  },
-  separator: {
-    width: 1,
-    backgroundColor: Theme.colors.sky,
-    marginVertical: 4,
-  },
+  activeTabButton: { flex: 1, backgroundColor: Theme.colors.mainButton },
+  tabText: { fontSize: 13, fontWeight: '600', color: Theme.colors.black },
+  activeTabText: { color: Theme.colors.white },
+  separator: { width: 1, backgroundColor: Theme.colors.sky, marginVertical: 4 },
   dotsOverlay: {
     position: 'absolute',
     top: 0,
@@ -248,23 +289,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  dotsMenuItemCustom: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  menuItemRowCustom: { flexDirection: "row", alignItems: "center" },
-  circleIcon: {
-    width: 35,
-    height: 35,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  dotsMenuText: {
-    fontSize: 14,
-    color: Theme.colors.textPrimary,
-  },
+  dotsMenuItemCustom: { paddingVertical: 10, paddingHorizontal: 16 },
+  menuItemRowCustom: { flexDirection: 'row', alignItems: 'center' },
   menuIcon: {
     width: 16,
     height: 16,
@@ -276,9 +302,5 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.SeparatorColor,
     marginHorizontal: 8,
   },
-  logoutIcon: {
-    width: 16,
-    height: 16,
-    marginRight: 10,
-  },
+  logoutIcon: { width: 16, height: 16, marginRight: 10 },
 });
