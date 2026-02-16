@@ -158,30 +158,37 @@ const CustomerScreen = () => {
   };
 
   // ================= TOGGLE STATUS =================
-  const ToggleStatus = async (customer: Customer) => {
-    try {
-      setLoading(true);
+ const ToggleStatus = async (customer: Customer) => {
+  try {
+    // Loading spinner start
+    setLoading(true);
 
-      await updatePartyIsActive(customer.id, !customer.isActive);
+    // Backend call: naya status update kar rahe hain
+    const newStatus = !customer.isActive;
+    const response = await updatePartyIsActive(customer.id, newStatus);
 
+    if (response.success) {
       setCustomers(prev =>
         prev.map(c =>
-          c.id === customer.id ? { ...c, isActive: !customer.isActive } : c,
-        ),
+          c.id === customer.id ? { ...c, isActive: newStatus } : c
+        )
       );
 
       showSuccessToast(
         'Success',
-        `Customer status updated to ${
-          !customer.isActive ? 'Active' : 'Inactive'
-        }`,
+        `Customer status updated to ${newStatus ? 'Active' : 'Inactive'}`
       );
-    } catch (error) {
-      showErrorToast('Error', 'Failed to update customer status');
-    } finally {
-      setLoading(false);
+    } else {
+      showErrorToast('Error', response.message || 'Failed to update customer status');
     }
-  };
+  } catch (error) {
+    // showErrorToast('Error', 'Failed to update customer status');
+    console.log('ToggleStatus error:', error);
+  } finally {
+    setLoading(false); // Loading spinner stop
+  }
+};
+
 
   // ================= DELETE CUSTOMER =================
   const DeletePress = (customerId: string) => {

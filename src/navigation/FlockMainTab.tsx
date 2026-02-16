@@ -21,11 +21,14 @@ import FlockSaleScreen from '../screens/flocks/FlockSaleScreen';
 import HospitalityScreen from '../screens/flocks/HospitalityScreen';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CustomConstants } from '../constants/CustomConstants';
+import { getFlocksExcel } from '../screens/Report/ReportHelpers';
+import { useBusinessUnit } from '../context/BusinessContext';
 
 type TabType = 'flocks' | 'mortality' | 'stock' | 'sale' | 'hospitality';
 
 const FlockMainScreen = () => {
   const navigation = useNavigation<any>();
+  const { businessUnitId } = useBusinessUnit();
   const [activeTab, setActiveTab] = useState<TabType>('flocks');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
@@ -43,8 +46,7 @@ const FlockMainScreen = () => {
       case 'hospitality':
         return <HospitalityScreen />;
       default:
-        return <FlocksScreen
-         />;
+        return <FlocksScreen />;
     }
   };
 
@@ -98,9 +100,7 @@ const FlockMainScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* ===== HEADER ===== */}
       {/* <Header title={getHeaderTitle()} /> */}
-      <Header title="Flocks"
-        onPressDots={() => setIsDotsMenuVisible(true)}
-      />
+      <Header title="Flocks" onPressDots={() => setIsDotsMenuVisible(true)} />
       {/* ===== DOTS MENU ===== */}
       {isDotsMenuVisible && (
         <TouchableOpacity
@@ -110,7 +110,9 @@ const FlockMainScreen = () => {
         >
           <View style={styles.dotsMenu}>
             {/* ADD NEW (Production / Sale) */}
-            {(activeTab === "flocks" || activeTab === "sale" || activeTab === "hospitality") && (
+            {(activeTab === 'flocks' ||
+              activeTab === 'sale' ||
+              activeTab === 'hospitality') && (
               <TouchableOpacity
                 style={styles.dotsMenuItemCustom}
                 onPress={() => {
@@ -123,24 +125,30 @@ const FlockMainScreen = () => {
             )}
             <View style={styles.menuSeparator} />
 
-            {/* REPORT (Sale / Stock) */}
-            {(activeTab === "flocks" || activeTab === "stock") && (
+            {(activeTab === 'flocks' || activeTab === 'stock') && (
               <TouchableOpacity
                 style={styles.dotsMenuItemCustom}
-                onPress={() => {
+                onPress={async () => {
                   setIsDotsMenuVisible(false);
-                  // export logic
+                  try {
+                    if (!businessUnitId) return;
+
+                    if (activeTab === 'flocks') {
+                      await getFlocksExcel('Flocks_2026', businessUnitId);
+                    }
+                    // stock ka logic agar alag API hai to yahan rakh lo
+                  } catch (error) {
+                    console.log(' Error exporting Flocks Excel:', error);
+                  }
                 }}
               >
                 <View style={styles.menuItemRowCustom}>
-                  <Image
-                    source={Theme.icons.report}
-                    style={styles.menuIcon}
-                  />
+                  <Image source={Theme.icons.report} style={styles.menuIcon} />
                   <Text style={styles.dotsMenuText}>Report</Text>
                 </View>
               </TouchableOpacity>
             )}
+
             <View style={styles.menuSeparator} />
 
             {/* LOGOUT */}
@@ -167,10 +175,7 @@ const FlockMainScreen = () => {
               }}
             >
               <View style={styles.menuItemRowCustom}>
-                <Image
-                  source={Theme.icons.back}
-                  style={styles.logoutIcon}
-                />
+                <Image source={Theme.icons.back} style={styles.logoutIcon} />
                 <Text style={styles.dotsMenuText}>Admin Portal</Text>
               </View>
             </TouchableOpacity>
@@ -300,13 +305,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
-  menuItemRowCustom: { flexDirection: "row", alignItems: "center" },
+  menuItemRowCustom: { flexDirection: 'row', alignItems: 'center' },
   circleIcon: {
     width: 35,
     height: 35,
     borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 10,
   },
   dotsMenuText: {
@@ -329,5 +334,4 @@ const styles = StyleSheet.create({
     height: 16,
     marginRight: 10,
   },
-
 });
