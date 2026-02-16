@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Theme.colors.white,
     borderRadius: 20,
     marginBottom: 12,
     elevation: 3,

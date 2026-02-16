@@ -8,8 +8,8 @@ import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen
 import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
 import LoadingOverlay from "../components/loading/LoadingOverlay";
 import { CustomConstants } from "../constants/CustomConstants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import ConfirmationModal from "../components/customPopups/ConfirmationModal";
+import { Logout } from "./NavigationService";
 
 type TabType = "vaccinations" | "schedule" | "stock";
 
@@ -53,29 +53,6 @@ const VaccinationMainScreen = () => {
                 );
         }
     };
-
-    // const getHeaderTitle = () => {
-    //     switch (activeTab) {
-    //         case "schedule":
-    //             return "Vaccinations";
-    //         case "stock":
-    //             return "Vaccinations";
-    //         default:
-    //             return "Vaccinations";
-    //     }
-    // };
-    const handleLogout = async () => {
-        try {
-            await AsyncStorage.clear();
-
-            navigation.reset({
-                index: 0,
-                routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-            });
-        } catch (error) {
-            console.log('Logout failed', error);
-        }
-    };
     const TabButton = ({
         title,
         active,
@@ -104,7 +81,6 @@ const VaccinationMainScreen = () => {
             </TouchableOpacity>
         );
     };
-
     return (
         <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
             <LoadingOverlay visible={globalLoading} text="Loading..." />
@@ -218,14 +194,13 @@ const VaccinationMainScreen = () => {
                 visible={showLogoutModal}
                 title="Are you sure you want to logout?"
                 onClose={() => setShowLogoutModal(false)}
-                onConfirm={handleLogout}
+                onConfirm={Logout}
             />
         </View>
     );
 };
 
 export default VaccinationMainScreen;
-
 const styles = StyleSheet.create({
     tabContainer: {
         flexDirection: "row",
@@ -311,5 +286,6 @@ const styles = StyleSheet.create({
         width: 16,
         height: 16,
         marginRight: 10,
+    
     },
 });

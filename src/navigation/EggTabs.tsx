@@ -7,12 +7,15 @@ import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { CustomConstants } from '../constants/CustomConstants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// 🔹 EGG SCREENS
+import EggProductionScreen from "../screens/eggs/EggProductionScreen";
+import EggSaleScreen from "../screens/eggs/EggSaleScreen";
+import EggStockScreen from "../screens/eggs/EggStockScreen";
+import ConfirmationModal from "../components/customPopups/ConfirmationModal";
+import { Logout } from "./NavigationService";
 // Context / screens
 import { useBusinessUnit } from '../context/BusinessContext';
-import EggProductionScreen from '../screens/eggs/EggProductionScreen';
-import EggSaleScreen from '../screens/eggs/EggSaleScreen';
-import EggStockScreen from '../screens/eggs/EggStockScreen';
-import ConfirmationModal from '../components/customPopups/ConfirmationModal';
+
 import {
   getEggProductionExcel,
   getEggStockExcel,
@@ -234,7 +237,7 @@ const EggMainScreen = () => {
         visible={showLogoutModal}
         title="Are you sure you want to logout?"
         onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleLogout}
+        onConfirm={Logout}
       />
     </View>
   );

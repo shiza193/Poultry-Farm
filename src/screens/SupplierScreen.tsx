@@ -243,7 +243,7 @@ const SupplierScreen = () => {
           businessUnitId: selectedSupplier.businessUnitId,
         };
 
-        console.log('UPDATE PAYLOAD 👉', payload);
+        console.log('UPDATE PAYLOAD ', payload);
 
         await updateParty(selectedSupplier.id, payload);
 
@@ -252,7 +252,7 @@ const SupplierScreen = () => {
         setSelectedSupplier(null);
         fetchUsers();
       } catch (error: any) {
-        console.log('UPDATE ERROR RESPONSE 👉', error?.response?.data);
+        console.log('UPDATE ERROR RESPONSE ', error?.response?.data);
         showErrorToast(
           'Error',
           error?.response?.data?.message || 'Failed to update supplier',
@@ -330,19 +330,6 @@ const SupplierScreen = () => {
           showLogout={true}
         />
       )}
-      {/* 
-      {dotsMenuVisible && (
-        <View style={styles.dotsMenu}>
-          <TouchableOpacity
-            onPress={() => {
-              setShowAddModal(true);
-              setDotsMenuVisible(false);
-            }}
-          >
-            <Text style={styles.menuText}>+ Add New</Text>
-          </TouchableOpacity>
-        </View>
-      )} */}
       <TopBarCard
         searchValue={search}
         onSearchChange={setSearch}
@@ -371,7 +358,7 @@ const SupplierScreen = () => {
                   }}
                 >
                   <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
-                    Delete
+                    Delete Supplier
                   </Text>
                 </TouchableOpacity>
               )} />

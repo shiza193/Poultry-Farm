@@ -33,11 +33,6 @@ const Header: React.FC<HeaderProps> = ({
   const navigation = useNavigation<any>();
   const [showMenu, setShowMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  const handleLogout = async () => {
-    console.log('Header logout pressed');
-    await Logout(); // calls global logout with console logs
-  };
   return (
     <>
       <View style={[styles.topHeader, containerStyle]}>
@@ -126,7 +121,7 @@ const Header: React.FC<HeaderProps> = ({
                       navigation.navigate(CustomConstants.DASHBOARD_TABS);
                     }}
                   >
-                    <Image source={Theme.icons.back} style={styles.menuIcon} />
+                    <Image source={Theme.icons.back} style={styles.backmenuIcon} />
                     <Text style={styles.menuText}>Admin Portal</Text>
                   </TouchableOpacity>
                   <View style={styles.menuSeparator} />
@@ -155,7 +150,7 @@ const Header: React.FC<HeaderProps> = ({
           visible={showLogoutModal}
           title="Are you sure you want to logout?"
           onClose={() => setShowLogoutModal(false)}
-          onConfirm={handleLogout}
+        onConfirm={Logout}
         />
       </View>
     </>
@@ -250,7 +245,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
     resizeMode: 'contain',
   },
-
+  backmenuIcon: {
+    width: 15,
+    height: 15,
+    marginRight: 8,
+    resizeMode: 'contain',
+  },
   menuText: {
     fontSize: 15,
     color: Theme.colors.textPrimary,
