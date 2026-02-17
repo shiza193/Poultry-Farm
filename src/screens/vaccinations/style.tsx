@@ -21,6 +21,7 @@ const styles = StyleSheet.create({
     /* ===== DROPDOWN ===== */
     dropdownWrapper: {
         width: 120,
+        zIndex:1
     },
     dropdown: {
         borderColor: Theme.colors.success,
@@ -83,7 +84,7 @@ export const vsstyles = StyleSheet.create({
         paddingVertical: 8,
         gap: 10,
     },
-    dropdownWrapper: { width: 120, zIndex: 2000 },
+    dropdownWrapper: { width: 120, zIndex: 1 },
     dropdown: {
         borderColor: Theme.colors.success, height: 40,
         minHeight: 40,

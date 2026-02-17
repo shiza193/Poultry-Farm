@@ -30,8 +30,6 @@ const FlockMainScreen = () => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
   const [activeTab, setActiveTab] = useState<TabType>('flocks');
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [openAddModal, setOpenAddModal] = useState(false);
 
   // ================= RENDER SCREEN =================
@@ -49,32 +47,6 @@ const FlockMainScreen = () => {
         return <FlocksScreen />;
     }
   };
-
-  // ================= HEADER TITLE =================
-  const getHeaderTitle = () => {
-    switch (activeTab) {
-      case 'mortality':
-        return 'Flocks Mortality';
-      case 'stock':
-        return 'Flock Stock';
-      case 'sale':
-        return 'Flock Sale';
-      case 'hospitality':
-        return 'Hospitality';
-      default:
-        return 'Flocks';
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.clear();
-      navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] });
-    } catch (error) {
-      console.log('Logout failed', error);
-    }
-  };
-
   // ================= TAB BUTTON =================
   const TabButton = ({
     title,
@@ -100,88 +72,37 @@ const FlockMainScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* ===== HEADER ===== */}
       {/* <Header title={getHeaderTitle()} /> */}
-      <Header title="Flocks" onPressDots={() => setIsDotsMenuVisible(true)} />
-      {/* ===== DOTS MENU ===== */}
-      {isDotsMenuVisible && (
-        <TouchableOpacity
-          style={styles.dotsOverlay}
-          activeOpacity={1}
-          onPress={() => setIsDotsMenuVisible(false)}
-        >
-          <View style={styles.dotsMenu}>
-            {/* ADD NEW (Production / Sale) */}
-            {(activeTab === 'flocks' ||
-              activeTab === 'sale' ||
-              activeTab === 'hospitality') && (
-              <TouchableOpacity
-                style={styles.dotsMenuItemCustom}
-                onPress={() => {
-                  setIsDotsMenuVisible(false);
-                  setOpenAddModal(true);
-                }}
-              >
-                <Text style={styles.dotsMenuText}>+ Add New</Text>
-              </TouchableOpacity>
-            )}
-            <View style={styles.menuSeparator} />
+      <Header
+        title="Flocks"
+        onAddNewPress={
+          activeTab === 'flocks' ||
+            activeTab === 'sale' ||
+            activeTab === 'hospitality'
+            ? () => {
+              console.log("Open Add Modal");
+            }
+            : undefined
+        }
+        onReportPress={
+          activeTab === 'flocks' || activeTab === 'stock'
+            ? async () => {
+              try {
+                if (!businessUnitId) return;
 
-            {(activeTab === 'flocks' || activeTab === 'stock') && (
-              <TouchableOpacity
-                style={styles.dotsMenuItemCustom}
-                onPress={async () => {
-                  setIsDotsMenuVisible(false);
-                  try {
-                    if (!businessUnitId) return;
+                if (activeTab === 'flocks') {
+                  await getFlocksExcel('Flocks_2026', businessUnitId);
+                }
 
-                    if (activeTab === 'flocks') {
-                      await getFlocksExcel('Flocks_2026', businessUnitId);
-                    }
-                    // stock ka logic agar alag API hai to yahan rakh lo
-                  } catch (error) {
-                    console.log(' Error exporting Flocks Excel:', error);
-                  }
-                }}
-              >
-                <View style={styles.menuItemRowCustom}>
-                  <Image source={Theme.icons.report} style={styles.menuIcon} />
-                  <Text style={styles.dotsMenuText}>Report</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            <View style={styles.menuSeparator} />
-
-            {/* LOGOUT */}
-            <TouchableOpacity
-              style={styles.dotsMenuItemCustom}
-              onPress={() => {
-                setIsDotsMenuVisible(false);
-                setShowLogoutModal(true);
-              }}
-            >
-              <View style={styles.menuItemRowCustom}>
-                <Image source={Theme.icons.logout} style={styles.logoutIcon} />
-                <Text style={styles.dotsMenuText}>Logout</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.menuSeparator} />
-
-            {/* BACK TO ADMIN */}
-            <TouchableOpacity
-              style={styles.dotsMenuItemCustom}
-              onPress={() => {
-                setIsDotsMenuVisible(false);
-                navigation.navigate(CustomConstants.DASHBOARD_TABS);
-              }}
-            >
-              <View style={styles.menuItemRowCustom}>
-                <Image source={Theme.icons.back} style={styles.logoutIcon} />
-                <Text style={styles.dotsMenuText}>Admin Portal</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      )}
+                // Agar stock ki alag API hai to yahan call karo
+              } catch (error) {
+                console.log('Error exporting Flocks Excel:', error);
+              }
+            }
+            : undefined
+        }
+        showAdminPortal={true}
+        showLogout={true}
+      />
       {/* ===== TABS ===== */}
       <View style={styles.tabsWrapper}>
         <ScrollView
@@ -222,15 +143,6 @@ const FlockMainScreen = () => {
       </View>
       {/* ===== SCREEN CONTENT ===== */}
       <View style={styles.screenContent}>{renderScreen()}</View>
-
-      {/* ===== LOGOUT MODAL ===== */}
-      <ConfirmationModal
-        type="logout"
-        visible={showLogoutModal}
-        title="Are you sure you want to logout?"
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleLogout}
-      />
     </SafeAreaView>
   );
 };
@@ -243,7 +155,7 @@ const styles = StyleSheet.create({
   // Tabs container
   tabsWrapper: {
     paddingHorizontal: 13,
-    marginTop:18,
+    marginTop: 18,
   },
   tabContainerScroll: {
     flexDirection: 'row',

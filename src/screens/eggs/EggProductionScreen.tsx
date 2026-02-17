@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
     tintColor: Theme.colors.success,
   },
-  dropdownWrapper: { width: 120, zIndex: 2000 },
+  dropdownWrapper: { width: 120, zIndex: 1 },
   dropdown: {
     borderColor: Theme.colors.success, height: 40,
     minHeight: 40,

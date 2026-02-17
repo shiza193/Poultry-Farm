@@ -292,7 +292,7 @@ const EmployeeScreen = () => {
         visible={modalState.AddModal}
         type="employee"
         title="Add Employee"
-        onClose={() => setModalState(prev => ({ ...prev, add: false }))}
+        onClose={() => setModalState(prev => ({ ...prev, AddModal: false }))}
         onSave={handleAddEmployee}
         hidePoultryFarm={!!fromMenu}
         defaultBusinessUnitId={filters.businessUnit}
@@ -300,7 +300,7 @@ const EmployeeScreen = () => {
       <ConfirmationModal
         type="delete"
         visible={modalState.deleteModal}
-        onClose={() => setModalState(prev => ({ ...prev, delete: false }))}
+        onClose={() => setModalState(prev => ({ ...prev, deleteModal: false }))}
         onConfirm={handleDelete}
         title="Are you sure you want to delete this employee?"
       />

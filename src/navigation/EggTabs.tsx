@@ -2,17 +2,13 @@ import React, { useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Theme from '../theme/Theme';
 import Header from '../components/common/LogoHeader';
-import { useNavigation } from '@react-navigation/native';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
-import { CustomConstants } from '../constants/CustomConstants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🔹 EGG SCREENS
 import EggProductionScreen from "../screens/eggs/EggProductionScreen";
 import EggSaleScreen from "../screens/eggs/EggSaleScreen";
 import EggStockScreen from "../screens/eggs/EggStockScreen";
-import ConfirmationModal from "../components/customPopups/ConfirmationModal";
-import { Logout } from "./NavigationService";
+
 // Context / screens
 import { useBusinessUnit } from '../context/BusinessContext';
 
@@ -24,20 +20,10 @@ import {
 type TabType = 'production' | 'sale' | 'stock';
 
 const EggMainScreen = () => {
-  const navigation = useNavigation<any>();
-  const { businessUnitId } = useBusinessUnit(); 
+  const { businessUnitId } = useBusinessUnit();
   const [activeTab, setActiveTab] = useState<TabType>('production');
-  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
   const [openAddModal, setOpenAddModal] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  // Filters for report
-  const [searchText, setSearchText] = useState<string>('');
-  const [masterData, setMasterData] = useState<{
-    selectedFlock: string | null;
-  }>({ selectedFlock: null });
-
   // ================= RENDER SCREEN =================
   const renderScreen = () => {
     switch (activeTab) {
@@ -69,19 +55,6 @@ const EggMainScreen = () => {
     }
   };
 
-  // ================= LOGOUT =================
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.clear();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-      });
-    } catch (error) {
-      console.log('Logout failed', error);
-    }
-  };
-
   // ================= TAB BUTTON =================
   const TabButton = ({
     title,
@@ -107,108 +80,39 @@ const EggMainScreen = () => {
       <LoadingOverlay visible={globalLoading} text="Loading..." />
 
       {/* ===== HEADER ===== */}
-      <Header title="Eggs" onPressDots={() => setIsDotsMenuVisible(true)} />
-
-      {/* ===== DOTS MENU ===== */}
-      {isDotsMenuVisible && (
-        <TouchableOpacity
-          style={styles.dotsOverlay}
-          activeOpacity={1}
-          onPress={() => setIsDotsMenuVisible(false)}
-        >
-          <View style={styles.dotsMenu}>
-            {/* ADD NEW (Production / Sale) */}
-            {(activeTab === 'production' || activeTab === 'sale') && (
-              <TouchableOpacity
-                style={styles.dotsMenuItemCustom}
-                onPress={() => {
-                  setIsDotsMenuVisible(false);
-                  setOpenAddModal(true);
-                }}
-              >
-                <Text style={styles.dotsMenuText}>+ Add New</Text>
-              </TouchableOpacity>
-            )}
-            <View style={styles.menuSeparator} />
-            {/* REPORT (Production / Stock) */}
-            {(activeTab === 'production' || activeTab === 'stock') && (
-              <TouchableOpacity
-                style={styles.dotsMenuItemCustom}
-                onPress={async () => {
-                  setIsDotsMenuVisible(false);
-                  try {
-                    setGlobalLoading(true);
-                    if (!businessUnitId) return;
-
-                    console.log(' Report Payload:', {
-                      businessUnitId,
-                      flockId: masterData.selectedFlock,
-                      searchKey: searchText || null,
-                      pageNumber: 1,
-                      pageSize: 100,
-                    });
-
-                    if (activeTab === 'production') {
-                      //  Production API
-                      await getEggProductionExcel('EggProduction_2026', {
-                        businessUnitId,
-                        flockId: masterData.selectedFlock,
-                        searchKey: searchText || null,
-                        pageNumber: 1,
-                        pageSize: 100,
-                      });
-                    } else if (activeTab === 'stock') {
-                      // Stock API
-                      await getEggStockExcel('EggStock_2026', businessUnitId);
-                    }
-                  } catch (error) {
-                    console.log(' Error opening report:', error);
-                  } finally {
-                    setGlobalLoading(false);
-                  }
-                }}
-              >
-                <View style={styles.menuItemRowCustom}>
-                  <Image source={Theme.icons.report} style={styles.menuIcon} />
-                  <Text style={styles.dotsMenuText}>Report</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            <View style={styles.menuSeparator} />
-
-            {/* LOGOUT */}
-            <TouchableOpacity
-              style={styles.dotsMenuItemCustom}
-              onPress={() => {
-                setIsDotsMenuVisible(false);
-                setShowLogoutModal(true);
-              }}
-            >
-              <View style={styles.menuItemRowCustom}>
-                <Image source={Theme.icons.logout} style={styles.logoutIcon} />
-                <Text style={styles.dotsMenuText}>Logout</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.menuSeparator} />
-
-            {/* BACK TO ADMIN */}
-            <TouchableOpacity
-              style={styles.dotsMenuItemCustom}
-              onPress={() => {
-                setIsDotsMenuVisible(false);
-                navigation.navigate(CustomConstants.DASHBOARD_TABS);
-              }}
-            >
-              <View style={styles.menuItemRowCustom}>
-                <Image source={Theme.icons.back} style={styles.logoutIcon} />
-                <Text style={styles.dotsMenuText}>Admin Portal</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      )}
-
+      <Header
+        title="Eggs"
+        onAddNewPress={
+          activeTab === 'production' || activeTab === 'sale'
+            ? () => setOpenAddModal(true)
+            : undefined
+        }
+        onReportPress={
+          activeTab === 'production'
+            ? async () => {
+              if (!businessUnitId) return;
+              setGlobalLoading(true);
+              await getEggProductionExcel('EggProduction_2026', {
+                businessUnitId,
+                flockId: null,
+                searchKey: null,
+                pageNumber: 1,
+                pageSize: 100,
+              });
+              setGlobalLoading(false);
+            }
+            : activeTab === 'stock'
+              ? async () => {
+                if (!businessUnitId) return;
+                setGlobalLoading(true);
+                await getEggStockExcel('EggStock_2026', businessUnitId);
+                setGlobalLoading(false);
+              }
+              : undefined
+        }
+        showAdminPortal={true}
+        showLogout={true}
+      />
       {/* ===== TABS ===== */}
       <View style={styles.tabContainer}>
         <TabButton
@@ -231,14 +135,6 @@ const EggMainScreen = () => {
       </View>
       {/* ===== SCREEN CONTENT ===== */}
       <View style={{ flex: 1 }}>{renderScreen()}</View>
-      {/* LOGOUT CONFIRM */}
-      <ConfirmationModal
-        type="logout"
-        visible={showLogoutModal}
-        title="Are you sure you want to logout?"
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={Logout}
-      />
     </View>
   );
 };

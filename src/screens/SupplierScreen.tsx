@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  FlatList,
   StyleSheet,
   ScrollView,
-  Alert,
   Image,
   TouchableOpacity,
   Text,
@@ -49,37 +47,38 @@ const SupplierScreen = () => {
   const fromMenu = route.params?.fromMenu === true;
   const farmBU = route.params?.businessUnitId ?? null;
   const { businessUnitId } = useBusinessUnit();
-
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<User | null>(null);
-  const [openProfile, setOpenProfile] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all' as 'all' | 'active' | 'inactive',
+    businessUnit: fromMenu ? farmBU : null as string | null,
+  });
+  const [modalState, setModalState] = useState({
+    addModal: false,
+    deleteModal: false,
+    profileModal: false,
+    selectedPartyId: null as string | null,
+    selectedSupplier: null as User | null,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
   // All suppliers fetched from API
-  const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [suppliers, setSuppliers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [selectedBU, setSelectedBU] = useState<string | null>(
-    fromMenu ? farmBU : null,
-  );
-
   // ================= FETCH SUPPLIERS =================
-  const fetchUsers = async () => {
+  const fetchSuppliers = async (page: number = 1) => {
     try {
       setLoading(true);
-
       const payload: any = {
-        searchKey: null,
-        isActive: null,
-        pageNumber: 1,
-        pageSize: 100,
+        searchKey: filters.search || null,
+        isActive: filters.status === 'all' ? null : filters.status === 'active',
+        pageNumber: page,
+        pageSize,
         partyTypeId: 1,
-        businessUnitId: fromMenu ? farmBU : null,
+        businessUnitId: filters.businessUnit || null,
       };
-
       const data = await getPartyBySearchAndFilter(payload);
 
       if (data?.list && Array.isArray(data.list)) {
@@ -92,75 +91,92 @@ const SupplierScreen = () => {
           isActive: item.isActive ?? true,
           businessUnitId: item.businessUnitId || '',
         }));
-
-        setUsers(mappedUsers);
+        setSuppliers(mappedUsers);
         setFilteredUsers(mappedUsers);
+        setTotalRecords(data.totalCount || 0);
       } else {
-        setUsers([]);
+        setSuppliers([]);
         setFilteredUsers([]);
+        setTotalRecords(0);
       }
     } catch (error) {
-      console.error('Failed to fetch suppliers:', error);
       showErrorToast('Error', 'Failed to fetch suppliers');
-      setUsers([]);
-      setFilteredUsers([]);
+      setSuppliers([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
   };
-
   useFocusEffect(
     useCallback(() => {
-      fetchUsers();
-    }, [fromMenu, farmBU]),
+      setCurrentPage(1);
+      fetchSuppliers(1);
+    }, [filters.businessUnit]),
   );
 
   // ================= FILTER LOGIC =================
   useEffect(() => {
-    let updated = [...users];
+    let updated = [...suppliers];
 
-    if (selectedBU)
-      updated = updated.filter(u => u.businessUnitId === selectedBU);
-    if (status !== 'all')
+    if (filters.businessUnit)
+      updated = updated.filter(u => u.businessUnitId === filters.businessUnit);
+
+    if (filters.status !== 'all')
       updated = updated.filter(u =>
-        status === 'active' ? u.isActive : !u.isActive,
+        filters.status === 'active' ? u.isActive : !u.isActive,
       );
-    if (search)
+    if (filters.search)
       updated = updated.filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()),
+        u.name.toLowerCase().includes(filters.search.toLowerCase()),
       );
 
     setFilteredUsers(updated);
-  }, [selectedBU, status, search, users]);
-
+  }, [filters, suppliers]);
   // ================= ADD SUPPLIER =================
-  const handleAddSupplier = async (formData: {
-    name: string;
-    phone?: string | null;
-    email?: string | null;
-    address?: string;
-  }) => {
+  const handleAddSupplier = async (formData: any) => {
     try {
+      const finalBU =
+        filters.businessUnit && filters.businessUnit !== ''
+          ? filters.businessUnit
+          : businessUnitId && businessUnitId !== ''
+            ? businessUnitId
+            : null;
+
+      if (!finalBU) {
+        showErrorToast("Error", "Please select Business Unit");
+        return;
+      }
       const payload = {
         name: formData.name.trim(),
         phone: formData.phone?.trim() || null,
         email: formData.email?.trim() || null,
-        address: formData.address?.trim() || '',
+        address: formData.address?.trim() || null,
         partyTypeId: 1,
-        businessUnitId: selectedBU || businessUnitId,
+        businessUnitId: finalBU,
       };
 
-      const response = await addParty(payload);
+      // Call API to add supplier
+      const newSupplier = await addParty(payload);
 
-      if (response) {
-        showSuccessToast('Success', 'Supplier added successfully');
-        setShowAddModal(false);
-        fetchUsers();
-      }
+      // Map API response to User type
+      const addedSupplier: User = {
+        id: newSupplier.partyId,
+        name: newSupplier.name || payload.name,
+        email: newSupplier.email ?? payload.email,
+        phone: newSupplier.phone ?? payload.phone,
+        address: newSupplier.address ?? payload.address ?? '',
+        isActive: newSupplier.isActive ?? true,
+        businessUnitId: newSupplier.businessUnitId ?? finalBU,
+      };
+      setSuppliers(prev => [addedSupplier, ...prev]);
+      setTotalRecords(prev => prev + 1);
+      setCurrentPage(1);
+
+      showSuccessToast("Success", "Supplier added successfully");
+      setModalState(prev => ({ ...prev, addModal: false }));
     } catch (error: any) {
-      console.error('ADD SUPPLIER ERROR:', error);
-      const errMsg = error?.response?.data?.message || 'Failed to add supplier';
-      showErrorToast('Error', errMsg);
+      console.error('Add supplier error:', error);
+      showErrorToast("Error", "Failed to add supplier");
     }
   };
 
@@ -170,7 +186,7 @@ const SupplierScreen = () => {
       setLoading(true);
       await updatePartyIsActive(userId, !currentStatus);
 
-      setUsers(prev =>
+      setSuppliers(prev =>
         prev.map(u =>
           u.id === userId ? { ...u, isActive: !currentStatus } : u,
         ),
@@ -191,66 +207,79 @@ const SupplierScreen = () => {
 
   // ================= RESET FILTERS =================
   const resetFilters = () => {
-    setSelectedBU(fromMenu ? farmBU : null); // keep farm BU if fromMenu
-    setStatus('all');
-    setSearch('');
+    setFilters({
+      search: '',
+      status: 'all',
+      businessUnit: fromMenu ? farmBU : null,
+    });
   };
-
   const handleConfirmDelete = async () => {
-    if (!selectedPartyId) return;
-
+    if (!modalState.selectedPartyId) return;
     try {
-      const res = await deleteParty(selectedPartyId);
-
-      if (res.error || res.success === false) {
-        return showErrorToast(
-          'Error',
-          res.error || res.message || 'Failed to delete supplier',
-        );
-      }
-
-      setUsers(prev => prev.filter(u => u.id !== selectedPartyId));
-      showSuccessToast(
-        'Success',
-        res.message || 'Supplier deleted successfully',
+      await deleteParty(modalState.selectedPartyId);
+      setSuppliers(prev =>
+        prev.filter(e => e.id !== modalState.selectedPartyId),
       );
-    } catch (error: any) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to delete supplier';
-      showErrorToast('Error', msg);
-      console.error('Delete supplier failed', error);
+      setSuppliers(prev => {
+        const updated = prev.filter(e => e.id !== modalState.selectedPartyId);
+        setFilteredUsers(
+          updated.filter(u =>
+            (!filters.businessUnit || u.businessUnitId === filters.businessUnit) &&
+            (filters.status === 'all' || (filters.status === 'active' ? u.isActive : !u.isActive)) &&
+            (!filters.search || u.name.toLowerCase().includes(filters.search.toLowerCase()))
+          )
+        );
+        return updated;
+      });
+      setTotalRecords(prev => prev - 1);
+      setCurrentPage(prev => Math.min(prev, Math.ceil((totalRecords - 1) / pageSize)));
+      setCurrentPage(1)
+      showSuccessToast('Supplier deleted successfully');
+    } catch {
+      showErrorToast('Failed to delete supplier');
     } finally {
-      setDeleteModalVisible(false);
-      setSelectedPartyId(null);
+      setModalState(prev => ({
+        ...prev,
+        deleteModal: false,
+        selectedPartyId: null,
+      }));
     }
   };
-
   const handleUpdateSupplier = (updatedData: ProfileData) => {
-    if (!selectedSupplier) return;
-
+    if (!modalState.selectedSupplier) return;
     (async () => {
       try {
         setLoading(true);
-
+        if (!modalState.selectedSupplier) return;
         const payload = {
           name: updatedData.name.trim(),
           email: updatedData.email?.trim() || null,
           phone: updatedData.phone?.trim() || null,
           address: updatedData.address?.trim() || '',
           partyTypeId: 1,
-          businessUnitId: selectedSupplier.businessUnitId,
+          businessUnitId: modalState.selectedSupplier.businessUnitId,
         };
-
         console.log('UPDATE PAYLOAD ', payload);
-
-        await updateParty(selectedSupplier.id, payload);
-
+        await updateParty(modalState.selectedSupplier.id, payload);
+        setSuppliers(prev =>
+          prev.map(s =>
+            s.id === modalState.selectedSupplier!.id
+              ? {
+                ...s,
+                name: payload.name,
+                email: payload.email,
+                phone: payload.phone,
+                address: payload.address,
+              }
+              : s,
+          ),
+        );
         showSuccessToast('Success', 'Supplier updated successfully');
-        setOpenProfile(false);
-        setSelectedSupplier(null);
-        fetchUsers();
+        setModalState(prev => ({
+          ...prev,
+          profileModal: false,
+          selectedSupplier: null,
+        }));
       } catch (error: any) {
         console.log('UPDATE ERROR RESPONSE ', error?.response?.data);
         showErrorToast(
@@ -262,13 +291,11 @@ const SupplierScreen = () => {
       }
     })();
   };
-
   const tableData = filteredUsers.map(u => ({
     ...u,
     status: u.isActive ? 'Active' : 'Inactive',
     raw: u,
   }));
-
   const columns: TableColumn[] = [
     {
       key: 'name',
@@ -280,16 +307,19 @@ const SupplierScreen = () => {
       render: (value, row) => (
         <TouchableOpacity
           onPress={() => {
-            setSelectedSupplier({
-              id: row.id,
-              name: row.name,
-              phone: row.phone ?? '',
-              email: row.email ?? '',
-              address: row.address ?? '',
-              businessUnitId: row.businessUnitId,
-              isActive: row.isActive,
-            });
-            setOpenProfile(true);
+            setModalState(prev => ({
+              ...prev,
+              selectedSupplier: {
+                id: row.id,
+                name: row.name,
+                phone: row.phone ?? '',
+                email: row.email ?? '',
+                address: row.address ?? '',
+                businessUnitId: row.businessUnitId,
+                isActive: row.isActive,
+              },
+              profileModal: true,
+            }));
           }}
         >
           <Text style={{ fontWeight: '600', color: Theme.colors.black }}>
@@ -321,81 +351,107 @@ const SupplierScreen = () => {
         <BackArrow
           title="Suppliers"
           showBack={true}
-          onAddNewPress={() => setShowAddModal(true)}
+          onAddNewPress={() =>
+            setModalState(prev => ({ ...prev, addModal: true }))
+          }
         />
       ) : (
         <Header
           title="Suppliers"
-          onAddNewPress={() => setShowAddModal(prev => !prev)}
-          showLogout={true}
+          onAddNewPress={() =>
+            setModalState(prev => ({ ...prev, addModal: true }))
+          } showLogout={true}
         />
       )}
       <TopBarCard
-        searchValue={search}
-        onSearchChange={setSearch}
-        status={status === 'all' ? null : status}
-        onStatusChange={s => setStatus(s ?? 'all')}
-        value={selectedBU}
-        onBusinessUnitChange={fromMenu ? undefined : setSelectedBU}
+        searchValue={filters.search}
+        onSearchChange={value =>
+          setFilters(prev => ({ ...prev, search: value }))
+        }
+        status={filters.status === 'all' ? null : filters.status}
+        onStatusChange={s =>
+          setFilters(prev => ({ ...prev, status: s ?? 'all' }))
+        }
+        value={filters.businessUnit}
+        onBusinessUnitChange={
+          fromMenu
+            ? undefined
+            : bu => setFilters(prev => ({ ...prev, businessUnit: bu }))
+        }
         onReset={resetFilters}
         hideBUDropdown={fromMenu}
       />
 
       <View style={{ flex: 1 }}>
-        {tableData.length > 0 ? (
-          <ScrollView
-            style={{ flex: 1, paddingHorizontal: 16 }}
-            contentContainerStyle={{ paddingBottom: 100 }}
-          >
-            <DataCard columns={columns} data={tableData} itemsPerPage={10}
-              renderRowMenu={(row, closeMenu) => (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSelectedPartyId(row.id);
-                    setDeleteModalVisible(true);
-                    setDeleteModalVisible(true);
-                    closeMenu();
-                  }}
-                >
-                  <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
-                    Delete Supplier
-                  </Text>
-                </TouchableOpacity>
-              )} />
-          </ScrollView>
-        ) : (
-          !loading && (
-            <View style={styles.noDataContainer}>
-              <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-            </View>
-          )
-        )}
+        <ScrollView
+          style={{ flex: 1, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={pageSize}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchSuppliers(page);
+            }} renderRowMenu={(row, closeMenu) => (
+              <TouchableOpacity
+                onPress={() => {
+                  setModalState(prev => ({
+                    ...prev,
+                    deleteModal: true,
+                    selectedPartyId: row.id,
+                  }));
+                  closeMenu();
+                }}
+              >
+                <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 12 }}>
+                  Delete Supplier
+                </Text>
+              </TouchableOpacity>
+            )} />
+        </ScrollView>
 
         <AddModal
-          visible={showAddModal}
+          visible={modalState.addModal}
           type="customer"
           title="Add Supplier"
-          onClose={() => setShowAddModal(false)}
+          onClose={() =>
+            setModalState(prev => ({
+              ...prev,
+              addModal: false,
+            }))
+          }
           onSave={handleAddSupplier}
           hideBusinessUnit={fromMenu}
         />
 
         <ConfirmationModal
           type="delete"
-          visible={deleteModalVisible}
-          onClose={() => setDeleteModalVisible(false)}
+          visible={modalState.deleteModal}
+          onClose={() =>
+            setModalState(prev => ({
+              ...prev,
+              deleteModal: false,
+            }))
+          }
           onConfirm={handleConfirmDelete}
           title="Are you sure you want to delete this supplier?"
         />
-        {selectedSupplier && (
+        {modalState.selectedSupplier && (
           <ProfileModal
-            visible={openProfile}
-            onClose={() => {
-              setOpenProfile(false);
-              setSelectedSupplier(null);
-            }}
+            visible={modalState.profileModal}
+            onClose={() =>
+              setModalState(prev => ({
+                ...prev,
+                profileModal: false,
+                selectedSupplier: null,
+              }))
+            }
             type="supplier"
-            data={selectedSupplier}
+            data={modalState.selectedSupplier}
             onSave={handleUpdateSupplier}
           />
         )}
@@ -409,17 +465,6 @@ export default SupplierScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Theme.colors.white },
-  dotsMenu: {
-    position: 'absolute',
-    top: 50,
-    right: 16,
-    backgroundColor: Theme.colors.white,
-    padding: 12,
-    borderRadius: 8,
-    elevation: 6,
-    zIndex: 999,
-  },
-  menuText: { fontSize: 15, fontWeight: '600', color: Theme.colors.success },
   noDataContainer: { justifyContent: 'center', alignItems: 'center', flex: 1 },
   noDataImage: {
     width: 290,

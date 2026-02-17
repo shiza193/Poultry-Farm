@@ -16,10 +16,8 @@ type TabType = "vaccinations" | "schedule" | "stock";
 const VaccinationMainScreen = () => {
     const navigation = useNavigation<any>();
     const [activeTab, setActiveTab] = useState<TabType>("vaccinations");
-    const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
     const [openAddModal, setOpenAddModal] = useState(false);
     const [globalLoading, setGlobalLoading] = useState(false);
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const renderScreen = () => {
         switch (activeTab) {
@@ -87,83 +85,23 @@ const VaccinationMainScreen = () => {
             {/* 🔹 TOP HEADER */}
             <Header
                 title="Vaccinations"
-                onPressDots={() => setIsDotsMenuVisible(true)}
+                onAddNewPress={
+                    activeTab === "vaccinations" || activeTab === "schedule"
+                        ? () => setOpenAddModal(true)
+                        : undefined
+                }
+                onReportPress={
+                    activeTab === "vaccinations" || activeTab === "stock"
+                        ? () => {
+                            // Yahan apna export/report logic likho
+                            console.log("Export clicked");
+                        }
+                        : undefined
+                }
+                showAdminPortal={true}
+                showLogout={true}
             />
-            {isDotsMenuVisible && (
-                <TouchableOpacity
-                    style={styles.dotsOverlay}
-                    activeOpacity={1}
-                    onPress={() => setIsDotsMenuVisible(false)}
-                >
-                    <View style={styles.dotsMenu}>
-                        {/* ADD NEW */}
-                        {(activeTab === "vaccinations" || activeTab === "schedule") && (
-                            <TouchableOpacity
-                                style={styles.dotsMenuItemCustom}
-                                onPress={() => {
-                                    setIsDotsMenuVisible(false);
-                                    setOpenAddModal(true);
-                                }}
-                            >
-                                <Text style={styles.dotsMenuText}>+ Add New</Text>
-                            </TouchableOpacity>
-                        )}
-                        <View style={styles.menuSeparator} />
 
-                        {/* EXPORT DATA - vaccination or stock */}
-                        {(activeTab === "vaccinations" || activeTab === "stock") && (
-                            <TouchableOpacity
-                                style={styles.dotsMenuItemCustom}
-                                onPress={() => {
-                                    setIsDotsMenuVisible(false);
-                                    // Export logic
-                                }}
-                            >
-                                <View style={styles.menuItemRowCustom}>
-                                    <Image
-                                        source={Theme.icons.report}
-                                        style={styles.menuIcon}
-                                    />
-                                    <Text style={styles.dotsMenuText}>Report</Text>
-                                </View>
-                            </TouchableOpacity>
-                        )}
-                        <View style={styles.menuSeparator} />
-
-                        {/* LOGOUT - har jagah dikhe */}
-                        <TouchableOpacity
-                            style={styles.dotsMenuItemCustom}
-                            onPress={() => {
-                                setIsDotsMenuVisible(false);
-                                setShowLogoutModal(true);
-                            }}
-                        >
-                            <View style={styles.menuItemRowCustom}>
-                                <Image source={Theme.icons.logout} style={styles.logoutIcon} />
-                                <Text style={styles.dotsMenuText}>Logout</Text>
-                            </View>
-                        </TouchableOpacity>
-                        <View style={styles.menuSeparator} />
-
-                        {/* BACK TO ADMIN - har jagah dikhe */}
-                        <TouchableOpacity
-                            style={styles.dotsMenuItemCustom}
-                            onPress={() => {
-                                setIsDotsMenuVisible(false);
-                                navigation.navigate(CustomConstants.DASHBOARD_TABS);
-                            }}
-                        >
-                            <View style={styles.menuItemRowCustom}>
-                                <Image
-                                    source={Theme.icons.back}
-                                    style={styles.logoutIcon}
-                                />
-                                <Text style={styles.dotsMenuText}>Admin Portal</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-                </TouchableOpacity>
-            )}
             {/* TOP TOGGLE BUTTONS */}
             <View style={styles.tabContainer}>
                 <TabButton
@@ -189,13 +127,6 @@ const VaccinationMainScreen = () => {
             <View style={{ flex: 1 }}>
                 {renderScreen()}
             </View>
-            <ConfirmationModal
-                type="logout"
-                visible={showLogoutModal}
-                title="Are you sure you want to logout?"
-                onClose={() => setShowLogoutModal(false)}
-                onConfirm={Logout}
-            />
         </View>
     );
 };
@@ -286,6 +217,6 @@ const styles = StyleSheet.create({
         width: 16,
         height: 16,
         marginRight: 10,
-    
+
     },
 });
