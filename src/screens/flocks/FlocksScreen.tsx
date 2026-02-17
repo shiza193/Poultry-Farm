@@ -35,6 +35,7 @@ import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
 import SearchBar from '../../components/common/SearchBar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Dropdown } from 'react-native-element-dropdown';
 
 // object ka structure define karta hai.
 interface Flock {
@@ -88,10 +89,16 @@ const FlocksScreen = () => {
   //wo flock jo delete ke liye select kiya gaya ho
   const [flockToDelete, setFlockToDelete] = useState<Flock | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
+
   // ===== FETCH FLOCKS BASED ON FILTERS =====
-  const fetchFlocks = async () => {
+  const fetchFlocks = async (page: number = 1) => {
     if (!businessUnitId) return;
+
     setLoading(true);
+
     try {
       const data = await getFlockByFilter({
         businessUnitId,
@@ -99,13 +106,16 @@ const FlocksScreen = () => {
         flockId: filterState.selected.flockId,
         supplierId: filterState.selected.supplierId,
         isEnded: filterState.isEnded ? true : null,
-        pageNumber: 1,
-        pageSize: 10,
+        pageNumber: page,
+        pageSize,
       });
 
       setFlocks(data.list || []);
+      setTotalRecords(data.totalCount || 0);
     } catch (err) {
       console.log('fetchFlocks error:', err);
+      setFlocks([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -257,13 +267,21 @@ const FlocksScreen = () => {
 
   useEffect(() => {
     if (!businessUnitId) return;
+
     fetchDropdownFlocks();
     fetchSuppliers();
-    fetchFlocks();
+  }, [businessUnitId]);
+
+  useEffect(() => {
+    if (!businessUnitId) return;
+
+    setCurrentPage(1);
+    fetchFlocks(1);
   }, [
     businessUnitId,
     filterState.searchKey,
-    filterState.selected,
+    filterState.selected.flockId,
+    filterState.selected.supplierId,
     filterState.isEnded,
   ]);
 
@@ -283,7 +301,8 @@ const FlocksScreen = () => {
     };
 
     await addFlock(payload);
-    fetchFlocks();
+    setCurrentPage(1);
+    fetchFlocks(1);
     fetchDropdownFlocks();
     setModals(prev => ({ ...prev, add: false }));
   };
@@ -419,7 +438,13 @@ const FlocksScreen = () => {
       await deleteFlock(flockToDelete.flockId);
 
       // local state update: remove the flock
-      setFlocks(prev => prev.filter(f => f.flockId !== flockToDelete.flockId));
+      setTotalRecords(prev => prev - 1);
+
+      setCurrentPage(prev =>
+        Math.min(prev, Math.ceil((totalRecords - 1) / pageSize)),
+      );
+
+      fetchFlocks(currentPage);
 
       console.log('Flock deleted successfully');
       setModals(prev => ({ ...prev, confirmDelete: false }));
@@ -432,92 +457,91 @@ const FlocksScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView>
-        {modals.dotsMenu && (
-          <TouchableOpacity
-            style={styles.dotsOverlay}
-            activeOpacity={1}
-            onPress={() => setModals(prev => ({ ...prev, dotsMenu: false }))}
-          >
-            <View style={styles.dotsMenu}>
-              <TouchableOpacity
-                style={styles.dotsMenuItem}
-                onPress={() => {
-                  const newValue = !filterState.isEnded;
-                  setFilterState(prev => ({ ...prev, isEnded: newValue }));
-                  setModals(prev => ({ ...prev, dotsMenu: false }));
-                }}
-              >
-                <View style={styles.menuItemRow}>
-                  <View
-                    style={[
-                      styles.checkboxSmall,
-                      filterState.isEnded && {
-                        backgroundColor: Theme.colors.primaryYellow,
-                      },
-                    ]}
-                  />
-                  <Text style={styles.dotsMenuText}>Complete</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* ===== EXPORT EXCEL / DATA ===== */}
-              <TouchableOpacity
-                style={styles.dotsMenuItemCustom}
-                onPress={() => {
-                  console.log('Export Data clicked');
-                  setModals(prev => ({ ...prev, dotsMenu: false }));
-                }}
-              >
-                <View style={styles.menuItemRowCustom}>
-                  <View>
-                    <Image
-                      source={Theme.icons.report}
-                      style={styles.menuIconCustom}
-                    />
-                  </View>
-                  <Text style={styles.dotsMenuText}>Export Data</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* ===== ADD NEW FLOCK ===== */}
-              <TouchableOpacity
-                style={styles.dotsMenuItemCustom}
-                onPress={() => {
-                  setModals(prev => ({ ...prev, add: true }));
-                  setModals(prev => ({ ...prev, dotsMenu: false }));
-                }}
-              >
-                <View style={styles.menuItemRowCustom}>
-                  <Text style={styles.dotsMenuText}> + New Flock</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        )}
-
         <View style={styles.mainContainer}>
-          {/* ===== SEARCH + FILTER ROW ===== */}
-          <View style={styles.searchRow}>
-            <View style={{ flex: 1 }}>
-              <SearchBar
-                placeholder="Search Flock..."
-                initialValue={filterState.searchKey}
-                onSearch={value => {
-                  setFilterState(prev => ({ ...prev, searchKey: value }));
-                }}
-              />
-            </View>
-            <TouchableOpacity
-              style={styles.filterBtn}
-              onPress={() => setModals(prev => ({ ...prev, filter: true }))}
-            >
-              <Image source={Theme.icons.filter} style={styles.filterIcon} />
-            </TouchableOpacity>
-          </View>
+          <View style={styles.filterSection}>
+            <View style={styles.searchCompleteRow}>
+              {/* SEARCH BAR */}
+              <View style={{ flex: 1 }}>
+                <SearchBar
+                  placeholder="Search Flock..."
+                  initialValue={filterState.searchKey}
+                  onSearch={value => {
+                    setFilterState(prev => ({ ...prev, searchKey: value }));
+                  }}
+                />
+              </View>
 
+              {/* COMPLETE CHECKBOX */}
+              <TouchableOpacity
+                style={styles.completeCheckboxContainerRow}
+                onPress={() =>
+                  setFilterState(prev => ({ ...prev, isEnded: !prev.isEnded }))
+                }
+              >
+                <View
+                  style={[
+                    styles.checkboxSmall,
+                    filterState.isEnded && {
+                      backgroundColor: Theme.colors.primaryYellow,
+                    },
+                  ]}
+                />
+                <Text style={styles.completeText}>Complete</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ===== DROPDOWNS + RESET BUTTON ===== */}
+            <View style={styles.dropdownRow}>
+              <Dropdown
+                style={styles.inlineDropdown}
+                containerStyle={styles.inlineDropdownContainer}
+                data={filterState.options.flocks}
+                labelField="label"
+                valueField="value"
+                placeholder="Flock"
+                value={filterState.selected.flockId}
+                onChange={item =>
+                  setFilterState(prev => ({
+                    ...prev,
+                    selected: { ...prev.selected, flockId: item.value },
+                  }))
+                }
+              />
+
+              <Dropdown
+                style={styles.inlineDropdown}
+                containerStyle={styles.inlineDropdownContainer}
+                data={filterState.options.suppliers}
+                labelField="label"
+                valueField="value"
+                placeholder="Supplier"
+                value={filterState.selected.supplierId}
+                onChange={item =>
+                  setFilterState(prev => ({
+                    ...prev,
+                    selected: { ...prev.selected, supplierId: item.value },
+                  }))
+                }
+              />
+
+              <TouchableOpacity
+                style={styles.inlineResetButton}
+                onPress={() => {
+                  setFilterState(prev => ({
+                    ...prev,
+                    isEnded: false,
+                    selected: { flockId: null, supplierId: null },
+                    searchKey: '',
+                  }));
+                }}
+              >
+                <Text style={styles.resetText}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           {/* ===== FLOCK LIST ===== */}
           {loading ? (
-            <ActivityIndicator
+            <ActivityIndicator  
               size="large"
               color={Theme.colors.primaryYellow}
             />
@@ -530,25 +554,31 @@ const FlocksScreen = () => {
               <DataCard
                 columns={columns}
                 data={tableData}
+                itemsPerPage={pageSize}
+                currentPage={currentPage}
+                totalRecords={totalRecords}
+                onPageChange={page => {
+                  setCurrentPage(page);
+                  fetchFlocks(page);
+                }}
                 renderExpandedRow={row => {
                   const f = row.raw;
+
                   const actions = [
                     {
                       label: 'Feed',
                       icon: Theme.icons.feedGreen,
-                      color: Theme.colors.green,
+                      color: Theme.colors.warning,
                       show: !f.isEnded,
                       onPress: () => {
                         setSelectedFlock(f);
-                        // prev => existing modal states ko copy karta hai, aur sirf 'feed'
-                        //  modal ko true karke open karta hai
                         setModals(prev => ({ ...prev, feed: true }));
                       },
                     },
                     {
                       label: 'FCR',
                       icon: Theme.icons.trend,
-                      color: Theme.colors.warning,
+                      color: Theme.colors.green,
                       show: !f.isEnded && f.remainingQuantity > 0,
                       onPress: () => {
                         setSelectedFlock(f);
@@ -578,11 +608,11 @@ const FlocksScreen = () => {
                     {
                       label: 'Complete',
                       icon: Theme.icons.tick,
-                      color: Theme.colors.primaryYellow,
+                      color: Theme.colors.complete,
                       show: !f.isEnded,
                       onPress: async () => {
                         await updateFlockIsEnded(f.flockId, true);
-                        fetchFlocks();
+                        fetchFlocks(currentPage);
                       },
                     },
                     {
@@ -606,7 +636,6 @@ const FlocksScreen = () => {
                         marginLeft: 24,
                       }}
                     >
-                      {/* ACTIONS */}
                       <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -686,7 +715,7 @@ const FlocksScreen = () => {
           onConfirm={DeleteFlock}
         />
 
-        {/* ===== FILTER MODAL ===== */}
+        {/* ===== FILTER MODAL =====
         <BusinessUnitModal
           visible={modals.filter}
           onClose={() => setModals(prev => ({ ...prev, filter: false }))}
@@ -708,7 +737,7 @@ const FlocksScreen = () => {
 
             setModals(prev => ({ ...prev, filter: false }));
           }}
-        />
+        /> */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -723,6 +752,68 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.white,
   },
   safeArea: { flex: 1, backgroundColor: Theme.colors.white },
+  filterSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Theme.colors.white,
+    gap: 10,
+  },
+
+  searchContainer: {
+    width: '100%',
+  },
+
+  completeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+
+  completeCheckboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  completeText: {
+    fontSize: 14,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+
+  dropdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+
+  inlineDropdown: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Theme.colors.success,
+    borderRadius: 8,
+    minHeight: 40,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+
+  inlineDropdownContainer: {
+    borderColor: Theme.colors.success,
+    borderRadius: 8,
+  },
+
+  inlineResetButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+
+    alignItems: 'center',
+  },
+
+  resetText: {
+    color: Theme.colors.error,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
   topRow: {
     flexDirection: 'row',
@@ -732,6 +823,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: Theme.colors.white,
   },
+  searchCompleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
+  },
+
+  completeCheckboxContainerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   expandedRow: {
     paddingVertical: 8,
     paddingLeft: 10,
@@ -777,6 +881,15 @@ const styles = StyleSheet.create({
     width: 290,
     height: 290,
     resizeMode: 'contain',
+  },
+  inlineFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    gap: 8,
   },
   topRowTitle: {
     fontSize: 20,

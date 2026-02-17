@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -56,17 +56,19 @@ const CustomerScreen = () => {
   });
 
   const [loading, setLoading] = React.useState(false);
-  const pageSize = 100;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
 
   // ================= FETCH CUSTOMERS =================
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (page: number = 1) => {
     try {
       setLoading(true);
 
       const payload = {
         searchKey: filters.search || null,
         isActive: filters.status === 'all' ? null : filters.status === 'active',
-        pageNumber: 1,
+        pageNumber: page,
         pageSize,
         partyTypeId: 0,
         businessUnitId: filters.businessUnit || null,
@@ -76,14 +78,18 @@ const CustomerScreen = () => {
 
       if (!response?.list || !Array.isArray(response.list)) {
         setCustomers([]);
+        setTotalRecords(0);
         return;
       }
 
       const formatted: Customer[] = response.list.map(formatCustomer);
+
       setCustomers(formatted);
+      setTotalRecords(response.totalCount || 0);
     } catch (error) {
       console.error('Error fetching customers:', error);
       setCustomers([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -91,8 +97,9 @@ const CustomerScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchCustomers();
-    }, [filters]),
+      setCurrentPage(1);
+      fetchCustomers(1);
+    }, [filters.businessUnit]),
   );
 
   const formatCustomer = (item: any): Customer => ({
@@ -145,9 +152,8 @@ const CustomerScreen = () => {
 
       if (!response) return;
 
-  
-      setCustomers(prev => [formatCustomer(response), ...prev]);
-
+      setCurrentPage(1);
+      fetchCustomers(1);
       showSuccessToast('Success', 'Customer added successfully');
       setModals(prev => ({ ...prev, showAdd: false }));
     } catch (error) {
@@ -158,37 +164,39 @@ const CustomerScreen = () => {
   };
 
   // ================= TOGGLE STATUS =================
- const ToggleStatus = async (customer: Customer) => {
-  try {
-    // Loading spinner start
-    setLoading(true);
+  const ToggleStatus = async (customer: Customer) => {
+    try {
+      // Loading spinner start
+      setLoading(true);
 
-    // Backend call: naya status update kar rahe hain
-    const newStatus = !customer.isActive;
-    const response = await updatePartyIsActive(customer.id, newStatus);
+      // Backend call: naya status update kar rahe hain
+      const newStatus = !customer.isActive;
+      const response = await updatePartyIsActive(customer.id, newStatus);
 
-    if (response.success) {
-      setCustomers(prev =>
-        prev.map(c =>
-          c.id === customer.id ? { ...c, isActive: newStatus } : c
-        )
-      );
+      if (response.success) {
+        setCustomers(prev =>
+          prev.map(c =>
+            c.id === customer.id ? { ...c, isActive: newStatus } : c,
+          ),
+        );
 
-      showSuccessToast(
-        'Success',
-        `Customer status updated to ${newStatus ? 'Active' : 'Inactive'}`
-      );
-    } else {
-      showErrorToast('Error', response.message || 'Failed to update customer status');
+        showSuccessToast(
+          'Success',
+          `Customer status updated to ${newStatus ? 'Active' : 'Inactive'}`,
+        );
+      } else {
+        showErrorToast(
+          'Error',
+          response.message || 'Failed to update customer status',
+        );
+      }
+    } catch (error) {
+      // showErrorToast('Error', 'Failed to update customer status');
+      console.log('ToggleStatus error:', error);
+    } finally {
+      setLoading(false); // Loading spinner stop
     }
-  } catch (error) {
-    // showErrorToast('Error', 'Failed to update customer status');
-    console.log('ToggleStatus error:', error);
-  } finally {
-    setLoading(false); // Loading spinner stop
-  }
-};
-
+  };
 
   // ================= DELETE CUSTOMER =================
   const DeletePress = (customerId: string) => {
@@ -199,13 +207,20 @@ const CustomerScreen = () => {
     }));
   };
 
+  
   const ConfirmDelete = async () => {
     if (!modals.deleteCustomerId) return;
 
     try {
       const res = await deleteParty(modals.deleteCustomerId);
 
-      setCustomers(prev => prev.filter(c => c.id !== modals.deleteCustomerId));
+      setTotalRecords(prev => prev - 1);
+
+      setCurrentPage(prev =>
+        Math.min(prev, Math.ceil((totalRecords - 1) / pageSize)),
+      );
+
+      fetchCustomers(currentPage);
 
       showSuccessToast(
         'Success',
@@ -362,7 +377,13 @@ const CustomerScreen = () => {
           <DataCard
             columns={columns}
             data={tableData}
-            itemsPerPage={10}
+            itemsPerPage={pageSize}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchCustomers(page);
+            }}
             renderRowMenu={(row, closeMenu) => (
               <TouchableOpacity
                 onPress={() => {

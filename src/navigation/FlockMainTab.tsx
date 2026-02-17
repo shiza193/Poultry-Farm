@@ -11,7 +11,6 @@ import Theme from '../theme/Theme';
 import Header from '../components/common/LogoHeader';
 import { useNavigation } from '@react-navigation/native';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 //  FLOCK SCREENS
 import FlocksScreen from '../screens/flocks/FlocksScreen';

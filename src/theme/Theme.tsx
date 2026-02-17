@@ -20,7 +20,7 @@ const colors = {
 
   /* ===== Status Colors ===== */
   success: '#16A34A',
-  warning: '#f3d298',
+  warning: '#f1dfbf',
   error: '#DC2626',
   info: '#2563EB',
 
@@ -47,7 +47,7 @@ const colors = {
   paginationcolor: '#f5c75d',
   login: '#d49a13',
 
-  motalitycolor: '#f5bebe',
+  motalitycolor: '#f1cbcb',
   feedcolor: '#d1f3d2',
   toast: '#fceac3',
   sold: '#b8bdec',
@@ -60,10 +60,10 @@ const colors = {
   haedercolor: '#F4C430',
   lightgreen: '#f0fff0',
   lightblue: '#2d8ddb',
-    green: '#96cf96',
-      expand: '#5ee2dc',
-
-pink:'#f88585',
+  green: '#b0d4e9',
+  expand: '#5ee2dc',
+  complete: '#99e2b7',
+  pink: '#e6a9a9',
 };
 
 const icons = {
@@ -97,7 +97,7 @@ const icons = {
   dash1: require('../resources/images/dash1.png'),
   game: require('../resources/images/game.png'),
   health: require('../resources/images/health.png'),
-cross: require('../resources/images/cross.png'),
+  cross: require('../resources/images/cross.png'),
   hospital: require('../resources/images/hospital.png'),
 
   injection: require('../resources/images/injection.png'),
