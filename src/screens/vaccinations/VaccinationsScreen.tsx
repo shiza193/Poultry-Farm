@@ -6,18 +6,17 @@ import {
     Text,
     TouchableOpacity,
     Image,
-    TextInput,
 } from "react-native";
 import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
 import { getVaccinations, Vaccination, getSuppliers, getVaccines, addVaccination, updateVaccination, deleteVaccination } from "../../services/VaccinationService";
-import DropDownPicker from "react-native-dropdown-picker";
 import styles from "./style";
 import AddModal from "../../components/customPopups/AddModal";
 import ConfirmationModal from "../../components/customPopups/ConfirmationModal";
 import { showErrorToast, showSuccessToast } from "../../utils/AppToast";
 import { useBusinessUnit } from "../../context/BusinessContext"
 import SearchBar from "../../components/common/SearchBar";
+import { Dropdown } from "react-native-element-dropdown";
 interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
@@ -33,16 +32,32 @@ const VaccinationsScreen: React.FC<Props> = ({
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
-    const [searchText, setSearchText] = useState("");
-    const [supplierOpen, setSupplierOpen] = useState(false);
-    const [supplierValue, setSupplierValue] = useState<string | null>(null);
-    const [supplierItems, setSupplierItems] = useState<any[]>([]);
-    const [vaccineItems, setVaccineItems] = useState<{ label: string; value: number }[]>([]);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [selectedVaccination, setSelectedVaccination] = useState<any>(null);
-    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-    const [vaccinationToDelete, setVaccinationToDelete] = useState<Vaccination | null>(null);
-
+    const [filters, setFilters] = useState({
+        searchKey: "",
+        supplierId: null as string | null,
+    });
+    const [dropdownData, setDropdownData] = useState<{
+        suppliers: { label: string; value: string }[];
+        vaccines: { label: string; value: number }[];
+    }>({
+        suppliers: [],
+        vaccines: [],
+    });
+    const [modalState, setModalState] = useState<{
+        showVaccinationModal: boolean;
+        editRecord: Vaccination | null;
+        delete: {
+            visible: boolean;
+            record: Vaccination | null;
+        };
+    }>({
+        showVaccinationModal: false,
+        editRecord: null,
+        delete: {
+            visible: false,
+            record: null,
+        },
+    });
     const fetchVaccinationsData = async () => {
         if (!businessUnitId) return;
         setGlobalLoading(true);
@@ -57,31 +72,39 @@ const VaccinationsScreen: React.FC<Props> = ({
     useFocusEffect(
         useCallback(() => {
             fetchVaccinationsData();
-            setSupplierValue(null);
+
+            setFilters(prev => ({
+                ...prev,
+                supplierId: null,
+            }));
         }, [businessUnitId])
     );
     const fetchSuppliers = async () => {
         const suppliers = await getSuppliers(businessUnitId);
-        const dropdownData = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
-        setSupplierItems(dropdownData);
+        const formatted = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
+        setDropdownData(prev => ({ ...prev, suppliers: formatted }));
     };
+
     const fetchVaccines = async () => {
-        const data = await getVaccines();
-        setVaccineItems(data);
+        const vaccines = await getVaccines();
+        setDropdownData(prev => ({ ...prev, vaccines }));
     };
     useEffect(() => {
         fetchSuppliers();
         fetchVaccines();
     }, [businessUnitId]);
     const filteredVaccinations = vaccinations.filter(item => {
-        const supplierMatch = supplierValue
-            ? item.supplierId === supplierValue
+        const supplierMatch = filters.supplierId
+            ? item.supplierId === filters.supplierId
             : true;
-        const searchMatch = searchText
-            ? item.vaccine.toLowerCase().includes(searchText.toLowerCase())
+
+        const searchMatch = filters.searchKey
+            ? item.vaccine.toLowerCase().includes(filters.searchKey.toLowerCase())
             : true;
+
         return supplierMatch && searchMatch;
     });
+
     const handleAddVaccination = async (data: any) => {
         if (!businessUnitId) return;
         const payload = {
@@ -107,11 +130,10 @@ const VaccinationsScreen: React.FC<Props> = ({
         } finally {
         }
     };
-
     const handleUpdateVaccination = async (data: any) => {
-        if (!selectedVaccination || !businessUnitId) return;
+        if (!modalState.editRecord || !businessUnitId) return;
         const payload = {
-            vaccinationId: selectedVaccination.vaccinationId,
+            vaccinationId: modalState.editRecord.vaccinationId,
             vaccineId: Number(data.vaccine),
             date: data.date.toISOString().split('T')[0],
             quantity: Number(data.quantity),
@@ -134,7 +156,6 @@ const VaccinationsScreen: React.FC<Props> = ({
             showErrorToast(error.message || 'Something went wrong');
         }
     };
-
     // ===== DATA CARD COLUMNS =====
     const columns: TableColumn[] = [
         { key: "vaccine", title: "VACCINE NAME", isTitle: true, showDots: true },
@@ -163,33 +184,44 @@ const VaccinationsScreen: React.FC<Props> = ({
                 <View style={{ flex: 1 }}>
                     <SearchBar
                         placeholder="Search vaccine..."
-                        initialValue={searchText}
-                        onSearch={(value) => setSearchText(value)}
+                        onSearch={(val) =>
+                            setFilters(prev => ({
+                                ...prev,
+                                searchKey: val,
+                            }))
+                        }
                     />
                 </View>
                 <View style={styles.dropdownWrapper}>
-                    <DropDownPicker
-                        open={supplierOpen}
-                        value={supplierValue}
-                        items={supplierItems}
-                        setOpen={setSupplierOpen}
-                        setValue={setSupplierValue}
-                        setItems={setSupplierItems}
+                    <Dropdown
+                        style={styles.inlineDropdown}
+                        containerStyle={styles.inlineDropdownContainer}
+                        data={dropdownData.suppliers}  
+                        labelField="label"
+                        valueField="value"
                         placeholder="Supplier"
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownContainer}
-                        textStyle={styles.dropdownText}
+                        selectedTextStyle={styles.dropdownText}
+                        value={filters.supplierId}
+                        onChange={(item) => {
+                            setFilters(prev => ({
+                                ...prev,
+                                supplierId: item.value,
+                            }));
+                        }}
                     />
                 </View>
             </View>
-            {(supplierValue) && (
-                <View style={styles.resetRow}>
-                    <TouchableOpacity onPress={() => {
-                        setSupplierValue(null);
-                    }}>
-                        <Text style={styles.resetText}>Reset Filters</Text>
-                    </TouchableOpacity>
-                </View>
+            {(filters.supplierId) && (
+                <TouchableOpacity
+                    onPress={() =>
+                        setFilters(prev => ({
+                            ...prev,
+                            supplierId: null,
+                        }))
+                    }
+                >
+                    <Text style={styles.resetText}>Reset Filters</Text>
+                </TouchableOpacity>
             )}
             {/* ===== DATA CARD ===== */}
             <View style={{ flex: 1, paddingHorizontal: 16 }}>
@@ -201,66 +233,91 @@ const VaccinationsScreen: React.FC<Props> = ({
                         <View>
                             <TouchableOpacity
                                 onPress={() => {
-                                    setIsEditMode(true);
-                                    setSelectedVaccination(row);
+                                    setModalState(prev => ({
+                                        ...prev,
+                                        showVaccinationModal: true,
+                                        editRecord: row,
+                                    }));
                                     onOpenAddModal();
                                     closeMenu();
                                 }}
                                 style={{ marginBottom: 8 }}
                             >
-                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600',fontSize:16,  marginLeft: 20 }}>Edit</Text>
+                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Edit</Text>
                             </TouchableOpacity>
                             <View style={styles.menuSeparator} />
                             <TouchableOpacity
                                 onPress={() => {
-                                    setVaccinationToDelete(row);
-                                    setDeleteModalVisible(true);
+                                    setModalState(prev => ({
+                                        ...prev,
+                                        delete: {
+                                            visible: true,
+                                            record: row,
+                                        },
+                                    }));
                                     closeMenu();
                                 }}
                                 style={{ marginTop: 8 }}
                             >
-                                <Text style={{ color: 'red', fontWeight: '600', fontSize:16, marginLeft: 20 }}>Delete</Text>
+                                <Text style={{ color: 'red', fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Delete</Text>
                             </TouchableOpacity>
                         </View>
                     )}
                 />
             </View>
-
             {/* ===== ADD / EDIT MODAL ===== */}
             <AddModal
                 visible={openAddModal}
                 type="vaccination"
-                title={isEditMode ? "Edit Vaccination" : "Add Vaccination"}
-                isEdit={isEditMode}
-                initialData={selectedVaccination}
+                title={modalState.editRecord ? "Edit Vaccination" : "Add Vaccination"}
+                isEdit={!!modalState.editRecord}
+                initialData={modalState.editRecord}
                 onClose={() => {
                     onCloseAddModal();
-                    setIsEditMode(false);
-                    setSelectedVaccination(null);
+                    setModalState(prev => ({
+                        ...prev,
+                        showVaccinationModal: false,
+                        editRecord: null,
+                    }));
                 }}
                 onSave={(data) => {
-                    isEditMode ? handleUpdateVaccination(data) : handleAddVaccination(data);
+                    if (modalState.editRecord) {
+                        handleUpdateVaccination(data);
+                    } else {
+                        handleAddVaccination(data);
+                    }
+
                     onCloseAddModal();
+                    setModalState(prev => ({
+                        ...prev,
+                        showVaccinationModal: false,
+                        editRecord: null,
+                    }));
                 }}
-                vaccineItems={vaccineItems}
-                supplierItems={supplierItems}
+                vaccineItems={dropdownData.vaccines}
+                supplierItems={dropdownData.suppliers}
             />
             {/* ===== DELETE MODAL ===== */}
             <ConfirmationModal
                 type="delete"
-                visible={deleteModalVisible}
-                title={`Are you sure you want to delete ${vaccinationToDelete?.vaccine}?`}
+                visible={modalState.delete.visible}
+                title={`Are you sure you want to delete ${modalState.delete.record?.vaccine}?`}
                 onClose={() => {
-                    setDeleteModalVisible(false);
-                    setVaccinationToDelete(null);
+                    setModalState(prev => ({
+                        ...prev,
+                        delete: {
+                            visible: false,
+                            record: null,
+                        },
+                    }));
                 }}
                 onConfirm={async () => {
-                    if (!vaccinationToDelete) return;
+                    if (!modalState.delete.record) return;
                     try {
-                        const res = await deleteVaccination(vaccinationToDelete.vaccinationId);
+                        const res = await deleteVaccination(modalState.delete.record!.vaccinationId);
                         if (res.status === "Success") {
                             setVaccinations(prev =>
-                                prev.filter(v => v.vaccinationId !== vaccinationToDelete.vaccinationId)
+                                prev.filter(v => v.vaccinationId !== modalState.delete.record!.vaccinationId)
                             );
                             showSuccessToast("Vaccination deleted successfully");
                         } else {
@@ -269,13 +326,17 @@ const VaccinationsScreen: React.FC<Props> = ({
                     } catch (error: any) {
                         showErrorToast(error.message || "Something went wrong");
                     } finally {
-                        setDeleteModalVisible(false);
-                        setVaccinationToDelete(null);
+                        setModalState(prev => ({
+                            ...prev,
+                            delete: {
+                                visible: false,
+                                record: null,
+                            },
+                        }));
                     }
                 }}
             />
         </View>
     );
 };
-
 export default VaccinationsScreen;

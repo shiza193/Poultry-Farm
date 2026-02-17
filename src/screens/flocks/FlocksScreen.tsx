@@ -429,7 +429,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
 
       setFlocks(prev => prev.filter(f => f.flockId !== flockToDelete.flockId));
 
-          // Update total records and current page if needed
+      // Update total records and current page if needed
       setTotalRecords(prev => prev - 1);
       setCurrentPage(prev =>
         Math.min(prev, Math.ceil((totalRecords - 1) / pageSize)),
@@ -488,6 +488,9 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
                 data={filterState.options.flocks}
                 labelField="label"
                 valueField="id"
+                placeholder='Select Flock'
+                selectedTextStyle={styles.selectedText}
+                placeholderStyle={styles.placeholderText}
                 value={filterState.selected.flockId}
                 onChange={item =>
                   setFilterState(prev => ({
@@ -503,6 +506,9 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
                 data={filterState.options.suppliers}
                 labelField="label"
                 valueField="id"
+                placeholder='Select Supplier'
+                selectedTextStyle={styles.selectedText}
+                placeholderStyle={styles.placeholderText}
                 value={filterState.selected.supplierId}
                 onChange={item =>
                   setFilterState(prev => ({
@@ -516,20 +522,20 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
                 filterState.selected.flockId ||
                 filterState.selected.supplierId ||
                 filterState.searchKey) && (
-                <TouchableOpacity
-                  style={styles.inlineResetButton}
-                  onPress={() => {
-                    setFilterState(prev => ({
-                      ...prev,
-                      isEnded: false,
-                      selected: { flockId: null, supplierId: null },
-                      searchKey: '',
-                    }));
-                  }}
-                >
-                  <Text style={styles.resetText}>Reset Filters</Text>
-                </TouchableOpacity>
-              )}
+                  <TouchableOpacity
+                    style={styles.inlineResetButton}
+                    onPress={() => {
+                      setFilterState(prev => ({
+                        ...prev,
+                        isEnded: false,
+                        selected: { flockId: null, supplierId: null },
+                        searchKey: '',
+                      }));
+                    }}
+                  >
+                    <Text style={styles.resetText}>Reset </Text>
+                  </TouchableOpacity>
+                )}
             </View>
           </View>
           {/* ===== FLOCK LIST ===== */}
@@ -779,7 +785,7 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
   },
   inlineDropdown: {
-    width: 150,
+    width: 130,
 
     borderWidth: 1,
     borderColor: Theme.colors.success,
@@ -788,7 +794,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 3,
   },
+  selectedText: {
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
+  },
 
+  placeholderText: {
+    fontSize: 14,
+  },
   inlineDropdownContainer: {
     borderColor: Theme.colors.success,
     borderRadius: 8,
@@ -796,6 +809,8 @@ const styles = StyleSheet.create({
 
   inlineResetButton: {
     paddingHorizontal: 12,
+        marginRight:10
+
   },
 
   resetText: {

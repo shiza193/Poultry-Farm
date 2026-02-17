@@ -81,8 +81,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     useFocusEffect(
         useCallback(() => {
             fetchSchedules();
-            setSelectedFlock(null);
-        }, [, selectedFlock, businessUnitId])
+        }, [businessUnitId])
     );
 
     // ===== FETCH FLOCKS =====

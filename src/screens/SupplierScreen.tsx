@@ -157,23 +157,23 @@ const SupplierScreen = () => {
 
       // Call API to add supplier
       const newSupplier = await addParty(payload);
-
       // Map API response to User type
-      const addedSupplier: User = {
-        id: newSupplier.partyId,
-        name: newSupplier.name || payload.name,
-        email: newSupplier.email ?? payload.email,
-        phone: newSupplier.phone ?? payload.phone,
-        address: newSupplier.address ?? payload.address ?? '',
-        isActive: newSupplier.isActive ?? true,
-        businessUnitId: newSupplier.businessUnitId ?? finalBU,
-      };
-      setSuppliers(prev => [addedSupplier, ...prev]);
-      setTotalRecords(prev => prev + 1);
-      setCurrentPage(1);
-
-      showSuccessToast("Success", "Supplier added successfully");
-      setModalState(prev => ({ ...prev, addModal: false }));
+      if (newSupplier && newSupplier.partyId) {
+        const addedSupplier: User = {
+          id: newSupplier.partyId,
+          name: newSupplier.name || payload.name,
+          email: newSupplier.email ?? payload.email,
+          phone: newSupplier.phone ?? payload.phone,
+          address: newSupplier.address ?? payload.address ?? '',
+          isActive: newSupplier.isActive ?? true,
+          businessUnitId: newSupplier.businessUnitId ?? finalBU,
+        };
+        setSuppliers(prev => [addedSupplier, ...prev]);
+        setTotalRecords(prev => prev + 1);
+        setCurrentPage(1);
+        showSuccessToast("Success", "Supplier added successfully");
+        setModalState(prev => ({ ...prev, addModal: false }));
+      }
     } catch (error: any) {
       console.error('Add supplier error:', error);
       showErrorToast("Error", "Failed to add supplier");
@@ -217,23 +217,23 @@ const SupplierScreen = () => {
     if (!modalState.selectedPartyId) return;
     try {
       await deleteParty(modalState.selectedPartyId);
-      setSuppliers(prev =>
-        prev.filter(e => e.id !== modalState.selectedPartyId),
-      );
       setSuppliers(prev => {
-        const updated = prev.filter(e => e.id !== modalState.selectedPartyId);
+        const updatedSuppliers = prev.filter(
+          e => e.id !== modalState.selectedPartyId
+        );
         setFilteredUsers(
-          updated.filter(u =>
+          updatedSuppliers.filter(u =>
             (!filters.businessUnit || u.businessUnitId === filters.businessUnit) &&
             (filters.status === 'all' || (filters.status === 'active' ? u.isActive : !u.isActive)) &&
             (!filters.search || u.name.toLowerCase().includes(filters.search.toLowerCase()))
           )
         );
-        return updated;
+        return updatedSuppliers;
       });
-      setTotalRecords(prev => prev - 1);
-      setCurrentPage(prev => Math.min(prev, Math.ceil((totalRecords - 1) / pageSize)));
-      setCurrentPage(1)
+      const newTotal = totalRecords - 1;
+      setTotalRecords(newTotal);
+      const maxPage = Math.ceil(newTotal / pageSize) || 1;
+      setCurrentPage(prev => Math.min(prev, maxPage));
       showSuccessToast('Supplier deleted successfully');
     } catch {
       showErrorToast('Failed to delete supplier');
@@ -245,6 +245,7 @@ const SupplierScreen = () => {
       }));
     }
   };
+
   const handleUpdateSupplier = (updatedData: ProfileData) => {
     if (!modalState.selectedSupplier) return;
     (async () => {
@@ -260,26 +261,29 @@ const SupplierScreen = () => {
           businessUnitId: modalState.selectedSupplier.businessUnitId,
         };
         console.log('UPDATE PAYLOAD ', payload);
-        await updateParty(modalState.selectedSupplier.id, payload);
-        setSuppliers(prev =>
-          prev.map(s =>
-            s.id === modalState.selectedSupplier!.id
-              ? {
-                ...s,
-                name: payload.name,
-                email: payload.email,
-                phone: payload.phone,
-                address: payload.address,
-              }
-              : s,
-          ),
-        );
-        showSuccessToast('Success', 'Supplier updated successfully');
-        setModalState(prev => ({
-          ...prev,
-          profileModal: false,
-          selectedSupplier: null,
-        }));
+        const response = await updateParty(modalState.selectedSupplier.id, payload);
+
+        if (response && response.partyId) {
+          setSuppliers(prev =>
+            prev.map(s =>
+              s.id === modalState.selectedSupplier!.id
+                ? {
+                  ...s,
+                  name: payload.name,
+                  email: payload.email,
+                  phone: payload.phone,
+                  address: payload.address,
+                }
+                : s,
+            ),
+          );
+          showSuccessToast('Success', 'Supplier updated successfully');
+          setModalState(prev => ({
+            ...prev,
+            profileModal: false,
+            selectedSupplier: null,
+          }));
+        }
       } catch (error: any) {
         console.log('UPDATE ERROR RESPONSE ', error?.response?.data);
         showErrorToast(

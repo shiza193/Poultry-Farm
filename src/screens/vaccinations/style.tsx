@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
         marginTop: 6,
         gap: 10,
     },
-     menuSeparator: {
+    menuSeparator: {
         height: 2,
         backgroundColor: Theme.colors.SeparatorColor,
         marginHorizontal: 8,
@@ -21,18 +21,20 @@ const styles = StyleSheet.create({
     /* ===== DROPDOWN ===== */
     dropdownWrapper: {
         width: 120,
-        zIndex:1
+        zIndex: 1
     },
-    dropdown: {
+    inlineDropdown: {
+        width: 120,
+        borderWidth: 1,
         borderColor: Theme.colors.success,
-        borderRadius: 10,
-        height: 40,
+        borderRadius: 8,
         minHeight: 40,
-        justifyContent: "center",
-        paddingVertical: 0,
+        paddingHorizontal: 5,
+        paddingVertical: 3,
     },
-    dropdownContainer: {
-        borderColor: Theme.colors.borderColor,
+
+    inlineDropdownContainer: {
+        borderColor: Theme.colors.success,
         borderRadius: 8,
     },
     dropdownText: {
@@ -43,14 +45,16 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "flex-end",
         paddingHorizontal: 16,
-        marginTop: 4,
-        marginBottom: 4,
+        marginTop: 2,
+        padding: 7
     },
     resetText: {
         color: Theme.colors.error,
         fontSize: 13,
         marginRight: 5,
+        marginLeft: 250,
         fontWeight: "500",
+        marginBottom: 5,
     },
 });
 export default styles
@@ -102,7 +106,7 @@ export const vsstyles = StyleSheet.create({
         fontWeight: "500",
         color: Theme.colors.error,
     },
-       menuSeparator: {
+    menuSeparator: {
         height: 2,
         backgroundColor: Theme.colors.SeparatorColor,
         marginHorizontal: 8,

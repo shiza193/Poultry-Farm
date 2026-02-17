@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Text,ScrollView } from 'react-native';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import Header from '../components/common/LogoHeader';
@@ -373,7 +373,11 @@ const CustomerScreen = () => {
       />
 
       {tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>
+        <View style={{ flex: 1,}}>
+           <ScrollView
+                    style={{ flex: 1, paddingHorizontal: 16 }}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                  >
           <DataCard
             columns={columns}
             data={tableData}
@@ -404,6 +408,7 @@ const CustomerScreen = () => {
               </TouchableOpacity>
             )}
           />
+          </ScrollView>
         </View>
       ) : (
         !loading && (
