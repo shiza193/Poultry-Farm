@@ -10,8 +10,6 @@ import {
 import Theme from '../theme/Theme';
 import Header from '../components/common/LogoHeader';
 import { useNavigation } from '@react-navigation/native';
-import ConfirmationModal from '../components/customPopups/ConfirmationModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 //  FLOCK SCREENS
 import FlocksScreen from '../screens/flocks/FlocksScreen';
@@ -20,7 +18,6 @@ import FlockStockScreen from '../screens/flocks/FlockStockScreen';
 import FlockSaleScreen from '../screens/flocks/FlockSaleScreen';
 import HospitalityScreen from '../screens/flocks/HospitalityScreen';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CustomConstants } from '../constants/CustomConstants';
 import { getFlocksExcel } from '../screens/Report/ReportHelpers';
 import { useBusinessUnit } from '../context/BusinessContext';
 
@@ -47,6 +44,7 @@ const FlockMainScreen = () => {
         return <FlocksScreen />;
     }
   };
+
   // ================= TAB BUTTON =================
   const TabButton = ({
     title,

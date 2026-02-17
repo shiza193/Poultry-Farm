@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -64,20 +64,22 @@ const ExpandableCard: React.FC<Props> = ({
     if (onSave) onSave(data);
     setEditing(false);
   };
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const handleDiscard = () => {
     setData(initialData);
     setEditing(false);
   };
-
   const flockTypeOptions = flockTypes.map(item => ({
     label: item.name,
-    value: String(item.flockTypeId),
+    value: item.flockTypeId,
   }));
 
   const supplierOptions = suppliers.map(item => ({
     label: item.name,
-    value: String(item.id),
+    value: item.partyId,
   }));
 
   const handleDateSelect = (key: keyof FlockInfo, date: Date | undefined) => {
@@ -96,6 +98,16 @@ const ExpandableCard: React.FC<Props> = ({
     }
     rows.push(row);
   }
+
+  const getSupplierName = (id: any) => {
+    const found = suppliers.find(s => s.partyId === id);
+    return found ? found.name : id;
+  };
+
+  const getFlockTypeName = (id: any) => {
+    const found = flockTypes.find(f => f.flockTypeId === id);
+    return found ? found.name : id;
+  };
 
   return (
     <View style={styles.container}>
@@ -119,10 +131,13 @@ const ExpandableCard: React.FC<Props> = ({
                   const isDateField =
                     key === 'arrivalDate' || key === 'dateOfBirth';
                   const isWeightField = key === 'averageWeight';
-
                   return (
                     <View key={key} style={styles.fieldContainer}>
-                      <Text style={styles.label}>{formatLabel(key)}</Text>
+                      <Text style={styles.label}>
+                        {key === 'averageWeight'
+                          ? 'Average Weight (G)'
+                          : formatLabel(key)}
+                      </Text>
 
                       {editing ? (
                         isDateField ? (
@@ -157,30 +172,28 @@ const ExpandableCard: React.FC<Props> = ({
                           </TouchableOpacity>
                         ) : key === 'flockTypeId' ? (
                           <Dropdown
+                            key={`flock-${flockTypeOptions.length}`}
                             style={styles.dropdown}
                             containerStyle={styles.dropdownContainer}
                             data={flockTypeOptions}
                             labelField="label"
                             valueField="value"
                             placeholder="Select Flock Type"
-                            value={
-                              data.flockTypeId ? String(data.flockTypeId) : null
-                            } // ensure type matches
+                            value={data.flockTypeId ?? null}
                             onChange={item =>
                               handleChange('flockTypeId', item.value)
                             }
                           />
                         ) : key === 'supplierId' ? (
                           <Dropdown
+                            key={`supplier-${supplierOptions.length}`}
                             style={styles.dropdown}
                             containerStyle={styles.dropdownContainer}
                             data={supplierOptions}
                             labelField="label"
                             valueField="value"
                             placeholder="Select Supplier"
-                            value={
-                              data.supplierId ? String(data.supplierId) : null
-                            } // ensure type matches
+                            value={data.supplierId ?? null}
                             onChange={item =>
                               handleChange('supplierId', item.value)
                             }
@@ -197,10 +210,18 @@ const ExpandableCard: React.FC<Props> = ({
                           {isDateField
                             ? data[key]
                               ? new Date(data[key]).toLocaleDateString('en-GB')
-                              : '--'
+                              : 'N/A'
+                            : key === 'supplierId'
+                            ? getSupplierName(data[key]) || 'N/A'
+                            : key === 'flockTypeId'
+                            ? getFlockTypeName(data[key]) || 'N/A'
                             : isWeightField
-                            ? `${data[key]}`
-                            : data[key]}
+                            ? data[key] && data[key].trim() !== ''
+                              ? `${data[key]}`
+                              : 'N/A'
+                            : data[key] && data[key].trim() !== ''
+                            ? data[key]
+                            : 'N/A'}
                         </Text>
                       )}
 

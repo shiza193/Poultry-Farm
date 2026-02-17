@@ -669,7 +669,7 @@ const FlockDetailScreen = () => {
                   isHen: formData.gender === 'Hen',
                   flockTypeId: formData.flockTypeId
                     ? String(formData.flockTypeId)
-                    : null, 
+                    : null,
                   supplierId: formData.supplierId
                     ? String(formData.supplierId)
                     : null,
@@ -677,7 +677,7 @@ const FlockDetailScreen = () => {
 
                 await updateFlockDetail(flockId, payload);
                 showSuccessToast('Flock Information Updated successfully');
-
+                console.log('flockData supplierId:', flockData?.supplierId);
                 // Refresh data after update
                 const updatedFlock = await getFlockDetail(flockId);
                 setFlockData(updatedFlock);
