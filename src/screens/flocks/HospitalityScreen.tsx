@@ -20,11 +20,17 @@ import {
 
 import { useBusinessUnit } from '../../context/BusinessContext';
 
-const HospitalityScreen = () => {
+interface FlockScreenProps {
+  openAddModal?: boolean;
+  onCloseAddModal?: () => void;
+  onOpenAddModal?: () => void;
+  setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
+}
+const HospitalityScreen: React.FC<FlockScreenProps> = ({
+  setGlobalLoading,
+}) => {
   const { businessUnitId } = useBusinessUnit();
-
   const [data, setData] = useState<HospitalityRecord[]>([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
 
   // ================= FETCH =================
@@ -32,7 +38,7 @@ const HospitalityScreen = () => {
     if (!businessUnitId) return;
 
     try {
-      setLoading(true);
+      setGlobalLoading?.(true);
       const res = await getHospitalityByFilter({
         businessUnitId,
         pageNumber: 1,
@@ -43,7 +49,7 @@ const HospitalityScreen = () => {
       console.error('Fetch hospitality error:', err);
       setData([]);
     } finally {
-      setLoading(false);
+      setGlobalLoading?.(false);
     }
   };
 
@@ -108,9 +114,7 @@ const HospitalityScreen = () => {
         </TouchableOpacity> */}
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" />
-      ) : tableData.length > 0 ? (
+      {tableData.length > 0 ? (
         <View style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard columns={columns} data={tableData} />
         </View>
@@ -151,7 +155,7 @@ const styles = StyleSheet.create({
     color: Theme.colors.black,
   },
 
- noDataContainer: {
+  noDataContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

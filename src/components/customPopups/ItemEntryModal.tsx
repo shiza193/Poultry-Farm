@@ -13,11 +13,11 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Theme from '../../theme/Theme';
 import { getFeeds, Feed, getParties } from '../../services/FlockService';
 import { useBusinessUnit } from '../../context/BusinessContext';
+import { Dropdown } from 'react-native-element-dropdown';
 
 interface ItemEntryModalProps {
   visible?: boolean;
@@ -116,6 +116,12 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
         .finally(() => setLoading(false));
     }
   }, [visible, type]);
+
+  useEffect(() => {
+    if (visible) {
+      resetFields(); // reset all fields whenever modal is opened
+    }
+  }, [visible]);
 
   // ---------- Fetch Customers ----------
   useEffect(() => {
@@ -216,20 +222,20 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                 {type === 'feed' && (
                   <>
                     <Text style={styles.title}>Add Feed</Text>
-                    <Text style={styles.label}>Feed Name</Text>
-                    <DropDownPicker
-                      listMode="SCROLLVIEW"
-                      open={open}
-                      value={feed}
-                      items={items}
-                      setOpen={setOpen}
-                      setValue={setFeed}
-                      setItems={setItems}
-                      placeholder={loading ? 'Loading...' : 'Select Feed...'}
-                      style={styles.dropdown}
-                      dropDownContainerStyle={styles.dropdownContainer}
-                      disabled={loading}
-                    />
+             
+                     <Text style={styles.label}>Feed Name</Text>
+    <Dropdown
+      style={styles.dropdownElement}
+      containerStyle={styles.dropdownContainerElement}
+      data={items}
+      labelField="label"
+      valueField="value"
+      placeholder={loading ? 'Loading...' : 'Select Feed...'}
+      value={feed}
+      onChange={item => setFeed(item.value)}
+      selectedTextStyle={styles.selectedText}
+      placeholderStyle={styles.placeholderText}
+    />
                     <Text style={styles.label}>Quantity</Text>
                     <TextInput
                       placeholder="Enter quantity..."
@@ -296,22 +302,19 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                       </Text>
                       <Image
                         source={Theme.icons.date}
-                        style={{
-                          width: 20,
-                          height: 20,
-                          marginLeft: 210,
-                          tintColor: Theme.colors.iconPrimary,
-                        }}
+                        style={styles.dateIcon}
                       />
                     </TouchableOpacity>
+
                     {showExpirePicker && (
                       <DateTimePicker
                         value={expireDate || new Date()}
                         mode="date"
                         display="default"
-                        onChange={(_, date) => {
+                        onChange={(event, selectedDate) => {
                           setShowExpirePicker(false);
-                          if (date) setExpireDate(date);
+                          if (event.type === 'set' && selectedDate)
+                            setExpireDate(selectedDate);
                         }}
                       />
                     )}
@@ -347,9 +350,10 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                         value={hospitalityDate || new Date()}
                         mode="date"
                         display="default"
-                        onChange={(_, date) => {
+                        onChange={(event, selectedDate) => {
                           setShowHospitalityPicker(false);
-                          if (date) setHospitalityDate(date);
+                          if (event.type === 'set' && selectedDate)
+                            setHospitalityDate(selectedDate);
                         }}
                       />
                     )}
@@ -429,18 +433,18 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
 
                     <Text style={styles.label}>Customer Name</Text>
                     <View style={{ zIndex: 1000, marginBottom: 10 }}>
-                      <DropDownPicker
-                        listMode="SCROLLVIEW"
-                        open={customerOpen}
-                        value={customer}
-                        items={customerItems}
-                        setOpen={setCustomerOpen}
-                        setValue={setCustomer}
-                        setItems={setCustomerItems}
-                        placeholder="Select customer"
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownContainer}
-                      />
+                      <Dropdown
+      style={styles.dropdownElement}
+      containerStyle={styles.dropdownContainerElement}
+      data={customerItems}
+      labelField="label"
+      valueField="value"
+      placeholder="Select customer"
+      value={customer}
+      onChange={item => setCustomer(item.value)}
+      selectedTextStyle={styles.selectedText}
+      placeholderStyle={styles.placeholderText}
+    />
                     </View>
 
                     <Text style={styles.label}>Flock</Text>
@@ -494,9 +498,10 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                         value={saleDate || new Date()}
                         mode="date"
                         display="default"
-                        onChange={(_, date) => {
+                        onChange={(event, selectedDate) => {
                           setShowSaleDatePicker(false);
-                          if (date) setSaleDate(date);
+                          if (event.type === 'set' && selectedDate)
+                            setSaleDate(selectedDate);
                         }}
                       />
                     )}
@@ -567,14 +572,41 @@ const styles = StyleSheet.create({
   dateInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between', // icon always right
     borderWidth: 1,
     borderColor: Theme.colors.borderLight,
     borderRadius: 8,
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     backgroundColor: Theme.colors.lightGrey,
     marginBottom: 10,
   },
+  dateIcon: {
+    width: 20,
+    height: 20,
+    tintColor: Theme.colors.iconPrimary,
+  },
+dropdownElement: {
+  height: 50,
+  borderColor: Theme.colors.borderLight,
+  borderWidth: 1,
+  borderRadius: 8,
+  paddingHorizontal: 12,
+  backgroundColor: Theme.colors.lightGrey,
+  marginBottom: 10,
+},
+dropdownContainerElement: {
+  backgroundColor: Theme.colors.white,
+  borderColor: Theme.colors.borderLight,
+  borderRadius: 8,
+},
+selectedText: {
+  color: Theme.colors.black,
+},
+placeholderText: {
+  color: Theme.colors.black,
+},
+
   dropdown: {
     backgroundColor: Theme.colors.lightGrey,
     borderColor: Theme.colors.borderLight,

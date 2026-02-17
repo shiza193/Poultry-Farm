@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Theme from '../../theme/Theme';
-import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
 
@@ -29,11 +28,20 @@ import { useBusinessUnit } from '../../context/BusinessContext';
 import SearchBar from '../../components/common/SearchBar';
 import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
 
-const FlockSaleScreen = () => {
+interface FlockSaleScreenProps {
+  openAddModal?: boolean;
+  onCloseAddModal?: () => void;
+  setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
+  openAddModal,
+  onCloseAddModal,
+  setGlobalLoading,
+}) => {
   const { businessUnitId } = useBusinessUnit();
 
   const [salesData, setSalesData] = useState<SaleRecord[]>([]);
-  const [loading, setLoading] = useState(false);
 
   const [search, setSearch] = useState('');
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
@@ -48,7 +56,7 @@ const FlockSaleScreen = () => {
     if (!businessUnitId) return;
 
     try {
-      setLoading(true);
+      setGlobalLoading?.(true);
       const res = await getSalesByFilter({
         businessUnitId,
         pageNumber: 1,
@@ -60,7 +68,7 @@ const FlockSaleScreen = () => {
       console.error('Fetch sale error:', err);
       setSalesData([]);
     } finally {
-      setLoading(false);
+      setGlobalLoading?.(false);
     }
   };
 
@@ -123,7 +131,7 @@ const FlockSaleScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* ROW 2 : NEW BUTTON */}
+      {/* ROW 2 : NEW BUTTON
       <View style={styles.newRow}>
         <TouchableOpacity
           style={styles.newBtn}
@@ -131,21 +139,17 @@ const FlockSaleScreen = () => {
         >
           <Text style={styles.newText}>+ New</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {tableData.length > 0 ? (
         <View style={{ flex: 1, paddingHorizontal: 16 }}>
           <DataCard columns={columns} data={tableData} />
         </View>
       ) : (
-        !loading && (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-          </View>
-        )
+        <View style={styles.noDataContainer}>
+          <Image source={Theme.icons.nodata} style={styles.noDataImage} />
+        </View>
       )}
-
-      {loading && <ActivityIndicator size="large" />}
 
       {/* ================= FILTER MODAL ================= */}
       <BusinessUnitModal
@@ -171,23 +175,28 @@ const FlockSaleScreen = () => {
       />
       {/* ================= ADD SALE ================= */}
       <ItemEntryModal
-        visible={isSaleModalVisible}
+        visible={openAddModal || isSaleModalVisible}
         type="flockSale"
-        onClose={() => setIsSaleModalVisible(false)}
+        onClose={onCloseAddModal ?? (() => setIsSaleModalVisible(false))}
         onSave={async data => {
-          const payload: AddSalePayload = {
-            customerId: data.customerName,
-            flockId: data.flockName,
-            quantity: Number(data.quantity),
-            price: Number(data.price),
-            date: data.saleDate?.toISOString() ?? new Date().toISOString(),
-            note: data.remarks || '',
-            businessUnitId: businessUnitId!,
-          };
-
-          await addSale(payload);
-          setIsSaleModalVisible(false);
-          fetchSales();
+          setGlobalLoading?.(true);
+          try {
+            const payload: AddSalePayload = {
+              customerId: data.customerName,
+              flockId: data.flockName,
+              quantity: Number(data.quantity),
+              price: Number(data.price),
+              date: data.saleDate?.toISOString() ?? new Date().toISOString(),
+              note: data.remarks || '',
+              businessUnitId: businessUnitId!,
+            };
+            await addSale(payload);
+            fetchSales();
+          } catch (err) {
+            console.error('Add sale error:', err);
+          } finally {
+            setGlobalLoading?.(false);
+          }
         }}
       />
     </SafeAreaView>

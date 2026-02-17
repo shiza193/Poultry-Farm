@@ -14,9 +14,16 @@ import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import { getFlockStock, FlockStock } from '../../services/FlockService';
 import { useBusinessUnit } from '../../context/BusinessContext';
 
-const FlockStockScreen= () => {
-  const { businessUnitId } = useBusinessUnit();
 
+interface FlockScreenProps {
+  openAddModal?: boolean;
+  onCloseAddModal?: () => void;
+  onOpenAddModal?: () => void;
+  setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const FlockStockScreen: React.FC<FlockScreenProps> = ({ setGlobalLoading }) => {
+  const { businessUnitId } = useBusinessUnit();
   const [data, setData] = useState<FlockStock[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,12 +32,14 @@ const FlockStockScreen= () => {
     if (!businessUnitId) return;
 
     try {
-      setLoading(true);
+      setLoading(false);
+      setGlobalLoading?.(true); 
       const res = await getFlockStock(businessUnitId);
       setData(res ?? []);
     } catch (err: any) {
       setData([]);
     } finally {
+      setGlobalLoading?.(false);
       setLoading(false);
     }
   };
@@ -52,7 +61,7 @@ const FlockStockScreen= () => {
   }));
 
   const columns: TableColumn[] = [
-    { key: 'flock', title: 'FLOCK', width: 140,  },
+    { key: 'flock', title: 'FLOCK', width: 140 },
     { key: 'purchased', title: 'PURCHASED', width: 120 },
     { key: 'mortality', title: 'MORTALITY', width: 120 },
     { key: 'hospitality', title: 'HOSPITALITY', width: 130 },
@@ -64,21 +73,21 @@ const FlockStockScreen= () => {
   // ================= UI =================
   return (
     <SafeAreaView style={styles.safeArea}>
-
-      {loading ? (
+      {loading && !setGlobalLoading ? (
         <ActivityIndicator size="large" color={Theme.colors.primaryYellow} />
       ) : tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16, marginTop:15, }}>
+        <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 15 }}>
           <DataCard columns={columns} data={tableData} />
         </View>
       ) : (
-      <View style={styles.noDataContainer}>
+        <View style={styles.noDataContainer}>
           <Image source={Theme.icons.nodata} style={styles.noDataImage} />
         </View>
       )}
     </SafeAreaView>
   );
 };
+
 
 export default FlockStockScreen;
 

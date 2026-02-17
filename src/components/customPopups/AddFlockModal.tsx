@@ -10,7 +10,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
+import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Theme from '../../theme/Theme';
 import { getParties, getFlockTypes } from '../../services/FlockService';
@@ -39,10 +39,6 @@ const AddFlockModal: React.FC<AddFlockModalProps> = ({
   const [supplier, setSupplier] = useState<string | null>(null);
   const [isHen, setIsHen] = useState(true);
   const [isPaid, setIsPaid] = useState(true);
-
-  const [flockTypeOpen, setFlockTypeOpen] = useState(false);
-  const [supplierOpen, setSupplierOpen] = useState(false);
-
   const [flockTypeItems, setFlockTypeItems] = useState<
     { label: string; value: string }[]
   >([]);
@@ -50,23 +46,20 @@ const AddFlockModal: React.FC<AddFlockModalProps> = ({
     { label: string; value: string; disabled?: boolean }[]
   >([]);
   const [isSaveEnabled, setIsSaveEnabled] = useState(false);
-
   const [showDobPicker, setShowDobPicker] = useState(false);
   const [showArrivalPicker, setShowArrivalPicker] = useState(false);
-
   // Enable save button only when required fields are filled
-useEffect(() => {
-  setIsSaveEnabled(
-    flockType !== null &&
-      breed.trim() !== '' &&
-      quantity.trim() !== '' &&
-      price.trim() !== '' &&
-      supplier !== null &&
-      dob !== null &&         
-      arrivalDate !== null     
-  );
-}, [flockType, breed, quantity, price, supplier, dob, arrivalDate]);
-
+  useEffect(() => {
+    setIsSaveEnabled(
+      flockType !== null &&
+        breed.trim() !== '' &&
+        quantity.trim() !== '' &&
+        price.trim() !== '' &&
+        supplier !== null &&
+        dob !== null &&
+        arrivalDate !== null,
+    );
+  }, [flockType, breed, quantity, price, supplier, dob, arrivalDate]);
 
   // Fetch suppliers
   useEffect(() => {
@@ -138,211 +131,213 @@ useEffect(() => {
 
   return (
     <SafeAreaView>
-    <Modal transparent visible={visible} animationType="fade">
-      <View style={styles.overlay}>
-        <View style={styles.modalBox}>
-          <Text style={styles.title}>Add Flock</Text>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
+      <Modal transparent visible={visible} animationType="fade">
+        <View style={styles.overlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.title}>Add Flock</Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 20 }}
-          >
-            {/* Flock Type */}
-            <Text style={styles.label}>Flock Type</Text>
-                <DropDownPicker
-                listMode="SCROLLVIEW"
-                open={flockTypeOpen}
-                value={flockType}
-                items={flockTypeItems}
-                setOpen={setFlockTypeOpen}
-                setValue={setFlockType}
-                setItems={setFlockTypeItems}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              {/* Flock Type */}
+              <Text style={styles.label}>Flock Type</Text>
+              <Dropdown
+                style={styles.dropdownElement}
+                containerStyle={styles.dropdownContainerElement}
+                data={flockTypeItems}
+                labelField="label"
+                valueField="value"
                 placeholder="Select flock type..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
+                value={flockType}
+                onChange={item => setFlockType(item.value)}
+                selectedTextStyle={styles.selectedText}
+                placeholderStyle={styles.placeholderText}
               />
 
+              {/* Supplier */}
+              <Text style={styles.label}>Supplier</Text>
+              <Dropdown
+                style={styles.dropdownElement}
+                containerStyle={styles.dropdownContainerElement}
+                data={supplierItems}
+                labelField="label"
+                valueField="value"
+                placeholder="Select supplier..."
+                value={supplier}
+                onChange={item => {
+                  if (!item.disabled) setSupplier(item.value);
+                }}
+                selectedTextStyle={styles.selectedText}
+                placeholderStyle={styles.placeholderText}
+              />
+              {/* Breed */}
+              <Text style={styles.label}>Breed</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter breed..."
+                value={breed}
+                onChangeText={setBreed}
+              />
 
-            {/* Breed */}
-            <Text style={styles.label}>Breed</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter breed..."
-              value={breed}
-              onChangeText={setBreed}
-            />
+              {/* Price */}
+              <Text style={styles.label}>Price of Unit</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter price..."
+                keyboardType="numeric"
+                value={price}
+                onChangeText={setPrice}
+              />
 
-            {/* Price */}
-            <Text style={styles.label}>Price of Unit</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter price..."
-              keyboardType="numeric"
-              value={price}
-              onChangeText={setPrice}
-            />
-
-            {/* Supplier */}
-            <Text style={styles.label}>Supplier</Text>
-                      <DropDownPicker
-            listMode="SCROLLVIEW"
-            open={supplierOpen}
-            value={supplier}
-            items={supplierItems}
-            setOpen={setSupplierOpen}
-            setValue={setSupplier}
-            setItems={setSupplierItems}
-            placeholder="Select supplier..."
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-          />
-
-
-            {/* Quantity & Avg Weight */}
-            <View style={styles.row}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.label}>Quantity</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter quantity..."
-                  keyboardType="numeric"
-                  value={quantity}
-                  onChangeText={setQuantity}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Average Weight (g)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter weight..."
-                  keyboardType="numeric"
-                  value={avgWeight}
-                  onChangeText={setAvgWeight}
-                />
-              </View>
-            </View>
-
-            {/* DOB & Arrival Date */}
-            <View style={styles.row}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.label}>Date of Birth</Text>
-                <TouchableOpacity
-                  onPress={() => setShowDobPicker(true)}
-                  style={styles.dateInput}
-                >
-                  <Text>{dob ? dob.toLocaleDateString() : 'DD/MM/YYYY'}</Text>
-                  <Image source={Theme.icons.date} style={styles.dateIcon} />
-                </TouchableOpacity>
-                {showDobPicker && (
-                  <DateTimePicker
-                    value={dob || new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={(event, selectedDate) => {
-                      setShowDobPicker(false);
-                      if (event.type === 'set' && selectedDate)
-                        setDob(selectedDate);
-                    }}
+              {/* Quantity & Avg Weight */}
+              <View style={styles.row}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.label}>Quantity</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter quantity..."
+                    keyboardType="numeric"
+                    value={quantity}
+                    onChangeText={setQuantity}
                   />
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Arrival Date</Text>
-                <TouchableOpacity
-                  onPress={() => setShowArrivalPicker(true)}
-                  style={styles.dateInput}
-                >
-                  <Text>
-                    {arrivalDate
-                      ? arrivalDate.toLocaleDateString()
-                      : 'DD/MM/YYYY'}
-                  </Text>
-                  <Image source={Theme.icons.date} style={styles.dateIcon} />
-                </TouchableOpacity>
-                {showArrivalPicker && (
-                  <DateTimePicker
-                    value={arrivalDate || new Date()}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={(event, selectedDate) => {
-                      setShowArrivalPicker(false);
-                      if (event.type === 'set' && selectedDate)
-                        setArrivalDate(selectedDate);
-                    }}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Average Weight (g)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter weight..."
+                    keyboardType="numeric"
+                    value={avgWeight}
+                    onChangeText={setAvgWeight}
                   />
-                )}
+                </View>
               </View>
-            </View>
 
-            {/* Hen / Rooster */}
-            <Text style={styles.label}>Type</Text>
-            <View style={styles.radioContainer}>
+              {/* DOB & Arrival Date */}
+              <View style={styles.row}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.label}>Date of Birth</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowDobPicker(true)}
+                    style={styles.dateInput}
+                  >
+                    <Text>{dob ? dob.toLocaleDateString() : 'DD/MM/YYYY'}</Text>
+                    <Image source={Theme.icons.date} style={styles.dateIcon} />
+                  </TouchableOpacity>
+                  {showDobPicker && (
+                    <DateTimePicker
+                      value={dob || new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={(event, selectedDate) => {
+                        setShowDobPicker(false);
+                        if (event.type === 'set' && selectedDate)
+                          setDob(selectedDate);
+                      }}
+                    />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Arrival Date</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowArrivalPicker(true)}
+                    style={styles.dateInput}
+                  >
+                    <Text>
+                      {arrivalDate
+                        ? arrivalDate.toLocaleDateString()
+                        : 'DD/MM/YYYY'}
+                    </Text>
+                    <Image source={Theme.icons.date} style={styles.dateIcon} />
+                  </TouchableOpacity>
+                  {showArrivalPicker && (
+                    <DateTimePicker
+                      value={arrivalDate || new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={(event, selectedDate) => {
+                        setShowArrivalPicker(false);
+                        if (event.type === 'set' && selectedDate)
+                          setArrivalDate(selectedDate);
+                      }}
+                    />
+                  )}
+                </View>
+              </View>
+
+              {/* Hen / Rooster */}
+              <Text style={styles.label}>Type</Text>
+              <View style={styles.radioContainer}>
+                <TouchableOpacity
+                  style={styles.radioButton}
+                  onPress={() => setIsHen(true)}
+                >
+                  <View
+                    style={[styles.radioCircle, isHen && styles.radioSelected]}
+                  />
+                  <Text style={styles.radioLabel}>Hen</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.radioButton}
+                  onPress={() => setIsHen(false)}
+                >
+                  <View
+                    style={[styles.radioCircle, !isHen && styles.radioSelected]}
+                  />
+                  <Text style={styles.radioLabel}>Rooster</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Paid / Unpaid */}
+              <Text style={styles.label}>Payment Status</Text>
+              <View style={styles.radioContainer}>
+                <TouchableOpacity
+                  style={styles.radioButton}
+                  onPress={() => setIsPaid(true)}
+                >
+                  <View
+                    style={[styles.radioCircle, isPaid && styles.radioSelected]}
+                  />
+                  <Text style={styles.radioLabel}>Paid</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.radioButton}
+                  onPress={() => setIsPaid(false)}
+                >
+                  <View
+                    style={[
+                      styles.radioCircle,
+                      !isPaid && styles.radioSelected,
+                    ]}
+                  />
+                  <Text style={styles.radioLabel}>Unpaid</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            {/* Buttons */}
+            <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={styles.radioButton}
-                onPress={() => setIsHen(true)}
+                style={[styles.button, styles.discardButton]}
+                onPress={onClose}
               >
-                <View
-                  style={[styles.radioCircle, isHen && styles.radioSelected]}
-                />
-                <Text style={styles.radioLabel}>Hen</Text>
+                <Text style={styles.discardText}>Discard</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.radioButton}
-                onPress={() => setIsHen(false)}
+                style={[
+                  styles.button,
+                  isSaveEnabled ? styles.saveButton : styles.saveButtonDisabled,
+                ]}
+                disabled={!isSaveEnabled}
+                onPress={handleSave}
               >
-                <View
-                  style={[styles.radioCircle, !isHen && styles.radioSelected]}
-                />
-                <Text style={styles.radioLabel}>Rooster</Text>
+                <Text style={styles.saveText}>Save</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Paid / Unpaid */}
-            <Text style={styles.label}>Payment Status</Text>
-            <View style={styles.radioContainer}>
-              <TouchableOpacity
-                style={styles.radioButton}
-                onPress={() => setIsPaid(true)}
-              >
-                <View
-                  style={[styles.radioCircle, isPaid && styles.radioSelected]}
-                />
-                <Text style={styles.radioLabel}>Paid</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.radioButton}
-                onPress={() => setIsPaid(false)}
-              >
-                <View
-                  style={[styles.radioCircle, !isPaid && styles.radioSelected]}
-                />
-                <Text style={styles.radioLabel}>Unpaid</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.discardButton]}
-              onPress={onClose}
-            >
-              <Text style={styles.discardText}>Discard</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                isSaveEnabled ? styles.saveButton : styles.saveButtonDisabled,
-              ]}
-              disabled={!isSaveEnabled}
-              onPress={handleSave}
-            >
-              <Text style={styles.saveText}>Save</Text>
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -438,6 +433,33 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Theme.colors.primaryYellow,
   },
+  dropdownElement: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: Theme.colors.borderLight,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: Theme.colors.lightGrey,
+    marginBottom: 10,
+  },
+
+  dropdownContainerElement: {
+    backgroundColor: Theme.colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.borderLight,
+  },
+
+  selectedText: {
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
+  },
+
+  placeholderText: {
+    fontSize: 14,
+    color: '#9E9E9E',
+  },
+
   discardText: { color: Theme.colors.primaryYellow, fontWeight: 'bold' },
   saveButton: { backgroundColor: Theme.colors.primaryYellow },
   saveButtonDisabled: { backgroundColor: Theme.colors.buttonDisabled },
