@@ -409,6 +409,17 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                       keyboardType="numeric"
                       style={styles.input}
                     />
+                      {/* <TextInput
+                      placeholder="Enter treatment days..."
+                      value={treatmentDays}
+                      onChangeText={text => {
+                        // Remove any non-digit characters
+                        const numericText = text.replace(/[^0-9]/g, '');
+                        setTreatmentDays(numericText);
+                      }}
+                      keyboardType="numeric"
+                      style={styles.input}
+                    /> */}
                     <Text style={styles.label}>Vet Name</Text>
                     <TextInput
                       placeholder="Enter vet name..."

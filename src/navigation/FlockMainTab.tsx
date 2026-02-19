@@ -21,16 +21,39 @@ import HospitalityScreen from '../screens/flocks/HospitalityScreen';
 
 type TabType = 'flocks' | 'mortality' | 'stock' | 'sale' | 'hospitality';
 
+type FilterState = {
+  searchKey: string;
+  isEnded: boolean;
+  selected: { flockId: string | null; supplierId: string | null };
+  options?: {
+    flocks?: { label: string; id: string }[];
+    suppliers?: { label: string; id: string }[];
+  };
+};
+
 const FlockMainScreen = () => {
   const { businessUnitId } = useBusinessUnit();
   const [activeTab, setActiveTab] = useState<TabType>('flocks');
   const [openAddModal, setOpenAddModal] = useState(false);
-  const [globalLoading, setGlobalLoading] = useState(false); 
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10; // same as your table page size
+
+  const [filterState, setFilterState] = useState<FilterState>({
+    searchKey: '',
+    isEnded: false,
+    selected: { flockId: null, supplierId: null },
+    options: { flocks: [], suppliers: [] },
+  });
 
   // ================= RENDER SCREEN =================
   const renderScreen = () => {
-    const commonProps = { openAddModal, onCloseAddModal: () => setOpenAddModal(false), setGlobalLoading };
-    
+    const commonProps = {
+      openAddModal,
+      onCloseAddModal: () => setOpenAddModal(false),
+      setGlobalLoading,
+    };
+
     switch (activeTab) {
       case 'mortality':
         return <FlocksMortalityScreen {...commonProps} />;
@@ -41,18 +64,37 @@ const FlockMainScreen = () => {
       case 'hospitality':
         return <HospitalityScreen {...commonProps} />;
       default:
-        return <FlocksScreen {...commonProps} onOpenAddModal={() => setOpenAddModal(true)} />;
+        return (
+          <FlocksScreen
+            {...commonProps}
+            filterState={filterState}
+            setFilterState={setFilterState}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            onOpenAddModal={() => setOpenAddModal(true)}
+          />
+        );
     }
   };
 
   // ================= TAB BUTTON =================
-  const TabButton = ({ title, active, onPress }: { title: string; active: boolean; onPress: () => void }) => (
+  const TabButton = ({
+    title,
+    active,
+    onPress,
+  }: {
+    title: string;
+    active: boolean;
+    onPress: () => void;
+  }) => (
     <TouchableOpacity
       onPress={onPress}
       style={[styles.tabButton, active && styles.activeTabButton]}
       activeOpacity={0.7}
     >
-      <Text style={[styles.tabText, active && styles.activeTabText]}>{title}</Text>
+      <Text style={[styles.tabText, active && styles.activeTabText]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -63,7 +105,9 @@ const FlockMainScreen = () => {
       <Header
         title="Flocks"
         onAddNewPress={
-          activeTab === 'flocks' || activeTab === 'sale' || activeTab === 'hospitality'
+          activeTab === 'flocks' ||
+          activeTab === 'sale' ||
+          activeTab === 'hospitality'
             ? () => setOpenAddModal(true)
             : undefined
         }
@@ -73,10 +117,18 @@ const FlockMainScreen = () => {
                 if (!businessUnitId) return;
                 try {
                   setGlobalLoading(true);
+
                   if (activeTab === 'flocks') {
-                    await getFlocksExcel('Flocks_2026', businessUnitId);
+                    await getFlocksExcel('Flocks_2026', {
+                      businessUnitId,
+                      searchKey: filterState.searchKey || null,
+                      flockId: filterState.selected.flockId || null,
+                      supplierId: filterState.selected.supplierId || null,
+                      isEnded: filterState.isEnded ? true : null,
+                      pageNumber: currentPage, 
+                      pageSize: pageSize, 
+                    });
                   }
-                  // stock API if needed
                 } catch (error) {
                   console.log('Error exporting Flocks Excel:', error);
                 } finally {
@@ -96,13 +148,29 @@ const FlockMainScreen = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabContainerScroll}
         >
-          <TabButton title="Flocks" active={activeTab === 'flocks'} onPress={() => setActiveTab('flocks')} />
+          <TabButton
+            title="Flocks"
+            active={activeTab === 'flocks'}
+            onPress={() => setActiveTab('flocks')}
+          />
           <View style={styles.separator} />
-          <TabButton title="Mortality" active={activeTab === 'mortality'} onPress={() => setActiveTab('mortality')} />
+          <TabButton
+            title="Mortality"
+            active={activeTab === 'mortality'}
+            onPress={() => setActiveTab('mortality')}
+          />
           <View style={styles.separator} />
-          <TabButton title="Stock" active={activeTab === 'stock'} onPress={() => setActiveTab('stock')} />
+          <TabButton
+            title="Stock"
+            active={activeTab === 'stock'}
+            onPress={() => setActiveTab('stock')}
+          />
           <View style={styles.separator} />
-          <TabButton title="Sale" active={activeTab === 'sale'} onPress={() => setActiveTab('sale')} />
+          <TabButton
+            title="Sale"
+            active={activeTab === 'sale'}
+            onPress={() => setActiveTab('sale')}
+          />
           <View style={styles.separator} />
           <TabButton
             title="Hospitality"
@@ -133,9 +201,20 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   screenContent: { flex: 1 },
-  tabButton: { minWidth: 90, height: 39, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  tabButton: {
+    minWidth: 90,
+    height: 39,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   activeTabButton: { backgroundColor: Theme.colors.mainButton },
   tabText: { fontSize: 13, fontWeight: '600', color: Theme.colors.black },
   activeTabText: { color: Theme.colors.white },
-  separator: { width: 1, backgroundColor: Theme.colors.sky, alignSelf: 'stretch', marginHorizontal: 2 },
+  separator: {
+    width: 1,
+    backgroundColor: Theme.colors.sky,
+    alignSelf: 'stretch',
+    marginHorizontal: 2,
+  },
 });

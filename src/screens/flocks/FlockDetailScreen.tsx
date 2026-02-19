@@ -30,16 +30,35 @@ import {
   getVaccinationSchedules,
   getFlockTypes,
   updateFlockDetail,
+  getFeeds,
+  addFlockHealthRecord,
+  addHospitality,
 } from '../../services/FlockService';
 import LoadingOverlay from '../../components/loading/LoadingOverlay';
-import { getSuppliers } from '../../services/VaccinationService';
-import { showSuccessToast } from '../../utils/AppToast';
+import {
+  addVaccinationSchedule,
+  getSuppliers,
+  getVaccines,
+} from '../../services/VaccinationService';
+import { showErrorToast, showSuccessToast } from '../../utils/AppToast';
+import AddModal from '../../components/customPopups/AddModal';
+import {
+  addEggProduction,
+  getUnitsByProductType,
+} from '../../services/EggsService';
+import {
+  addFeedConsumption,
+  AddFeedConsumptionPayload,
+} from '../../services/FeedService';
+import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
+import { normalizeDataFormat } from '../../utils/NormalizeDataFormat';
+import { useBusinessUnit } from '../../context/BusinessContext';
 
 const FlockDetailScreen = () => {
+  const { businessUnitId } = useBusinessUnit();
   const navigation = useNavigation();
   const route = useRoute<any>();
   const flock = route.params?.flock;
-
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
@@ -47,17 +66,32 @@ const FlockDetailScreen = () => {
   const [hospitalityData, setHospitalityData] = useState<any[]>([]);
   const [flockTypes, setFlockTypes] = useState<any[]>([]);
   const [suppliers, setsuppliers] = useState<any[]>([]);
-
+  const [openEggModal, setOpenEggModal] = useState(false);
+  // For unit dropdown inside modal
+  const [masterData, setMasterData] = useState({
+    units: [] as { label: string; value: number }[],
+  });
+  const [openFeedModal, setOpenFeedModal] = useState(false);
+  const [feedMasterData, setFeedMasterData] = useState({
+    feeds: [] as { label: string; value: number }[],
+  });
+  const [openVaccinationModal, setOpenVaccinationModal] = useState(false);
+  const [vaccineItems, setVaccineItems] = useState<
+    { label: string; value: number }[]
+  >([]);
+  const [openMortalityModal, setOpenMortalityModal] = useState(false);
   const [flockData, setFlockData] = useState<any>(null);
   const [eggProductionData, setEggProductionData] = useState<any[]>([]);
   const [feedConsumptionData, setFeedConsumptionData] = useState<any[]>([]);
   const [vaccinationData, setVaccinationData] = useState<any[]>([]);
   const [mortalityData, setMortalityData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-
+  const [modals, setModals] = useState({
+    mortality: false,
+    hospitality: false,
+  });
   const [summaryData, setSummaryData] = useState<any>(null);
   const [loadingSummary, setLoadingSummary] = useState<boolean>(false);
-
   const [feedCardOpen, setFeedCardOpen] = useState(false);
 
   const toggleFeedCard = () => {
@@ -129,199 +163,413 @@ const FlockDetailScreen = () => {
   const flockId = route.params?.flockId || route.params?.flock?.id;
 
   useEffect(() => {
-    const fetchFlockData = async () => {
-      setLoading(true);
-      try {
-        const flockDetail = await getFlockDetail(flockId);
-        setFlockData(flockDetail);
-
-        const summaryResponse = await getFlockSummary(
-          flockDetail.businessUnitId,
-          fromDate?.toISOString(),
-          toDate?.toISOString(),
-          flockId,
-        );
-        setSummaryData(summaryResponse.data || summaryResponse);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFlockData();
+    fetchInitialData();
   }, [flockId, fromDate, toDate]);
 
   useEffect(() => {
-    const fetchEggProduction = async () => {
-      if (!flockId) return;
-      setLoading(true);
-      try {
-        const eggData = await getEggProductions(flockId);
-        // Map API response to table format
-        const formattedData = eggData.map((item: any) => ({
-          ref: item.ref,
-          unit: item.unit,
-          date: new Date(item.date).toLocaleDateString('en-GB'),
-          totalEggs: item.totalEggs,
-          intactEggs: item.totalEggs - item.brokenEggs, // calculate intact
-          brokenEggs: item.brokenEggs,
-          raw: item,
-        }));
-        setEggProductionData(formattedData);
-      } catch (error) {
-        console.error('Error fetching egg production:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEggProduction();
-  }, [flockId, fromDate, toDate]);
-
-  useEffect(() => {
-    const fetchFeedConsumption = async () => {
-      if (!flockId) return;
-      setLoading(true);
-      try {
-        const feedData = await getFeedConsumptions(flockId);
-        // Map API response to your table format if needed
-        const formattedFeedData = feedData.map((item: any) => ({
-          ref: item.ref,
-          date: new Date(item.date).toLocaleDateString('en-GB'),
-          feed: item.feed,
-          totalQuantity: item.totalQuantity,
-          quantity: item.quantity,
-          raw: item,
-        }));
-        setFeedConsumptionData(formattedFeedData);
-      } catch (error) {
-        console.error('Error fetching feed consumption:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFeedConsumption();
-  }, [flockId, fromDate, toDate]);
-
-  useEffect(() => {
-    const fetchVaccinationSchedules = async () => {
-      if (!flockId) return;
-      setLoading(true);
-
-      try {
-        const vaccineData = await getVaccinationSchedules(flockId);
-
-        const formattedVaccineData = vaccineData.map((item: any) => ({
-          ref: item.ref,
-          vaccinationName: item.vaccine,
-          scheduledDate: new Date(item.scheduledDate).toLocaleDateString(
-            'en-GB',
-          ),
-          quantity: item.quantity,
-          done: item.isVaccinated ? 'Yes' : 'No',
-          raw: item, // edit/delete ke liye
-        }));
-
-        setVaccinationData(formattedVaccineData);
-      } catch (error) {
-        console.error('Error fetching vaccination schedules:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVaccinationSchedules();
-  }, [flockId, fromDate, toDate]);
-
-  useEffect(() => {
-    const fetchMortalityRecords = async () => {
-      if (!flockId) return;
-      setLoading(true);
-
-      try {
-        const healthResponse = await getFlockHealthRecord(flockId);
-
-        // records array is inside healthResponse.data
-        const records = healthResponse?.data || [];
-
-        const formattedMortalityData = records.map((item: any) => ({
-          expireDate: new Date(item.date).toLocaleDateString('en-GB'),
-          mortalityQuantity: item.quantity,
-          raw: item,
-        }));
-
-        setMortalityData(formattedMortalityData);
-      } catch (error) {
-        console.error('Error fetching mortality records:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMortalityRecords();
-  }, [flockId, fromDate, toDate]);
-
-  useEffect(() => {
-    const fetchHospitality = async () => {
-      if (!flockId) return;
-      setLoading(true);
-
-      try {
-        const hospData = await getHospitalities(flockId);
-
-        const formattedHospitalityData = hospData.map((item: any) => ({
-          date: new Date(item.date).toLocaleDateString('en-GB'),
-          quantity: item.quantity,
-          avgWeight: item.averageWeight,
-          symptoms: item.symptoms,
-          diagnosis: item.diagnosis,
-          medication: item.medication,
-          dosage: item.dosage,
-          treatmentDays: item.treatmentDays,
-          vetName: item.vetName,
-          raw: item,
-        }));
-
-        setHospitalityData(formattedHospitalityData);
-      } catch (error) {
-        console.error('Error fetching hospitality:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHospitality();
-  }, [flockId, fromDate, toDate]);
-
-  useEffect(() => {
-    const fetchFlockTypes = async () => {
-      try {
-        const types = await getFlockTypes();
-        setFlockTypes(types);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    fetchFlockTypes();
-  }, []);
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      try {
-        if (!flockData?.businessUnitId) return;
-
-        const supplierList = await getSuppliers(flockData.businessUnitId);
-
-        setsuppliers(supplierList || []);
-      } catch (error) {
-        console.error('Error fetching suppliers:', error);
-      }
-    };
+    if (!flockData?.businessUnitId) return;
 
     fetchSuppliers();
+    fetchFlockTypes();
+    fetchUnits();
+    fetchVaccines();
+    fetchFeeds();
   }, [flockData?.businessUnitId]);
+
+  useEffect(() => {
+    if (!flockId) return;
+
+    switch (activeTab) {
+      case 'Egg Production':
+        fetchEggProduction();
+        break;
+
+      case 'Feed Consumption':
+        fetchFeedConsumption();
+        break;
+
+      case 'Vaccination Schedule':
+        fetchVaccinationSchedules();
+        break;
+
+      case 'Mortality':
+        fetchMortalityRecords();
+        break;
+
+      case 'Hospitality':
+        fetchHospitality();
+        break;
+    }
+  }, [activeTab]);
+
+  const fetchInitialData = async () => {
+    if (!flockId) return;
+
+    try {
+      setLoadingSummary(true);
+
+      //  1. Sirf ek baar call
+      const flockDetail = await getFlockDetail(flockId);
+
+      //  2. Summary call
+      const summaryResponse = await getFlockSummary(
+        flockDetail.businessUnitId,
+        fromDate?.toISOString(),
+        toDate?.toISOString(),
+        flockId,
+      );
+
+      //  3. Pehle summary set karo
+      setSummaryData(summaryResponse.data || summaryResponse);
+
+      //  4. Phir flock info set karo
+      setFlockData(flockDetail);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  const fetchEggProduction = async () => {
+    if (!flockId) return;
+    setLoading(true);
+    try {
+      const eggData = await getEggProductions(flockId);
+      // Map API response to table format
+      const formattedData = eggData.map((item: any) => ({
+        ref: item.ref,
+        unit: item.unit,
+        date: new Date(item.date).toLocaleDateString('en-GB'),
+        totalEggs: item.totalEggs,
+        intactEggs: item.totalEggs - item.brokenEggs, // calculate intact
+        brokenEggs: item.brokenEggs,
+        raw: item,
+      }));
+      setEggProductionData(formattedData);
+    } catch (error) {
+      console.error('Error fetching egg production:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFeedConsumption = async () => {
+    if (!flockId) return;
+    setLoading(true);
+    try {
+      const feedData = await getFeedConsumptions(flockId);
+      // Map API response to your table format if needed
+      const formattedFeedData = feedData.map((item: any) => ({
+        ref: item.ref,
+        date: new Date(item.date).toLocaleDateString('en-GB'),
+        feed: item.feed,
+        totalQuantity: item.totalQuantity,
+        quantity: item.quantity,
+        raw: item,
+      }));
+      setFeedConsumptionData(formattedFeedData);
+    } catch (error) {
+      console.error('Error fetching feed consumption:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchVaccinationSchedules = async () => {
+    if (!flockId) return;
+    setLoading(true);
+
+    try {
+      const vaccineData = await getVaccinationSchedules(flockId);
+
+      const formattedVaccineData = vaccineData.map((item: any) => ({
+        ref: item.ref,
+        vaccinationName: item.vaccine,
+        scheduledDate: new Date(item.scheduledDate).toLocaleDateString('en-GB'),
+        quantity: item.quantity,
+        done: item.isVaccinated ? 'Yes' : 'No',
+        raw: item, // edit/delete ke liye
+      }));
+
+      setVaccinationData(formattedVaccineData);
+    } catch (error) {
+      console.error('Error fetching vaccination schedules:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMortalityRecords = async () => {
+    if (!flockId) return;
+    setLoading(true);
+
+    try {
+      const healthResponse = await getFlockHealthRecord(flockId);
+
+      // records array is inside healthResponse.data
+      const records = healthResponse?.data || [];
+
+      const formattedMortalityData = records.map((item: any) => ({
+        expireDate: new Date(item.date).toLocaleDateString('en-GB'),
+        mortalityQuantity: item.quantity,
+        raw: item,
+      }));
+
+      setMortalityData(formattedMortalityData);
+    } catch (error) {
+      console.error('Error fetching mortality records:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHospitality = async () => {
+    if (!flockId) return;
+    setLoading(true);
+
+    try {
+      const hospData = await getHospitalities(flockId);
+
+      const formattedHospitalityData = hospData.map((item: any) => ({
+        date: new Date(item.date).toLocaleDateString('en-GB'),
+        quantity: item.quantity,
+        avgWeight: item.averageWeight,
+        symptoms: item.symptoms,
+        diagnosis: item.diagnosis,
+        medication: item.medication,
+        dosage: item.dosage,
+        treatmentDays: item.treatmentDays,
+        vetName: item.vetName,
+        raw: item,
+      }));
+
+      setHospitalityData(formattedHospitalityData);
+    } catch (error) {
+      console.error('Error fetching hospitality:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFlockTypes = async () => {
+    try {
+      const types = await getFlockTypes();
+      setFlockTypes(types);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      if (!flockData?.businessUnitId) return;
+
+      const supplierList = await getSuppliers(flockData.businessUnitId);
+
+      setsuppliers(supplierList || []);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
+  const handleAddEditEggProduction = async (data: any) => {
+    if (!flockId) return;
+    setLoading(true);
+
+    try {
+      const intact = Number(data?.intactEggs || 0);
+      const broken = Number(data?.brokenEggs || 0);
+
+      const payload = {
+        flockId: data.flockId, // this will come from modal initialData
+        businessUnitId: flockData?.businessUnitId,
+        date: data.date?.toISOString().split('T')[0],
+        fertileEggs: intact,
+        brokenEggs: broken,
+        totalEggs: intact + broken,
+        unitId: data.unitId,
+        varietyId: null,
+        typeId: null,
+      };
+
+      // Call API to add egg production
+      await addEggProduction(payload);
+      showSuccessToast('Egg production added successfully');
+
+      // Refresh table
+      fetchEggProduction();
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddFeedConsumption = async (data: any) => {
+    if (!flockData?.businessUnitId) return;
+
+    try {
+      setLoading(true);
+
+      const payload: AddFeedConsumptionPayload = {
+        businessUnitId: flockData.businessUnitId,
+        flockId: flockId, // ensure this is a GUID
+        feedId: Number(data.feedId),
+        quantity: Number(data.bag),
+        price: Number(data.bag),
+        date: data.date,
+      };
+
+      await addFeedConsumption(payload);
+      showSuccessToast('Feed consumption added successfully');
+      setOpenFeedModal(false);
+      fetchFeedConsumption(); // refresh table
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message || 'Failed to add feed consumption';
+      console.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddVaccination = async (data: any) => {
+    if (!flockData?.businessUnitId) return;
+
+    try {
+      const payload = {
+        businessUnitId: flockData.businessUnitId,
+        flockId, // current flock
+        vaccineId: data.vaccineId,
+        scheduledDate: data.scheduledDate?.toISOString().split('T')[0] || null,
+        quantity: Number(data.quantity),
+      };
+
+      const res = await addVaccinationSchedule(payload);
+      if (res.status === 'Success') {
+        showSuccessToast('Vaccination schedule added successfully');
+        fetchVaccinationSchedules(); // refresh table
+      } else {
+        showErrorToast(res.message || 'Failed to add vaccination schedule');
+      }
+    } catch (err: any) {
+      showErrorToast(
+        err?.response?.data?.message || err.message || 'Something went wrong',
+      );
+    }
+  };
+
+  const handleMortality = async (data: any) => {
+    if (!flockId) return;
+
+    try {
+      setLoading(true);
+
+      const payload = {
+        flockId: flockId,
+        quantity: Number(data.quantity),
+        date:
+          data.expireDate?.toISOString().split('T')[0] ||
+          new Date().toISOString().split('T')[0],
+        flockHealthStatusId: 1,
+      };
+
+      await addFlockHealthRecord(payload);
+
+      showSuccessToast('Mortality added successfully');
+
+      setOpenMortalityModal(false);
+      fetchMortalityRecords(); // refresh table
+    } catch (err) {
+      console.error('Mortality error:', err);
+      showErrorToast('Failed to add mortality');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleHospitality = async (data: any) => {
+    if (!flockId) return;
+
+    const payload = {
+      flockId: flockId,
+      date:
+        data.hospitalityDate?.toISOString().split('T')[0] ||
+        new Date().toISOString().split('T')[0],
+      quantity: Number(data.quantity),
+      averageWeight: Number(data.averageWeight),
+      symptoms: data.symptoms,
+      diagnosis: data.diagnosis,
+      medication: data.medication,
+      dosage: data.dosage,
+      treatmentDays: Number(data.treatmentDays),
+      vetName: data.vetName,
+      remarks: data.remarks || null,
+      businessUnitId: businessUnitId!,
+    };
+
+    try {
+      const result = await addHospitality(payload);
+
+      normalizeDataFormat(result, 'object', 'Hospitality');
+
+      showSuccessToast('Hospitality added successfully');
+
+      setModals(prev => ({ ...prev, hospitality: false }));
+      fetchHospitality();
+    } catch (err) {
+      console.log('Hospitality error:', err);
+    }
+  };
+
+  const fetchUnits = async () => {
+    try {
+      const units = await getUnitsByProductType(1);
+      const dropdownData = units.map((u: any) => ({
+        label: u.value,
+        value: u.unitId,
+      }));
+      setMasterData(prev => ({ ...prev, units: dropdownData }));
+    } catch (error) {
+      console.error('Failed to fetch units', error);
+    }
+  };
+
+  const fetchFeeds = async () => {
+    try {
+      const res = await getFeeds(); // API returns array of feeds
+      if (!res || res.length === 0) return;
+
+      const mappedFeeds = res.map((f: any) => ({
+        label: f.name ?? f.feed ?? 'Unknown Feed', // display name
+        value: f.feedId, // actual id
+      }));
+
+      setFeedMasterData({ feeds: mappedFeeds });
+    } catch (error) {
+      console.error('Failed to fetch feeds:', error);
+    }
+  };
+
+  const fetchVaccines = async () => {
+    try {
+      const data = await getVaccines();
+
+      console.log('Vaccines:', data);
+
+      setVaccineItems(data || []);
+    } catch (err) {
+      console.error('Failed to fetch vaccines', err);
+    }
+  };
+
+  const openFeedModalHandler = async () => {
+    if (feedMasterData.feeds.length === 0) {
+      await fetchFeeds(); // wait until feeds are loaded
+    }
+    setOpenFeedModal(true);
+  };
 
   const birdStats = summaryData
     ? [
@@ -656,6 +904,7 @@ const FlockDetailScreen = () => {
                 setLoading(true);
 
                 const payload = {
+                  businessUnitId: flockData?.businessUnitId,
                   breed: formData.breed,
                   quantity: Number(formData.quantity),
                   price: Number(formData.price),
@@ -680,6 +929,8 @@ const FlockDetailScreen = () => {
                 console.log('flockData supplierId:', flockData?.supplierId);
                 // Refresh data after update
                 const updatedFlock = await getFlockDetail(flockId);
+                console.log('flockData:', flockData);
+
                 setFlockData(updatedFlock);
               } catch (error) {
                 console.error(error);
@@ -690,8 +941,6 @@ const FlockDetailScreen = () => {
           />
         )}
 
-        {/* Tabs */}
-        {/* Tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -717,10 +966,13 @@ const FlockDetailScreen = () => {
 
         {/* Egg Production Table */}
         {activeTab === 'Egg Production' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 40 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Egg Production</Text>
-              <TouchableOpacity style={styles.newButton}>
+              <TouchableOpacity
+                style={styles.newButton}
+                onPress={() => setOpenEggModal(true)}
+              >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
             </View>
@@ -767,10 +1019,13 @@ const FlockDetailScreen = () => {
 
         {/* Feed Consumption Table */}
         {activeTab === 'Feed Consumption' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 40 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Feed Consumption</Text>
-              <TouchableOpacity style={styles.newButton}>
+              <TouchableOpacity
+                style={styles.newButton}
+                onPress={openFeedModalHandler}
+              >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
             </View>
@@ -818,10 +1073,13 @@ const FlockDetailScreen = () => {
 
         {/* Vaccination Schedule Table */}
         {activeTab === 'Vaccination Schedule' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 40 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Vaccination Schedule</Text>
-              <TouchableOpacity style={styles.newButton}>
+              <TouchableOpacity
+                style={styles.newButton}
+                onPress={() => setOpenVaccinationModal(true)}
+              >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
             </View>
@@ -869,10 +1127,15 @@ const FlockDetailScreen = () => {
 
         {/* Mortality Table */}
         {activeTab === 'Mortality' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 40 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Mortality Records</Text>
-              <TouchableOpacity style={styles.newButton}>
+              <TouchableOpacity
+                style={styles.newButton}
+                onPress={() =>
+                  setModals(prev => ({ ...prev, mortality: true }))
+                }
+              >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
             </View>
@@ -920,10 +1183,15 @@ const FlockDetailScreen = () => {
 
         {/* Hospitality Table */}
         {activeTab === 'Hospitality' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 40 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Hospitality</Text>
-              <TouchableOpacity style={styles.newButton}>
+              <TouchableOpacity
+                style={styles.newButton}
+                onPress={() =>
+                  setModals(prev => ({ ...prev, hospitality: true }))
+                }
+              >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
             </View>
@@ -944,6 +1212,63 @@ const FlockDetailScreen = () => {
             />
           </View>
         )}
+
+        <AddModal
+          visible={openEggModal}
+          title="Add Egg Production"
+          type="Egg production"
+          unitItems={masterData.units} // from fetchUnits
+          flockItems={[]} // empty since we hide flock dropdown
+          hideFlockField={true} // hide the flock selector
+          initialData={{ flockId }} // pass the current flockId
+          isEdit={false} // only Add for now
+          onClose={() => setOpenEggModal(false)}
+          onSave={async data => {
+            const payload = { ...data, flockId }; // ensure flockId is included
+            await handleAddEditEggProduction(payload);
+            setOpenEggModal(false);
+          }}
+        />
+
+        <AddModal
+          visible={openFeedModal}
+          title="Add Feed Consumption"
+          type="Feed Consumption"
+          flockItems={[{ label: flock?.ref, value: flockId }]} // only current flock
+          feedItems={feedMasterData.feeds}
+          hideFlockField={true} // hide flock selector
+          initialData={{ flockId }} // pass current flockId
+          isEdit={false}
+          onClose={() => setOpenFeedModal(false)}
+          onSave={handleAddFeedConsumption}
+        />
+
+        <AddModal
+          visible={openVaccinationModal}
+          title="Add Vaccination Schedule"
+          type="vaccination Schedule"
+          vaccineItems={vaccineItems}
+          flockItems={[{ label: flock?.ref, value: flockId }]} // only current flock
+          hideFlockField={true} // hide flock dropdown
+          initialData={{ flockId }}
+          isEdit={false}
+          onClose={() => setOpenVaccinationModal(false)}
+          onSave={handleAddVaccination}
+        />
+
+        <ItemEntryModal
+          visible={modals.mortality}
+          onClose={() => setModals(prev => ({ ...prev, mortality: false }))}
+          type="mortality"
+          onSave={handleMortality}
+        />
+
+        <ItemEntryModal
+          visible={modals.hospitality}
+          onClose={() => setModals(prev => ({ ...prev, hospitality: false }))}
+          type="hospitality"
+          onSave={handleHospitality}
+        />
       </ScrollView>
     </SafeAreaView>
   );

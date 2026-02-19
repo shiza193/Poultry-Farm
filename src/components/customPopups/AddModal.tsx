@@ -46,7 +46,8 @@ interface AddModalProps {
   unitItems?: { label: string; value: number }[];
   feedItems?: { label: string; value: number }[];
   feedTypeItems?: { label: string; value: number }[];
-
+  hideFlockField?: boolean;
+  defaultFlockId?: string | null;
   setUnitItems?: React.Dispatch<
     React.SetStateAction<{ label: string; value: number }[]>
   >;
@@ -69,6 +70,8 @@ const AddModal: React.FC<AddModalProps> = ({
   unitItems,
   feedItems,
   feedTypeItems,
+  hideFlockField = false,
+  defaultFlockId = null,
   customerItems,
   supplierItems,
   isEdit = false,
@@ -131,7 +134,9 @@ const AddModal: React.FC<AddModalProps> = ({
   /* ===== VACCINATION PAYMENT STATUS ===== */
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
   const [flockOpen, setFlockOpen] = useState(false);
-  const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
+  const [selectedFlock, setSelectedFlock] = useState<string | null>(
+    defaultFlockId,
+  );
   /* =====  EDIT MODE PREFILL USEEFFECT (YAHAN) ===== */
   useEffect(() => {
     if (type === 'vaccination' && isEdit && initialData) {
@@ -255,12 +260,11 @@ const AddModal: React.FC<AddModalProps> = ({
     { label: string; value: number }[]
   >([]);
 
-
   useEffect(() => {
-  if (!visible) {
-    reset();
-  }
-}, [visible]);
+    if (!visible) {
+      reset();
+    }
+  }, [visible]);
 
   useEffect(() => {
     const fetchUnits = async () => {
@@ -355,19 +359,23 @@ const AddModal: React.FC<AddModalProps> = ({
     if (type === 'vaccination Schedule') {
       const isValid =
         vaccine !== null &&
-        selectedFlock !== null &&
+        (hideFlockField ? true : selectedFlock !== null) &&
         vaccinationDate !== null &&
         quantity.trim().length > 0;
 
       setIsSaveEnabled(isValid);
     }
+
     if (type === 'Egg production') {
       const isValid =
-        selectedFlock !== null && selectedUnit !== null && endDate !== null;
+        (hideFlockField ? true : selectedFlock !== null) &&
+        selectedUnit !== null &&
+        endDate !== null;
 
       setIsSaveEnabled(isValid);
       return;
     }
+
     if (type === 'Egg sale') {
       const tray = Number(trayCount);
       const eggs = Number(eggCount);
@@ -413,8 +421,10 @@ const AddModal: React.FC<AddModalProps> = ({
       setIsSaveEnabled(isValid);
     }
     if (type === 'Feed Consumption') {
+      const isFlockValid = !hideFlockField ? selectedFlock !== null : true;
+
       const isValid =
-        selectedFlock !== null &&
+        isFlockValid &&
         feedDate !== null &&
         selectedFeedId !== null &&
         bag.trim().length > 0;
@@ -543,17 +553,17 @@ const AddModal: React.FC<AddModalProps> = ({
       });
     } else if (type === 'vaccination Schedule') {
       onSave({
-        flockId: selectedFlock,
+        flockId: hideFlockField ? defaultFlockId : selectedFlock,
         vaccineId: vaccine,
         scheduledDate: vaccinationDate,
         quantity,
       });
     } else if (type === 'Egg production') {
       onSave({
-        flockId: selectedFlock,
+        flockId: hideFlockField ? defaultFlockId : selectedFlock,
         unitId: selectedUnit,
-        intactEggs: Number(intactEggs),
-        brokenEggs: Number(brokenEggs),
+        intactEggs,
+        brokenEggs,
         totalEggs,
         date: endDate,
       });
@@ -581,7 +591,7 @@ const AddModal: React.FC<AddModalProps> = ({
       });
     } else if (type === 'Feed Consumption') {
       onSave({
-        flockId: selectedFlock,
+        flockId: hideFlockField ? defaultFlockId : selectedFlock,
         feedId: selectedFeedId,
         bag: Number(bag),
         date: feedDate,
@@ -996,22 +1006,23 @@ const AddModal: React.FC<AddModalProps> = ({
                 )}
               </>
             )}
-
             {type === 'vaccination Schedule' && (
               <>
                 {/* VACCINE */}
                 <Text style={styles.label}>Vaccine Name</Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={vaccineOpen}
-                  value={vaccine}
-                  items={vaccineItems || []}
-                  setOpen={setVaccineOpen}
-                  setValue={setVaccine}
+                <Dropdown
+                  style={styles.dropdownElement}
+                  containerStyle={styles.dropdownContainerElement}
+                  data={vaccineItems || []}
+                  labelField="label"
+                  valueField="value"
                   placeholder="Select vaccine..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  value={vaccine}
+                  onChange={item => setVaccine(item.value)}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
+
                 {/* DATE */}
                 <Text style={styles.label}>Schedule Date</Text>
                 <TouchableOpacity
@@ -1039,21 +1050,28 @@ const AddModal: React.FC<AddModalProps> = ({
                     }}
                   />
                 )}
+
                 {/* FLOCK */}
-                <Text style={styles.label}>
-                  Flock<Text style={styles.required}>*</Text>
-                </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={flockOpen}
-                  value={selectedFlock}
-                  items={flockItems || []}
-                  setOpen={setFlockOpen}
-                  setValue={setSelectedFlock}
-                  placeholder="Select flock..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
-                />
+                {!hideFlockField && (
+                  <>
+                    <Text style={styles.label}>
+                      Flock<Text style={styles.required}>*</Text>
+                    </Text>
+                    <Dropdown
+                      style={styles.dropdownElement}
+                      containerStyle={styles.dropdownContainerElement}
+                      data={flockItems || []}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="Select flock..."
+                      value={selectedFlock}
+                      onChange={item => setSelectedFlock(item.value)}
+                      selectedTextStyle={styles.selectedText}
+                      placeholderStyle={styles.placeholderText}
+                    />
+                  </>
+                )}
+
                 {/* QUANTITY */}
                 <Text style={styles.label}>Quantity</Text>
                 <TextInput
@@ -1068,20 +1086,24 @@ const AddModal: React.FC<AddModalProps> = ({
             {type === 'Egg production' && (
               <>
                 {/* FLOCK */}
-                <Text style={styles.label}>
-                  Flock<Text style={styles.required}>*</Text>
-                </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={flockOpen}
-                  value={selectedFlock}
-                  items={flockItems || []}
-                  setOpen={setFlockOpen}
-                  setValue={setSelectedFlock}
-                  placeholder="Select flock..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
-                />
+                {!hideFlockField && (
+                  <>
+                    <Text style={styles.label}>
+                      Flock<Text style={styles.required}>*</Text>
+                    </Text>
+                    <DropDownPicker
+                      listMode="SCROLLVIEW"
+                      open={flockOpen}
+                      value={selectedFlock}
+                      items={flockItems || []}
+                      setOpen={setFlockOpen}
+                      setValue={setSelectedFlock}
+                      placeholder="Select flock..."
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                    />
+                  </>
+                )}
 
                 {/* DATE */}
                 <Text style={styles.label}>Date</Text>
@@ -1500,24 +1522,28 @@ const AddModal: React.FC<AddModalProps> = ({
                 </View>
               </>
             )}
-
             {type === 'Feed Consumption' && (
               <>
-                {/* FLOCK */}
-                <Text style={styles.label}>
-                  Flock<Text style={styles.required}>*</Text>
-                </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={flockOpen}
-                  value={selectedFlock}
-                  items={flockItems || []}
-                  setOpen={setFlockOpen}
-                  setValue={setSelectedFlock}
-                  placeholder="Select flock..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
-                />
+                {/* Flock selector - only show if hideFlockField is false */}
+                {!hideFlockField && (
+                  <>
+                    <Text style={styles.label}>
+                      Flock<Text style={styles.required}>*</Text>
+                    </Text>
+                    <DropDownPicker
+                      listMode="SCROLLVIEW"
+                      open={flockOpen}
+                      value={selectedFlock}
+                      items={flockItems || []}
+                      setOpen={setFlockOpen}
+                      setValue={setSelectedFlock}
+                      placeholder="Select flock..."
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                    />
+                  </>
+                )}
+
                 {/* DATE */}
                 <Text style={styles.label}>
                   Date<Text style={styles.required}>*</Text>
@@ -1545,6 +1571,7 @@ const AddModal: React.FC<AddModalProps> = ({
                     }}
                   />
                 )}
+
                 {/* FEED */}
                 <Text style={styles.label}>
                   Feed<Text style={styles.required}>*</Text>
@@ -1566,7 +1593,8 @@ const AddModal: React.FC<AddModalProps> = ({
                   labelField="label"
                   valueField="value"
                 />
-                {/* PRICE */}
+
+                {/* PRICE / BAG */}
                 <Text style={styles.label}>
                   Bag<Text style={styles.required}>*</Text>
                 </Text>
@@ -1773,6 +1801,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
+  dropdownElement: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: Theme.colors.borderLight,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: Theme.colors.lightGrey,
+    marginBottom: 10,
+  },
+
+  dropdownContainerElement: {
+    backgroundColor: Theme.colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.borderLight,
+  },
+
+  selectedText: {
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
+  },
+
+  placeholderText: {
+    fontSize: 14,
+    color: '#9E9E9E',
+  },
   radioSelectedOuter: {
     backgroundColor: Theme.colors.primaryYellow,
     borderColor: Theme.colors.borderColor,
