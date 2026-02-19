@@ -93,7 +93,6 @@ const VaccinationMainScreen = () => {
                 onReportPress={
                     activeTab === "vaccinations" || activeTab === "stock"
                         ? () => {
-                            // Yahan apna export/report logic likho
                             console.log("Export clicked");
                         }
                         : undefined

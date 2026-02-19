@@ -128,7 +128,9 @@ const AssignFarmRoleModal: React.FC<Props> = ({
                                 <DropDownPicker
                                     open={openDropdowns[farm.id] || false}
                                     value={selected?.[farm.id]?.roleId}
-                                    items={roleItems || []}
+                                    items={
+                                        roleItems?.map(r => ({ label: r.label, value: r.id })) || []
+                                    }
                                     placeholder="User Role"
                                     setOpen={() => toggleDropdown(farm.id)}
                                     setValue={cb =>
@@ -138,7 +140,7 @@ const AssignFarmRoleModal: React.FC<Props> = ({
                                     dropDownDirection="BOTTOM"
                                     style={[
                                         styles.dropdown,
-                                        !selected?.[farm.id]?.checked && { opacity: 0.5 }, 
+                                        !selected?.[farm.id]?.checked && { opacity: 0.5 },
                                     ]}
                                     dropDownContainerStyle={styles.dropdownBox}
                                     textStyle={{ fontSize: 12 }}

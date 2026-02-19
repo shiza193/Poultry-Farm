@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useFocusEffect, } from '@react-navigation/native';
-
 import {
     View,
     Text,
@@ -17,12 +16,12 @@ import { showErrorToast, showSuccessToast } from "../../utils/AppToast";
 import { useBusinessUnit } from "../../context/BusinessContext"
 import SearchBar from "../../components/common/SearchBar";
 import { Dropdown } from "react-native-element-dropdown";
+import { formatDisplayDate } from "../../utils/validation";
 interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
     onOpenAddModal: () => void;
     setGlobalLoading: (val: boolean) => void;
-
 }
 const VaccinationsScreen: React.FC<Props> = ({
     openAddModal,
@@ -58,12 +57,22 @@ const VaccinationsScreen: React.FC<Props> = ({
             record: null,
         },
     });
-    const fetchVaccinationsData = async () => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const pageSize = 10;
+    const fetchVaccinationsData = async (page: number = 1) => {
         if (!businessUnitId) return;
         setGlobalLoading(true);
         try {
-            const data = await getVaccinations(businessUnitId);
-            setVaccinations(data);
+            const data = await getVaccinations(
+                businessUnitId,
+                page,
+                pageSize,
+                filters.searchKey,
+                filters.supplierId
+            );
+            setVaccinations(data.data.list);
+            setTotalRecords(data.data.totalCount);
         } finally {
             setGlobalLoading(false);
         }
@@ -71,8 +80,8 @@ const VaccinationsScreen: React.FC<Props> = ({
 
     useFocusEffect(
         useCallback(() => {
-            fetchVaccinationsData();
-
+            setCurrentPage(1);
+            fetchVaccinationsData(1);
             setFilters(prev => ({
                 ...prev,
                 supplierId: null,
@@ -121,6 +130,7 @@ const VaccinationsScreen: React.FC<Props> = ({
             const res = await addVaccination(payload);
             if (res.status === "Success") {
                 setVaccinations(prev => [...prev, res.data]);
+                setCurrentPage(1);
                 showSuccessToast("Vaccination added successfully");
             } else {
                 showErrorToast(res.message || "Failed to add vaccination");
@@ -148,6 +158,7 @@ const VaccinationsScreen: React.FC<Props> = ({
                 setVaccinations(prev =>
                     prev.map(v => v.vaccinationId === payload.vaccinationId ? res.data : v)
                 );
+                setCurrentPage(1);
                 showSuccessToast("Vaccination updated successfully");
             } else {
                 showErrorToast(res.message || 'Update failed');
@@ -163,11 +174,7 @@ const VaccinationsScreen: React.FC<Props> = ({
         {
             key: "date",
             title: "DATE",
-            render: (val: string) => {
-                const dateObj = new Date(val);
-                const formatted = dateObj.toLocaleDateString("en-GB");
-                return <Text>{formatted}</Text>;
-            }
+            render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
         },
         { key: "quantity", title: "QUANTITY" },
         {
@@ -196,7 +203,7 @@ const VaccinationsScreen: React.FC<Props> = ({
                     <Dropdown
                         style={styles.inlineDropdown}
                         containerStyle={styles.inlineDropdownContainer}
-                        data={dropdownData.suppliers}  
+                        data={dropdownData.suppliers}
                         labelField="label"
                         valueField="value"
                         placeholder="Supplier"
@@ -228,7 +235,13 @@ const VaccinationsScreen: React.FC<Props> = ({
                 <DataCard
                     columns={columns}
                     data={filteredVaccinations}
-                    itemsPerPage={10}
+                    itemsPerPage={pageSize}
+                    currentPage={currentPage}
+                    totalRecords={totalRecords}
+                    onPageChange={page => {
+                        setCurrentPage(page);
+                        fetchVaccinationsData(page);
+                    }}
                     renderRowMenu={(row, closeMenu) => (
                         <View>
                             <TouchableOpacity

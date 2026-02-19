@@ -44,7 +44,6 @@ const VaccinationStockScreen: React.FC<Props> = ({
         { key: "totalSchedule", title: " SCHEDULED" },
         { key: "availableStock", title: "AVAILABLE", width: 90 },
     ];
-
     // ===== MAP DATA TO MATCH COLUMN KEYS =====
     const tableData = data.map(item => ({
         vaccine: item.vaccine,

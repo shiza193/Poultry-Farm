@@ -107,3 +107,45 @@ const saveAndOpenExcel = async (blob: any, fileName: string) => {
     console.error('❌ Error saving/opening Excel:', error);
   }
 };
+
+
+// ===== Vaccines Excel =====
+export const getVaccinesExcel = async (
+  fileName = 'VaccinesReport',
+  payload: any = {}
+) => {
+  try {
+    console.log(' Sending Vaccines Excel Request Payload:', payload);
+
+    const response = await api.post(
+      'api/Export/vaccines-excel',
+      payload,
+      { responseType: 'blob' }
+    );
+
+    const blob = response.data;
+    await saveAndOpenExcel(blob, fileName);
+  } catch (error) {
+    console.error('❌ Error fetching Vaccines Excel:', error);
+  }
+};
+
+// ===== Vaccine Stock Excel =====
+export const getVaccineStockExcel = async (
+  fileName = 'VaccineStockReport',
+  businessUnitId: string
+) => {
+  try {
+    console.log(' Sending Vaccine Stock Excel Request for BU:', businessUnitId);
+
+    const response = await api.get(
+      `api/Export/vaccine-stock-excel/${businessUnitId}`,
+      { responseType: 'blob' }
+    );
+
+    const blob = response.data;
+    await saveAndOpenExcel(blob, fileName);
+  } catch (error) {
+    console.error('❌ Error fetching Vaccine Stock Excel:', error);
+  }
+};

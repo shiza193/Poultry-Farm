@@ -65,8 +65,9 @@ const UserScreen = () => {
   });
   const [farms, setFarms] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const pageSize = 50;
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
   // ================= FETCH ROLES =================
   useEffect(() => {
     const fetchRoles = async () => {
@@ -87,7 +88,7 @@ const UserScreen = () => {
     fetchRoles();
   }, []);
   // ================= FETCH USERS =================
-  const fetchUsers = async () => {
+  const fetchUsers = async (page: number = 1) => {
     try {
       setLoading(true);
       const payload: any = {
@@ -96,10 +97,9 @@ const UserScreen = () => {
           groupState.status === 'all'
             ? null
             : groupState.status === 'active',
-        pageNumber: 1,
+        pageNumber: page,
         pageSize,
       };
-
       if (groupState.selectedBU) payload.businessUnitId = groupState.selectedBU;
       const response = await getUsers(payload);
       const list = normalizeDataFormat(response?.list, 'array', 'Users');
@@ -114,18 +114,17 @@ const UserScreen = () => {
         businessUnit: u.businessUnit ?? '—',
         createdAt: u.createdAt,
       })));
+      setTotalRecords(response?.totalCount || list.length);
     } catch (error) {
       console.error("Fetch Users Error:", error);
     } finally {
       setLoading(false);
     }
   };
-  useFocusEffect(
-    useCallback(() => {
-      fetchUsers();
-    }, [groupState.search, groupState.status, groupState.selectedBU])
-  );
-
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchUsers(1);
+  }, [groupState.search, groupState.status, groupState.selectedBU]);
   // ================= FILTER =================
   const filteredUsers = users.filter(user => {
     // Destructure for cleaner code
@@ -183,6 +182,7 @@ const UserScreen = () => {
           businessUnit: '—',
         },
       ]);
+      setCurrentPage(1);
     } catch (error) {
       console.error('Add User Error:', error);
       showErrorToast('Failed to add user');
@@ -219,6 +219,7 @@ const UserScreen = () => {
       setUsers(prev =>
         prev.filter(u => u.id !== groupState.selectedUserId),
       );
+      setCurrentPage(1);
       showSuccessToast('User deleted successfully');
     } catch (error) {
     } finally {
@@ -357,7 +358,13 @@ const UserScreen = () => {
           <DataCard
             columns={columns}
             data={tableData}
-            itemsPerPage={10}
+            itemsPerPage={pageSize}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchUsers(page);
+            }}
             renderRowMenu={(row, closeMenu) => (
               <View>
                 {/* DELETE */}

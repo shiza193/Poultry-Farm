@@ -36,33 +36,23 @@ export const getVaccinations = async (
   pageSize: number = 10,
   searchKey: string | null = null,
   supplierId: string | null = null
-): Promise<Vaccination[]> => {
+): Promise<VaccinationResponse> => {   // full response
   try {
     const response = await api.post<VaccinationResponse>(
       `api/Vaccination/get-vaccination-by-search-and-filter-with-pagination`,
-      {
-        businessUnitId,
-        pageNumber,
-        pageSize,
-        searchKey,
-        supplierId,
-      }
+      { businessUnitId, pageNumber, pageSize, searchKey, supplierId }
     );
 
-    console.log("🔹 Vaccination API Response:", response.data);
-
-    if (response.data.status === "Success") {
-      return response.data.data.list;
-    } else {
-      console.warn("Vaccination API returned:", response.data.message);
-      return [];
-    }
+    return response.data;
   } catch (error: any) {
-    console.error("❌ Error fetching vaccinations:", error.response?.data || error.message);
-    return [];
+    console.error(error);
+    return {
+      status: "Error",
+      message: error.message,
+      data: { list: [], totalCount: 0 },
+    };
   }
 };
-
 
 export const getSuppliers = async (businessUnitId: string) => {
   try {
@@ -150,7 +140,7 @@ export const updateVaccination = async (payload: {
 
 export const deleteVaccination = async (vaccinationId: string) => {
   try {
-    // ✅ Using your axios instance `api`
+    // Using your axios instance `api`
     const response = await api.delete(`api/Vaccination/delete-vaccination`, {
       params: { vaccinationId },
     });
@@ -243,7 +233,7 @@ export const getVaccinationStock = async (
     }
   } catch (error: any) {
     console.error(
-      '❌ Error fetching vaccination stock:',
+      ' Error fetching vaccination stock:',
       error.response?.data || error.message
     );
     return [];
@@ -255,16 +245,16 @@ export const updateVaccinationStatus = async (
   isVaccinated: boolean
 ): Promise<boolean> => {
   try {
-    console.log("➡️ Sending to API:", vaccinationScheduleId, isVaccinated);
+    console.log(" Sending to API:", vaccinationScheduleId, isVaccinated);
 
     const response = await api.put(
       `api/VaccinationSchedule/update-scheduled-vaccination-status/${vaccinationScheduleId}/${isVaccinated}`
     );
 
-    console.log("✅ API Response:", response.data);
+    console.log(" API Response:", response.data);
     return response.status === 200;
   } catch (error: any) {
-    console.error("❌ API Error:", error.response?.data);
+    console.error(" API Error:", error.response?.data);
     return false;
   }
 };
@@ -288,7 +278,7 @@ export const addVaccinationSchedule = async (payload: {
     return response.data;
   } catch (error: any) {
     console.error(
-      "❌ Error adding vaccination schedule:",
+      " Error adding vaccination schedule:",
       error.response?.data || error.message
     );
     throw error;
@@ -312,7 +302,7 @@ export const deleteVaccinationSchedule = async (scheduleId: string) => {
       };
     }
   } catch (error: any) {
-    console.error("❌ Delete Vaccination Schedule Error:", error.response?.data || error.message);
+    console.error(" Delete Vaccination Schedule Error:", error.response?.data || error.message);
     return {
       status: "Error",
       message: error?.response?.data?.message || error.message || "Something went wrong",
