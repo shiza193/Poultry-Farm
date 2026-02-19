@@ -22,19 +22,27 @@ interface Props {
     onCloseAddModal: () => void;
     onOpenAddModal: () => void;
     setGlobalLoading: (val: boolean) => void;
+       filters: { searchKey: string; supplierId: string | null };
+    setFilters: React.Dispatch<React.SetStateAction<{ searchKey: string; supplierId: string | null }>>;
+    currentPage: number;
+    setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
 }
 const VaccinationsScreen: React.FC<Props> = ({
     openAddModal,
     onCloseAddModal,
     onOpenAddModal,
     setGlobalLoading,
+        filters,
+    setFilters,
+    currentPage,
+    setCurrentPage,
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
-    const [filters, setFilters] = useState({
-        searchKey: "",
-        supplierId: null as string | null,
-    });
+    // const [filters, setFilters] = useState({
+    //     searchKey: "",
+    //     supplierId: null as string | null,
+    // });
     const [dropdownData, setDropdownData] = useState<{
         suppliers: { label: string; value: string }[];
         vaccines: { label: string; value: number }[];
@@ -57,7 +65,7 @@ const VaccinationsScreen: React.FC<Props> = ({
             record: null,
         },
     });
-    const [currentPage, setCurrentPage] = useState(1);
+    // const [currentPage, setCurrentPage] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
     const pageSize = 10;
     const fetchVaccinationsData = async (page: number = 1) => {

@@ -2,23 +2,25 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import Theme from "../theme/Theme";
 import Header from "../components/common/LogoHeader";
-import { useNavigation } from '@react-navigation/native';
 import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
 import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
 import LoadingOverlay from "../components/loading/LoadingOverlay";
-import { CustomConstants } from "../constants/CustomConstants";
-import ConfirmationModal from "../components/customPopups/ConfirmationModal";
-import { Logout } from "./NavigationService";
+import { getVaccinesExcel } from "../screens/Report/ReportHelpers";
+import { useBusinessUnit } from "../context/BusinessContext";
 
 type TabType = "vaccinations" | "schedule" | "stock";
 
 const VaccinationMainScreen = () => {
-    const navigation = useNavigation<any>();
+    const { businessUnitId } = useBusinessUnit();
     const [activeTab, setActiveTab] = useState<TabType>("vaccinations");
     const [openAddModal, setOpenAddModal] = useState(false);
     const [globalLoading, setGlobalLoading] = useState(false);
-
+    const [filters, setFilters] = useState({
+        searchKey: "",
+        supplierId: null as string | null,
+    });
+    const [currentPage, setCurrentPage] = useState(1);
     const renderScreen = () => {
         switch (activeTab) {
             case "schedule":
@@ -30,7 +32,6 @@ const VaccinationMainScreen = () => {
                         setGlobalLoading={setGlobalLoading}
                     />
                 );
-
             case "stock":
                 return (
                     <VaccinationStockScreen
@@ -47,6 +48,10 @@ const VaccinationMainScreen = () => {
                         onCloseAddModal={() => setOpenAddModal(false)}
                         onOpenAddModal={() => setOpenAddModal(true)}
                         setGlobalLoading={setGlobalLoading}
+                        filters={filters}
+                        setFilters={setFilters}
+                        currentPage={currentPage}
+                        setCurrentPage={setCurrentPage}
                     />
                 );
         }
@@ -92,8 +97,31 @@ const VaccinationMainScreen = () => {
                 }
                 onReportPress={
                     activeTab === "vaccinations" || activeTab === "stock"
-                        ? () => {
-                            console.log("Export clicked");
+                        ? async () => {
+                            if (!businessUnitId) return;
+                            try {
+                                setGlobalLoading(true);
+
+                                if (activeTab === "vaccinations") {
+                                    // Prepare payload based on current filters
+                                    const payload = {
+                                        businessUnitId,
+                                        searchKey: filters.searchKey || null,
+                                        supplierId: filters.supplierId || null,
+                                        pageNumber: currentPage,
+                                        pageSize: 10,
+                                    };
+                                    await getVaccinesExcel("VaccinationsReport", payload);
+                                }
+                                // Optionally handle stock tab export if needed
+                                if (activeTab === "stock") {
+                                    // await getStockExcel(...) // similar to vaccines
+                                }
+                            } catch (error) {
+                                console.error("Error exporting Vaccinations Excel:", error);
+                            } finally {
+                                setGlobalLoading(false);
+                            }
                         }
                         : undefined
                 }

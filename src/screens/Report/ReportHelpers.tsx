@@ -139,7 +139,7 @@ export const getVaccinesExcel = async (
     );
 
     const blob = response.data;
-    await saveAndOpenExcel(blob, fileName);
+    await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
   } catch (error) {
     console.error('❌ Error fetching Vaccines Excel:', error);
   }
@@ -159,7 +159,7 @@ export const getVaccineStockExcel = async (
     );
 
     const blob = response.data;
-    await saveAndOpenExcel(blob, fileName);
+    await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
   } catch (error) {
     console.error('❌ Error fetching Vaccine Stock Excel:', error);
   }
