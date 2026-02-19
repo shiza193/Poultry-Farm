@@ -4,92 +4,107 @@ import ReactNativeBlobUtil from 'react-native-blob-util';
 import FileViewer from 'react-native-file-viewer';
 import { Platform } from 'react-native';
 
+// export const getEggProductionExcel = async (fileName = 'EggProductionReport', payload: any = {}) => {
+//   try {
+//     console.log(' Sending Production Excel Request Payload:', payload);
 
+//     const response = await api.post(
+//       'api/Export/egg-productions-excel',
+//       payload,
+//       { responseType: 'blob' }
+//     );
 
-export const getEggProductionExcel = async (fileName = 'EggProductionReport', payload: any = {}) => {
-  try {
-    console.log(' Sending Production Excel Request Payload:', payload); 
+//     const blob = response.data;
+//     await saveAndOpenExcel(blob, fileName);
+//   } catch (error) {
+//     console.error(' Error fetching Production Excel:', error);
+//   }
+// };
 
-    const response = await api.post(
-      'api/Export/egg-productions-excel',
-      payload,
-      { responseType: 'blob' }
-    );
+// export const getEggStockExcel = async (fileName = 'EggStockReport', businessUnitId: string) => {
+//   try {
+//     console.log(' Sending Stock Excel Request for BU:', businessUnitId);
 
-    const blob = response.data;
-    await saveAndOpenExcel(blob, fileName);
-  } catch (error) {
-    console.error(' Error fetching Production Excel:', error);
-  }
-};
+//     const response = await api.get(
+//       `api/Export/egg-stock-excel/${businessUnitId}`,
+//       { responseType: 'blob' }
+//     );
 
-
-export const getEggStockExcel = async (fileName = 'EggStockReport', businessUnitId: string) => {
-  try {
-    console.log(' Sending Stock Excel Request for BU:', businessUnitId);
-
-    const response = await api.get(
-      `api/Export/egg-stock-excel/${businessUnitId}`,
-      { responseType: 'blob' }
-    );
-
-    const blob = response.data;
-    await saveAndOpenExcel(blob, fileName);
-  } catch (error) {
-    console.error(' Error fetching Stock Excel:', error);
-  }
-};
-
-
-
+//     const blob = response.data;
+//     await saveAndOpenExcel(blob, fileName);
+//   } catch (error) {
+//     console.error(' Error fetching Stock Excel:', error);
+//   }
+// };
 
 // ===== Flocks Excel =====
+// ===== Flocks Excel =====
+interface FlocksExcelFilters {
+  businessUnitId: string;
+  searchKey?: string | null;
+  flockId?: string | null;
+  supplierId?: string | null;
+  isEnded?: boolean | null;
+}
+
 export const getFlocksExcel = async (
   fileName = 'FlocksReport',
-  businessUnitId: string
+  filters: FlocksExcelFilters & { pageNumber?: number; pageSize?: number },
 ) => {
   try {
-    console.log(' Sending Flocks Excel Request for BU:', businessUnitId);
+    const payload = {
+      businessUnitId: filters.businessUnitId,
+      searchKey: filters.searchKey || null,
+      flockId: filters.flockId || null,
+      supplierId: filters.supplierId || null,
+      isEnded: filters.isEnded ?? null,
+      pageNumber: filters.pageNumber ?? 1, // default fallback
+      pageSize: filters.pageSize ?? 10000, // default fallback
+    };
 
-    const payload = { businessUnitId }; 
+    console.log('Sending Flocks Excel Request with payload:', payload);
 
-    const response = await api.post(
-      'api/Export/flocks-excel',
-      payload,
-      { responseType: 'blob' }
+    const response = await api.post('api/Export/flocks-excel', payload, {
+      responseType: 'arraybuffer',
+    });
+
+    await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
+
+    console.log(
+      ` Excel saved at: /storage/emulated/0/Android/data/com.poultryfarm/files/Download/${fileName}.xlsx`,
     );
-
-    const blob = response.data;
-    await saveAndOpenExcel(blob, fileName);
   } catch (error) {
-    console.error(' Error fetching Flocks Excel:', error);
+    console.error('Error fetching Flocks Excel:', error);
   }
 };
 
 
-// Shared save + open logic
-const saveAndOpenExcel = async (blob: any, fileName: string) => {
-  try {
-    // Blob → Base64
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result?.toString() || '';
-        const base64Data = result.includes(',') ? result.split(',')[1] : result;
-        resolve(base64Data);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
 
-    // Save file path
+// ===== Save + Open =====
+const saveAndOpenExcelFromArrayBuffer = async (
+  arrayBuffer: ArrayBuffer,
+  fileName: string,
+) => {
+  try {
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    // Convert Uint8Array → base64
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+
+    const base64Data = ReactNativeBlobUtil.base64.encode(binary);
+
     const filePath =
       Platform.OS === 'android'
         ? `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}.xlsx`
         : `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/${fileName}.xlsx`;
 
-    await ReactNativeBlobUtil.fs.writeFile(filePath, base64, 'base64');
-    console.log(' Excel saved at:', filePath);
+    await ReactNativeBlobUtil.fs.writeFile(filePath, base64Data, 'base64');
+    console.log('✅ Excel saved at:', filePath);
 
     try {
       await FileViewer.open(filePath, { showOpenWithDialog: true });
@@ -97,7 +112,7 @@ const saveAndOpenExcel = async (blob: any, fileName: string) => {
       if (Platform.OS === 'android') {
         ReactNativeBlobUtil.android.actionViewIntent(
           filePath,
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         );
       } else {
         console.log('No compatible app found to open Excel.');

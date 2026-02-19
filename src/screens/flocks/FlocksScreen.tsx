@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -31,7 +31,7 @@ import {
   AutoFeedRecordPayload,
   CalculateFCRPayload,
 } from '../../services/FlockService';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
 import SearchBar from '../../components/common/SearchBar';
@@ -61,31 +61,64 @@ interface FlocksScreenProps {
   onCloseAddModal?: () => void;
   onOpenAddModal?: () => void;
   setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
+ currentPage: number;
+  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
+  // Add these two props
+  filterState: {
+    searchKey: string;
+    isEnded: boolean;
+    selected: {
+      flockId: string | null;
+      supplierId: string | null;
+    };
+    options?: {
+      flocks?: { label: string; id: string }[];
+      suppliers?: { label: string; id: string }[];
+    };
+  };
+  setFilterState: React.Dispatch<
+    React.SetStateAction<{
+      searchKey: string;
+      isEnded: boolean;
+      selected: {
+        flockId: string | null;
+        supplierId: string | null;
+      };
+      options?: {
+        flocks?: { label: string; id: string }[];
+        suppliers?: { label: string; id: string }[];
+      };
+    }>
+  >;
 }
 
 const FlocksScreen: React.FC<FlocksScreenProps> = ({
   setGlobalLoading,
   openAddModal,
   onCloseAddModal,
+    currentPage,
+  setCurrentPage,
+  filterState,
+  setFilterState,
 }) => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
 
   // ===== search aur filter functionality =====
-  const [filterState, setFilterState] = useState({
-    searchKey: '',
-    isEnded: false,
+  // const [filterState, setFilterState] = useState({
+  //   searchKey: '',
+  //   isEnded: false,
 
-    selected: {
-      flockId: null as string | null,
-      supplierId: null as string | null,
-    },
+  //   selected: {
+  //     flockId: null as string | null,
+  //     supplierId: null as string | null,
+  //   },
 
-    options: {
-      flocks: [] as { label: string; id: string }[],
-      suppliers: [] as { label: string; id: string }[],
-    },
-  });
+  //   options: {
+  //     flocks: [] as { label: string; id: string }[],
+  //     suppliers: [] as { label: string; id: string }[],
+  //   },
+  // });
   const [flocks, setFlocks] = useState<Flock[]>([]);
   // =====modals ka visibility control =====
   const [modals, setModals] = useState({
@@ -103,7 +136,6 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
   //wo flock jo delete ke liye select kiya gaya ho
   const [flockToDelete, setFlockToDelete] = useState<Flock | null>(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const pageSize = 10;
 
@@ -286,18 +318,20 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
     fetchSuppliers();
   }, [businessUnitId]);
 
-  useEffect(() => {
-    if (!businessUnitId) return;
+  useFocusEffect(
+    useCallback(() => {
+      if (!businessUnitId) return;
 
-    setCurrentPage(1);
-    fetchFlocks(1);
-  }, [
-    businessUnitId,
-    filterState.searchKey,
-    filterState.selected.flockId,
-    filterState.selected.supplierId,
-    filterState.isEnded,
-  ]);
+      setCurrentPage(1);
+      fetchFlocks(1);
+    }, [
+      businessUnitId,
+      filterState.searchKey,
+      filterState.selected.flockId,
+      filterState.selected.supplierId,
+      filterState.isEnded,
+    ]),
+  );
 
   const AddFlock = async (data: any) => {
     const payload: AddFlockPayload = {
@@ -485,10 +519,10 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
               <Dropdown
                 style={styles.inlineDropdown}
                 containerStyle={styles.inlineDropdownContainer}
-                data={filterState.options.flocks}
+                data={filterState.options?.flocks || []}
                 labelField="label"
                 valueField="id"
-                placeholder='Select Flock'
+                placeholder="Select Flock"
                 selectedTextStyle={styles.selectedText}
                 placeholderStyle={styles.placeholderText}
                 value={filterState.selected.flockId}
@@ -503,10 +537,10 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
               <Dropdown
                 style={styles.inlineDropdown}
                 containerStyle={styles.inlineDropdownContainer}
-                data={filterState.options.suppliers}
+                data={filterState.options?.suppliers || []}
                 labelField="label"
                 valueField="id"
-                placeholder='Select Supplier'
+                placeholder="Select Supplier"
                 selectedTextStyle={styles.selectedText}
                 placeholderStyle={styles.placeholderText}
                 value={filterState.selected.supplierId}
@@ -522,20 +556,20 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
                 filterState.selected.flockId ||
                 filterState.selected.supplierId ||
                 filterState.searchKey) && (
-                  <TouchableOpacity
-                    style={styles.inlineResetButton}
-                    onPress={() => {
-                      setFilterState(prev => ({
-                        ...prev,
-                        isEnded: false,
-                        selected: { flockId: null, supplierId: null },
-                        searchKey: '',
-                      }));
-                    }}
-                  >
-                    <Text style={styles.resetText}>Reset </Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={styles.inlineResetButton}
+                  onPress={() => {
+                    setFilterState(prev => ({
+                      ...prev,
+                      isEnded: false,
+                      selected: { flockId: null, supplierId: null },
+                      searchKey: '',
+                    }));
+                  }}
+                >
+                  <Text style={styles.resetText}>Reset </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
           {/* ===== FLOCK LIST ===== */}
@@ -786,7 +820,6 @@ const styles = StyleSheet.create({
   },
   inlineDropdown: {
     width: 130,
-
     borderWidth: 1,
     borderColor: Theme.colors.success,
     borderRadius: 8,
@@ -795,12 +828,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   selectedText: {
-    fontSize: 14,
+    fontSize: 12,
     color: Theme.colors.textPrimary,
   },
 
   placeholderText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   inlineDropdownContainer: {
     borderColor: Theme.colors.success,
@@ -809,8 +842,7 @@ const styles = StyleSheet.create({
 
   inlineResetButton: {
     paddingHorizontal: 12,
-        marginRight:10
-
+    marginRight: 10,
   },
 
   resetText: {
@@ -840,7 +872,6 @@ const styles = StyleSheet.create({
 
   expandedRow: {
     paddingVertical: 8,
-
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
