@@ -3,12 +3,9 @@ import {
     View,
     Text,
     TouchableOpacity,
-    Image,
-    TextInput,
 } from "react-native";
 import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
-import DropDownPicker from "react-native-dropdown-picker";
 import {
     getVaccinationSchedule, VaccinationSchedule,
     VaccinationSchedulePayload, updateVaccinationStatus, getVaccines,
@@ -23,6 +20,9 @@ import AddModal from "../../components/customPopups/AddModal";
 import ConfirmationModal from "../../components/customPopups/ConfirmationModal";
 import { useFocusEffect } from "@react-navigation/native";
 import SearchBar from "../../components/common/SearchBar";
+import { Dropdown } from "react-native-element-dropdown";
+import { formatDisplayDate } from "../../utils/validation";
+import { normalizeDataFormat } from "../../utils/NormalizeDataFormat";
 
 interface Flock {
     flockId: string;
@@ -45,32 +45,38 @@ const VaccineScheduleScreen: React.FC<Props> = ({
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [schedules, setSchedules] = useState<VaccinationSchedule[]>([]);
-    const [searchText, setSearchText] = useState<string>("");
-    const [flockOpen, setFlockOpen] = useState<boolean>(false);
-    const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
-    const [flockItems, setFlockItems] = useState<{ label: string; value: string }[]>([]);
-    const [vaccineItems, setVaccineItems] = useState<{ label: string; value: number }[]>([]);
-    const [confirmationVisible, setConfirmationVisible] = useState(false);
-    const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
-    const [editingSchedule, setEditingSchedule] = useState<VaccinationSchedule | null>(null);
-
+    const [dataState, setDataState] = useState({
+        searchKey: "",
+        flockId: null as string | null,
+        flockItems: [] as { label: string; value: string }[],
+        vaccineItems: [] as { label: string; value: number }[],
+        editScheduleRecord: null as VaccinationSchedule | null,
+        delteModal: false,
+        selectedScheduleId: null as string | null,
+    });
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 10;
     // ===== FETCH SCHEDULES =====
-    const fetchSchedules = async (pageNumber = 1, pageSize = 10, overrideSearchKey?: string) => {
+    const fetchSchedules = async (page = currentPage) => {
         if (!businessUnitId) return;
         setGlobalLoading(true);
         try {
             const payload: VaccinationSchedulePayload = {
-                searchKey: overrideSearchKey !== undefined
-                    ? overrideSearchKey
-                    : searchText || null,
                 businessUnitId,
-                flockId: selectedFlock || null,
-                pageNumber,
-                pageSize,
+                searchKey: dataState.searchKey || null,
+                flockId: dataState.flockId || null,
+                pageNumber: page,
+                pageSize: pageSize,
             };
             const res = await getVaccinationSchedule(payload);
             if (res.status === "Success") {
-                setSchedules(res.data.list);
+                // Normalize list in case backend changes format
+                const scheduleList = normalizeDataFormat(res.data.list, 'array', 'Vaccination Schedule');
+                setSchedules(scheduleList);
+                setCurrentPage(page);
+                setTotalCount(res.data.totalCount);
             }
         } catch (error: any) {
             console.log(error);
@@ -83,33 +89,39 @@ const VaccineScheduleScreen: React.FC<Props> = ({
             fetchSchedules();
         }, [businessUnitId])
     );
-
     // ===== FETCH FLOCKS =====
     const fetchFlocks = async () => {
         if (!businessUnitId) return;
         try {
             const flocks: Flock[] = await getFlocks(businessUnitId);
-            const dropdownData = flocks.map((f: Flock) => ({
+            const normalizedFlocks: Flock[] = normalizeDataFormat(flocks, 'array', 'Flocks');
+            const dropdownData = normalizedFlocks.map((f: Flock) => ({
                 label: f.flockRef,
                 value: f.flockId,
             }));
-            setFlockItems(dropdownData);
+            setDataState(prev => ({
+                ...prev,
+                flockItems: dropdownData,
+            }));
         } catch (error) {
             console.error("Failed to fetch flocks:", error);
         }
     };
     const fetchVaccines = async () => {
-        const data = await getVaccines();
-        setVaccineItems(data);
+        const vaccines = await getVaccines();
+        const normalizedVaccines = normalizeDataFormat(vaccines, 'array', 'Vaccines');
+        setDataState(prev => ({
+            ...prev,
+            vaccineItems: normalizedVaccines,
+        }));
     };
     useEffect(() => {
         fetchFlocks();
         fetchVaccines();
     }, [businessUnitId]);
     useEffect(() => {
-        fetchSchedules(1, 10, searchText || undefined);
-    }, [searchText, selectedFlock]);
-
+        fetchSchedules(1);
+    }, [dataState.searchKey, dataState.flockId]);
     const handleAddSchedule = async (data: any) => {
         if (!businessUnitId) {
             showErrorToast("Business Unit not found");
@@ -125,13 +137,15 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                     ? data.scheduledDate.toISOString().split("T")[0]
                     : null,
             };
-            console.log("📦 Final Payload:", payload);
+            console.log(" Final Payload:", payload);
 
             const res = await addVaccinationSchedule(payload);
 
             if (res.status === "Success") {
-                showSuccessToast(res.message || "Vaccination Schedule added successfully");
-                fetchSchedules();
+                setSchedules(prev => [...prev, res.data]);
+                setTotalCount(prev => prev + 1);
+                setCurrentPage(1);
+                showSuccessToast("Vaccination Schedule added successfully");
             } else {
                 const backendMsg =
                     res?.message ||
@@ -145,7 +159,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
         }
     };
     const handleEditSchedule = async (data: any) => {
-        if (!editingSchedule || !businessUnitId) return;
+        if (!dataState.editScheduleRecord || !businessUnitId) return;
         const payload = {
             businessUnitId,
             vaccineId: data.vaccineId,
@@ -157,11 +171,13 @@ const VaccineScheduleScreen: React.FC<Props> = ({
         };
         try {
             const res = await updateVaccinationSchedule(
-                editingSchedule.vaccinationScheduleId,
+                dataState.editScheduleRecord!.vaccinationScheduleId,
                 payload
             );
-
-            if (res.status === "Success") {
+            if (res.status === 'Success') {
+                setSchedules(prev =>
+                    prev.map(v => v.vaccinationScheduleId === payload.vaccineId ? res.data : v)
+                );
                 showSuccessToast("Schedule updated successfully");
                 fetchSchedules();
             } else {
@@ -178,16 +194,12 @@ const VaccineScheduleScreen: React.FC<Props> = ({
         {
             key: "ref", title: "REF", isTitle: true, showDots: true,
         },
-        { key: "flockRef", title: "FLOCK" },
+        { key: "flockRef", title: "FLOCK", width: 150 },
         { key: "vaccine", title: " NAME" },
         {
             key: "scheduledDate",
             title: "DATE",
-            render: (val: string) => {
-                const dateObj = new Date(val);
-                const formatted = dateObj.toLocaleDateString("en-GB");
-                return <Text>{formatted}</Text>;
-            }
+            render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
         },
         { key: "quantity", title: "QUANTITY" },
         {
@@ -206,7 +218,6 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                                     : item
                             )
                         );
-
                         const success = await updateVaccinationStatus(
                             row.vaccinationScheduleId,
                             newStatus
@@ -274,30 +285,37 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                     <View style={{ flex: 1 }}>
                         <SearchBar
                             placeholder="Search Ref,Flock vaccine..."
-                            initialValue={searchText}
-                            onSearch={(value) => setSearchText(value)}
+                            onSearch={(value) => setDataState({ ...dataState, searchKey: value })}
                         />
                     </View>
                     <View style={vsstyles.dropdownWrapper}>
-                        <DropDownPicker
-                            open={flockOpen}
-                            value={selectedFlock}
-                            items={flockItems}
-                            setOpen={setFlockOpen}
-                            setValue={setSelectedFlock}
-                            setItems={setFlockItems}
-                            placeholder=" Flock"
-                            style={vsstyles.dropdown}
-                            dropDownContainerStyle={vsstyles.dropdownContainer}
-                            textStyle={vsstyles.dropdownText}
-                        />
+                        <Dropdown
+                            style={vsstyles.inlineDropdown}
+                            containerStyle={vsstyles.inlineDropdownContainer}
+                            selectedTextStyle={vsstyles.dropdownText}
+                            data={dataState.flockItems}
+                            labelField="label"
+                            valueField="value"
+                            placeholder="Flock"
+                            value={dataState.flockId}
+                            onChange={(item) =>
+                                setDataState(prev => ({
+                                    ...prev,
+                                    flockId: item.value
+                                }))
+                            } />
                     </View>
                 </View>
-                {(selectedFlock) && (
+                {(dataState.flockId) && (
                     <View style={vsstyles.resetRow}>
-                        <TouchableOpacity onPress={() => {
-                            setSelectedFlock(null);
-                        }}>
+                        <TouchableOpacity
+                            onPress={() => {
+                                setDataState(prev => ({
+                                    ...prev,
+                                    flockId: null,
+                                }));
+                            }}
+                        >
                             <Text style={vsstyles.resetText}>Reset Filters</Text>
                         </TouchableOpacity>
                     </View>
@@ -307,12 +325,21 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                     <DataCard
                         columns={columns}
                         data={tableData}
-                        itemsPerPage={5}
+                        itemsPerPage={pageSize}
+                        currentPage={currentPage}
+                        totalRecords={totalCount}
+                        onPageChange={page => {
+                            setCurrentPage(page);
+                            fetchSchedules(page);
+                        }}
                         renderRowMenu={(row, closeMenu) => (
                             <View>
                                 <TouchableOpacity
                                     onPress={() => {
-                                        setEditingSchedule(row);
+                                        setDataState(prev => ({
+                                            ...prev,
+                                            editScheduleRecord: row,
+                                        }));
                                         onOpenAddModal();
                                     }}
                                     style={{ marginBottom: 8 }}
@@ -322,8 +349,11 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                                 <View style={vsstyles.menuSeparator} />
                                 <TouchableOpacity
                                     onPress={() => {
-                                        setSelectedScheduleId(row.vaccinationScheduleId);
-                                        setConfirmationVisible(true);
+                                        setDataState(prev => ({
+                                            ...prev,
+                                            selectedScheduleId: row.vaccinationScheduleId,
+                                            delteModal: true,
+                                        }));
                                         closeMenu();
                                     }}
                                     style={{ marginTop: 8 }}
@@ -338,49 +368,59 @@ const VaccineScheduleScreen: React.FC<Props> = ({
             <AddModal
                 visible={openAddModal}
                 type="vaccination Schedule"
-                title={editingSchedule ? "Edit Vaccine Schedule" : "Add Vaccine Schedule"}
+                title={dataState.editScheduleRecord ? "Edit Vaccine Schedule" : "Add Vaccine Schedule"}
                 onClose={() => {
-                    setEditingSchedule(null);
+                    setDataState(prev => ({ ...prev, editScheduleRecord: null }));
                     onCloseAddModal();
                 }}
                 onSave={(data) => {
-                    if (editingSchedule) {
+                    if (dataState.editScheduleRecord) {
                         handleEditSchedule(data);
                     } else {
                         handleAddSchedule(data);
                     }
-                    setEditingSchedule(null);
+                    setDataState(prev => ({ ...prev, editScheduleRecord: null }));
                     onCloseAddModal();
                 }}
-                vaccineItems={vaccineItems}
-                flockItems={flockItems}
-                initialData={editingSchedule}
+                vaccineItems={dataState.vaccineItems}
+                flockItems={dataState.flockItems}
+                initialData={dataState.editScheduleRecord}
             />
             <ConfirmationModal
-                visible={confirmationVisible}
+                visible={dataState.delteModal}
                 type="delete"
                 title="Are you sure you want to delete this schedule?"
-                onClose={() => setConfirmationVisible(false)}
+                onClose={() =>
+                    setDataState(prev => ({
+                        ...prev,
+                        delteModal: false,
+                    }))
+                }
                 onConfirm={async () => {
-                    if (!selectedScheduleId) return;
+                    if (!dataState.selectedScheduleId) return;
                     try {
-                        const res = await deleteVaccinationSchedule(selectedScheduleId);
+                        const res = await deleteVaccinationSchedule(dataState.selectedScheduleId);
                         if (res.status === "Success") {
                             showSuccessToast("Schedule deleted successfully");
-                            fetchSchedules();
+                            setSchedules(prev =>
+                                prev.filter(s => s.vaccinationScheduleId !== dataState.selectedScheduleId)
+                            );
+                            setTotalCount(prev => prev - 1)
                         } else {
                             showErrorToast(res.message || "Failed to delete schedule");
                         }
                     } catch (error: any) {
                         showErrorToast(error?.message || "Something went wrong");
                     } finally {
-                        setConfirmationVisible(false);
-                        setSelectedScheduleId(null);
+                        setDataState(prev => ({
+                            ...prev,
+                            delteModal: false,
+                            selectedScheduleId: null,
+                        }));
                     }
                 }}
             />
         </View>
     );
 };
-
 export default VaccineScheduleScreen;

@@ -4,7 +4,7 @@ import {
     View,
     Text,
     TouchableOpacity,
-    Image,
+    Image, ScrollView,
 } from "react-native";
 import DataCard, { TableColumn } from "../../components/customCards/DataCard";
 import Theme from "../../theme/Theme";
@@ -17,12 +17,13 @@ import { useBusinessUnit } from "../../context/BusinessContext"
 import SearchBar from "../../components/common/SearchBar";
 import { Dropdown } from "react-native-element-dropdown";
 import { formatDisplayDate } from "../../utils/validation";
+import { normalizeDataFormat } from "../../utils/NormalizeDataFormat";
 interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
     onOpenAddModal: () => void;
     setGlobalLoading: (val: boolean) => void;
-       filters: { searchKey: string; supplierId: string | null };
+    filters: { searchKey: string; supplierId: string | null };
     setFilters: React.Dispatch<React.SetStateAction<{ searchKey: string; supplierId: string | null }>>;
     currentPage: number;
     setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
@@ -32,17 +33,13 @@ const VaccinationsScreen: React.FC<Props> = ({
     onCloseAddModal,
     onOpenAddModal,
     setGlobalLoading,
-        filters,
+    filters,
     setFilters,
     currentPage,
     setCurrentPage,
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
-    // const [filters, setFilters] = useState({
-    //     searchKey: "",
-    //     supplierId: null as string | null,
-    // });
     const [dropdownData, setDropdownData] = useState<{
         suppliers: { label: string; value: string }[];
         vaccines: { label: string; value: number }[];
@@ -51,49 +48,40 @@ const VaccinationsScreen: React.FC<Props> = ({
         vaccines: [],
     });
     const [modalState, setModalState] = useState<{
-        showVaccinationModal: boolean;
-        editRecord: Vaccination | null;
-        delete: {
-            visible: boolean;
-            record: Vaccination | null;
-        };
+        selectedVaccinationModal: 'edit' | 'delete' | null;
+        vaccinerecord: Vaccination | null;
     }>({
-        showVaccinationModal: false,
-        editRecord: null,
-        delete: {
-            visible: false,
-            record: null,
-        },
+        selectedVaccinationModal: null,
+        vaccinerecord: null,
     });
-    // const [currentPage, setCurrentPage] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
     const pageSize = 10;
     const fetchVaccinationsData = async (page: number = 1) => {
         if (!businessUnitId) return;
         setGlobalLoading(true);
         try {
-            const data = await getVaccinations(
+            const res = await getVaccinations(
                 businessUnitId,
                 page,
                 pageSize,
                 filters.searchKey,
                 filters.supplierId
             );
-            setVaccinations(data.data.list);
-            setTotalRecords(data.data.totalCount);
+            const normalizedVaccinations = normalizeDataFormat(res.data.list, 'array', 'Vaccinations');
+            setVaccinations(normalizedVaccinations);
+            setTotalRecords(res.data.totalCount);
         } finally {
             setGlobalLoading(false);
         }
     };
-
     useFocusEffect(
         useCallback(() => {
-            setCurrentPage(1);
+            setCurrentPage(1)
             fetchVaccinationsData(1);
-            setFilters(prev => ({
-                ...prev,
+            setFilters({
                 supplierId: null,
-            }));
+                searchKey: "",
+            });
         }, [businessUnitId])
     );
     const fetchSuppliers = async () => {
@@ -110,18 +98,11 @@ const VaccinationsScreen: React.FC<Props> = ({
         fetchSuppliers();
         fetchVaccines();
     }, [businessUnitId]);
-    const filteredVaccinations = vaccinations.filter(item => {
-        const supplierMatch = filters.supplierId
-            ? item.supplierId === filters.supplierId
-            : true;
-
-        const searchMatch = filters.searchKey
-            ? item.vaccine.toLowerCase().includes(filters.searchKey.toLowerCase())
-            : true;
-
-        return supplierMatch && searchMatch;
-    });
-
+    useEffect(() => {
+        if (businessUnitId) {
+            fetchVaccinationsData(1);
+        }
+    }, [filters, businessUnitId, ]);
     const handleAddVaccination = async (data: any) => {
         if (!businessUnitId) return;
         const payload = {
@@ -138,6 +119,7 @@ const VaccinationsScreen: React.FC<Props> = ({
             const res = await addVaccination(payload);
             if (res.status === "Success") {
                 setVaccinations(prev => [...prev, res.data]);
+                setTotalRecords(prev => prev + 1);
                 setCurrentPage(1);
                 showSuccessToast("Vaccination added successfully");
             } else {
@@ -149,9 +131,8 @@ const VaccinationsScreen: React.FC<Props> = ({
         }
     };
     const handleUpdateVaccination = async (data: any) => {
-        if (!modalState.editRecord || !businessUnitId) return;
-        const payload = {
-            vaccinationId: modalState.editRecord.vaccinationId,
+        if (modalState.selectedVaccinationModal !== 'edit' || !modalState.vaccinerecord || !businessUnitId) return; const payload = {
+            vaccinationId: modalState.vaccinerecord!.vaccinationId,
             vaccineId: Number(data.vaccine),
             date: data.date.toISOString().split('T')[0],
             quantity: Number(data.quantity),
@@ -239,10 +220,10 @@ const VaccinationsScreen: React.FC<Props> = ({
                 </TouchableOpacity>
             )}
             {/* ===== DATA CARD ===== */}
-            <View style={{ flex: 1, paddingHorizontal: 16 }}>
+            <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
                 <DataCard
                     columns={columns}
-                    data={filteredVaccinations}
+                    data={vaccinations}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalRecords}
@@ -254,11 +235,10 @@ const VaccinationsScreen: React.FC<Props> = ({
                         <View>
                             <TouchableOpacity
                                 onPress={() => {
-                                    setModalState(prev => ({
-                                        ...prev,
-                                        showVaccinationModal: true,
-                                        editRecord: row,
-                                    }));
+                                    setModalState({
+                                        selectedVaccinationModal: 'edit',
+                                        vaccinerecord: row,
+                                    });
                                     onOpenAddModal();
                                     closeMenu();
                                 }}
@@ -269,13 +249,10 @@ const VaccinationsScreen: React.FC<Props> = ({
                             <View style={styles.menuSeparator} />
                             <TouchableOpacity
                                 onPress={() => {
-                                    setModalState(prev => ({
-                                        ...prev,
-                                        delete: {
-                                            visible: true,
-                                            record: row,
-                                        },
-                                    }));
+                                    setModalState({
+                                        selectedVaccinationModal: 'delete',
+                                        vaccinerecord: row,
+                                    });
                                     closeMenu();
                                 }}
                                 style={{ marginTop: 8 }}
@@ -285,35 +262,37 @@ const VaccinationsScreen: React.FC<Props> = ({
                         </View>
                     )}
                 />
-            </View>
+            </ScrollView>
             {/* ===== ADD / EDIT MODAL ===== */}
             <AddModal
                 visible={openAddModal}
                 type="vaccination"
-                title={modalState.editRecord ? "Edit Vaccination" : "Add Vaccination"}
-                isEdit={!!modalState.editRecord}
-                initialData={modalState.editRecord}
+                title={
+                    modalState.selectedVaccinationModal === 'edit'
+                        ? "Edit Vaccination"
+                        : "Add Vaccination"
+                }
+                isEdit={modalState.selectedVaccinationModal === 'edit'}
+                initialData={modalState.vaccinerecord}
                 onClose={() => {
                     onCloseAddModal();
-                    setModalState(prev => ({
-                        ...prev,
-                        showVaccinationModal: false,
-                        editRecord: null,
-                    }));
+                    setModalState({
+                        selectedVaccinationModal: null,
+                        vaccinerecord: null,
+                    });
                 }}
                 onSave={(data) => {
-                    if (modalState.editRecord) {
+                    if (modalState.selectedVaccinationModal === 'edit' && modalState.vaccinerecord) {
                         handleUpdateVaccination(data);
                     } else {
                         handleAddVaccination(data);
                     }
 
                     onCloseAddModal();
-                    setModalState(prev => ({
-                        ...prev,
-                        showVaccinationModal: false,
-                        editRecord: null,
-                    }));
+                    setModalState({
+                        selectedVaccinationModal: null,
+                        vaccinerecord: null,
+                    });
                 }}
                 vaccineItems={dropdownData.vaccines}
                 supplierItems={dropdownData.suppliers}
@@ -321,25 +300,28 @@ const VaccinationsScreen: React.FC<Props> = ({
             {/* ===== DELETE MODAL ===== */}
             <ConfirmationModal
                 type="delete"
-                visible={modalState.delete.visible}
-                title={`Are you sure you want to delete ${modalState.delete.record?.vaccine}?`}
+                visible={modalState.selectedVaccinationModal === 'delete'}
+                title={`Are you sure you want to delete ${modalState.vaccinerecord?.vaccine}?`}
                 onClose={() => {
-                    setModalState(prev => ({
-                        ...prev,
-                        delete: {
-                            visible: false,
-                            record: null,
-                        },
-                    }));
+                    setModalState({
+                        selectedVaccinationModal: null,
+                        vaccinerecord: null,
+                    });
                 }}
                 onConfirm={async () => {
-                    if (!modalState.delete.record) return;
+                    if (modalState.selectedVaccinationModal !== 'delete' || !modalState.vaccinerecord) return;
                     try {
-                        const res = await deleteVaccination(modalState.delete.record!.vaccinationId);
+                        const res = await deleteVaccination(modalState.vaccinerecord.vaccinationId);
                         if (res.status === "Success") {
                             setVaccinations(prev =>
-                                prev.filter(v => v.vaccinationId !== modalState.delete.record!.vaccinationId)
+                                prev.filter(v => v.vaccinationId !== modalState.vaccinerecord!.vaccinationId)
                             );
+                            setTotalRecords(prev => prev - 1);
+                            if ((vaccinations.length - 1) === 0 && currentPage > 1) {
+                                const newPage = currentPage - 1;
+                                setCurrentPage(newPage);
+                                fetchVaccinationsData(newPage);
+                            }
                             showSuccessToast("Vaccination deleted successfully");
                         } else {
                             showErrorToast(res.message || "Delete failed");

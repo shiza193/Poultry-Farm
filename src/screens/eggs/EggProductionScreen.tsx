@@ -11,10 +11,11 @@ import {
 import { useBusinessUnit } from "../../context/BusinessContext";
 import { useFocusEffect } from '@react-navigation/native';
 import { getFlocks } from "../../services/FlockService";
-import DropDownPicker from "react-native-dropdown-picker";
 import AddModal from '../../components/customPopups/AddModal';
 import { showErrorToast, showSuccessToast } from "../../utils/AppToast";
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
+import SearchBar from '../../components/common/SearchBar';
+import { Dropdown } from 'react-native-element-dropdown';
 
 interface Flock {
   flockId: string;
@@ -39,21 +40,23 @@ const EggProductionScreen: React.FC<Props> = ({
   const { businessUnitId } = useBusinessUnit();
   // States
   const [eggProductionList, setEggProductionList] = useState<EggProduction[]>([]);
-  const [searchText, setSearchText] = useState<string>("");
-  const [flockOpen, setFlockOpen] = useState<boolean>(false);
+  const [filters, setFilters] = useState({
+    searchKey: "",
+    flockId: null as string | null,
+  });
   const [masterData, setMasterData] = useState<{
     flocks: { label: string; value: string; isSelected?: boolean }[];
     units: { label: string; value: number }[];
-    selectedFlock: string | null;
   }>({
     flocks: [],
     units: [],
-    selectedFlock: null,
   });
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedEggProduction, setSelectedEggProduction] = useState<EggProduction | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
   // TABLE COLUMNS
   const columns: TableColumn[] = [
     {
@@ -77,27 +80,36 @@ const EggProductionScreen: React.FC<Props> = ({
     { key: 'brokenEggs', title: 'BROKEN', width: 80 },
   ];
   // FETCH DATA
-  const fetchEggProduction = async (overrideSearchKey?: string | null) => {
+  const fetchEggProduction = async (page: number = 1) => {
     if (!businessUnitId) return;
 
     setGlobalLoading(true);
 
     const payload = {
       businessUnitId,
-      flockId: masterData.selectedFlock,
-      searchKey: overrideSearchKey !== undefined ? overrideSearchKey : searchText || null,
-      pageNumber: 1,
-      pageSize: 100,
+      flockId: filters.flockId,
+      searchKey: filters.searchKey || null,
+      pageNumber: page,
+      pageSize,
     };
 
-    const data = await getEggProduction(payload);
-    setEggProductionList(data);
-    setGlobalLoading(false);
+    try {
+      const data = await getEggProduction(payload);
+      setEggProductionList(data.items);
+      setTotalRecords(data.totalRecords);
+      setCurrentPage(page);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGlobalLoading(false);
+    }
   };
+
   useFocusEffect(
     useCallback(() => {
-      fetchEggProduction();
-      setMasterData(prev => ({ ...prev, selectedFlock: null })); 
+      setCurrentPage(1);
+      fetchEggProduction(1);
+      setMasterData(prev => ({ ...prev, selectedFlock: null }));
     }, [businessUnitId])
   );
   // ===== FETCH FLOCKS =====
@@ -125,7 +137,7 @@ const EggProductionScreen: React.FC<Props> = ({
     if (businessUnitId) {
       fetchEggProduction();
     }
-  }, [masterData.selectedFlock]);
+  }, [filters]);
   const fetchUnits = async () => {
     try {
       const units = await getUnitsByProductType(1);
@@ -138,7 +150,6 @@ const EggProductionScreen: React.FC<Props> = ({
       console.error("Failed to fetch units", error);
     }
   };
-
   // ===== HANDLERS =====
   const handleAddEditEggProduction = async (data: any) => {
     if (!businessUnitId) return;
@@ -215,67 +226,46 @@ const EggProductionScreen: React.FC<Props> = ({
     <View style={styles.container}>
       {/* ===== SEARCH + FLOCK DROPDOWN ===== */}
       <View style={styles.filterRow}>
-        <View style={styles.searchContainer}>
-          <TextInput
+        <View style={{ flex: 1 }}>
+          <SearchBar
             placeholder="Search Ref/Flock..."
-            placeholderTextColor={Theme.colors.textSecondary}
-            value={searchText}
-            onChangeText={setSearchText}
-            style={styles.searchInput}
+            onSearch={(val) =>
+              setFilters(prev => ({
+                ...prev,
+                searchKey: val,
+              }))
+            }
           />
-          {/*  CLEAR ICON */}
-          {searchText.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                setSearchText("");
-                fetchEggProduction(null);
-              }}
-            >
-              <Image source={Theme.icons.cross} style={styles.clearIcon} />
-            </TouchableOpacity>
-          )}
-          {/* SEARCH ICON */}
-          <TouchableOpacity onPress={() => fetchEggProduction()}>
-            <Image
-              source={Theme.icons.search}
-              style={styles.searchIcon}
-            />
-          </TouchableOpacity>
         </View>
         <View style={styles.dropdownWrapper}>
-          <DropDownPicker
-            open={flockOpen}
-            value={masterData.selectedFlock}
-            items={masterData.flocks}
-            setOpen={setFlockOpen}
-            setValue={(callbackOrValue: any) =>
-              setMasterData(prev => ({
-                ...prev,
-                selectedFlock:
-                  typeof callbackOrValue === 'function'
-                    ? callbackOrValue(prev.selectedFlock)
-                    : callbackOrValue,
-              }))
-            }
-            setItems={(callbackOrItems: any) =>
-              setMasterData(prev => ({
-                ...prev,
-                flocks:
-                  typeof callbackOrItems === 'function'
-                    ? callbackOrItems(prev.flocks)
-                    : callbackOrItems,
-              }))
-            }
+          <Dropdown
+            style={styles.inlineDropdown}
+            containerStyle={styles.inlineDropdownContainer}
+            data={masterData.flocks}
+            labelField="label"
+            valueField="value"
             placeholder="Flock"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            textStyle={styles.dropdownText}
+            value={filters.flockId}
+            selectedTextStyle={styles.dropdownText}
+            onChange={(item) => {
+              setFilters(prev => ({
+                ...prev,
+                flockId: item.value,
+              }));
+            }}
           />
         </View>
       </View>
-      {masterData.selectedFlock && (
+      {filters.flockId && (
         <View style={styles.resetRow}>
-          <TouchableOpacity onPress={() => setMasterData(prev => ({ ...prev, selectedFlock: null }))}>
+          <TouchableOpacity
+            onPress={() =>
+              setFilters(prev => ({
+                ...prev,
+                flockId: null,
+              }))
+            }
+          >
             <Text style={styles.resetText}>Reset Filters</Text>
           </TouchableOpacity>
         </View>
@@ -287,8 +277,13 @@ const EggProductionScreen: React.FC<Props> = ({
         <DataCard
           columns={columns}
           data={eggProductionList}
-          itemsPerPage={10}
-          renderRowMenu={(row, closeMenu) => (
+          itemsPerPage={pageSize}
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          onPageChange={page => {
+            setCurrentPage(page);
+            fetchEggProduction(page);
+          }} renderRowMenu={(row, closeMenu) => (
             <View>
               <TouchableOpacity onPress={() => { setIsEditMode(true); setSelectedEggProduction(row); onOpenAddModal?.(); closeMenu(); }}
                 style={{ marginBottom: 8 }}
@@ -347,39 +342,35 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 18,
     paddingVertical: 8,
+    gap: 8,
   },
-  searchContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+  dropdownWrapper: {
+    width: 120,
+    zIndex: 1
+  },
+  inlineDropdown: {
+    width: 120,
     borderWidth: 1,
     borderColor: Theme.colors.success,
     borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 40,
-    marginRight: 10,
-    backgroundColor: Theme.colors.white,
+    minHeight: 42,
+    paddingHorizontal: 5,
+    paddingVertical: 3,
   },
-  searchIcon: { width: 18, height: 18, tintColor: Theme.colors.success, marginRight: 6 },
-  searchInput: { flex: 1, fontSize: 14, color: Theme.colors.black },
-  clearIcon: {
-    width: 18,
-    height: 18,
-    marginRight: 6,
-    tintColor: Theme.colors.success,
+  inlineDropdownContainer: {
+    borderColor: Theme.colors.success,
+    borderRadius: 8,
   },
-  dropdownWrapper: { width: 120, zIndex: 1 },
-  dropdown: {
-    borderColor: Theme.colors.success, height: 40,
-    minHeight: 40,
+  dropdownText: {
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
   },
-  dropdownContainer: { borderColor: Theme.colors.success },
-  dropdownText: { color: Theme.colors.black },
   resetRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
     paddingHorizontal: 16,
     marginTop: 4,
+    marginBottom: 5
   },
   resetText: {
     fontSize: 13,

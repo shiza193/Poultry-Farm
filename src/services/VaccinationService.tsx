@@ -75,7 +75,6 @@ export const getSuppliers = async (businessUnitId: string) => {
   }
 };
 
-
 export const getVaccines = async () => {
   try {
     const response = await api.get('api/Master/get-vaccines');

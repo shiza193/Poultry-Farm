@@ -87,23 +87,32 @@ export interface GetEggProductionPayload {
   pageSize: number;
 }
 
+export interface PaginatedEggProduction {
+  items: EggProduction[];
+  totalRecords: number;
+}
+
 export const getEggProduction = async (
   payload: GetEggProductionPayload
-): Promise<EggProduction[]> => {
+): Promise<PaginatedEggProduction> => {
   try {
     const response = await api.post(
       'api/EggProduction/get-eggProduction-by-search-and-filter-with-pagination',
       payload
     );
     if (response.data.status === 'Success') {
-      return response.data.data.list;
+      return {
+        items: response.data.data.list,   // array of EggProduction
+        totalRecords: response.data.data.totalRecords, // backend se
+      };
     }
-    return [];
+    return { items: [], totalRecords: 0 };
   } catch (error) {
     console.error('Get Egg Production Error:', error);
-    return [];
+    return { items: [], totalRecords: 0 };
   }
 };
+
 
 export const getCustomers = async (businessUnitId: string) => {
   try {
