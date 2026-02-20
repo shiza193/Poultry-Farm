@@ -25,16 +25,21 @@ interface ItemEntryModalProps {
   onClose: () => void;
   onSave: (data: any) => Promise<{ fcr: number; message: string } | void>;
   businessUnitId?: string;
+  initialData?: {
+    quantity?: number;
+    expireDate?: Date;
+    id?: string | number;
+  };
 }
 
 const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   visible,
   type = 'feed',
   onClose,
+  initialData,
   onSave,
 }) => {
   const { businessUnitId } = useBusinessUnit();
-
   // ---------- Common States ----------
   const [feed, setFeed] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -118,11 +123,31 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   }, [visible, type]);
 
   useEffect(() => {
-    if (visible) {
-      resetFields(); // reset all fields whenever modal is opened
+    if (visible && !initialData) {
+      resetFields();
     }
   }, [visible]);
 
+useEffect(() => {
+  if (visible && initialData && type === 'mortality') {
+    console.log('Initial Data:', initialData);
+
+    setQuantity(
+      initialData.quantity !== undefined
+        ? String(initialData.quantity)
+        : ''
+    );
+
+    // Handle both expireDate and date keys
+    const dateValue =
+      initialData.expireDate ||
+      (initialData as any).date;
+
+    setExpireDate(
+      dateValue ? new Date(dateValue) : null
+    );
+  }
+}, [visible, initialData, type]);
   // ---------- Fetch Customers ----------
   useEffect(() => {
     if (visible && type === 'flockSale' && businessUnitId) {
@@ -222,20 +247,20 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                 {type === 'feed' && (
                   <>
                     <Text style={styles.title}>Add Feed</Text>
-             
-                     <Text style={styles.label}>Feed Name</Text>
-    <Dropdown
-      style={styles.dropdownElement}
-      containerStyle={styles.dropdownContainerElement}
-      data={items}
-      labelField="label"
-      valueField="value"
-      placeholder={loading ? 'Loading...' : 'Select Feed...'}
-      value={feed}
-      onChange={item => setFeed(item.value)}
-      selectedTextStyle={styles.selectedText}
-      placeholderStyle={styles.placeholderText}
-    />
+
+                    <Text style={styles.label}>Feed Name</Text>
+                    <Dropdown
+                      style={styles.dropdownElement}
+                      containerStyle={styles.dropdownContainerElement}
+                      data={items}
+                      labelField="label"
+                      valueField="value"
+                      placeholder={loading ? 'Loading...' : 'Select Feed...'}
+                      value={feed}
+                      onChange={item => setFeed(item.value)}
+                      selectedTextStyle={styles.selectedText}
+                      placeholderStyle={styles.placeholderText}
+                    />
                     <Text style={styles.label}>Quantity</Text>
                     <TextInput
                       placeholder="Enter quantity..."
@@ -281,7 +306,9 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                 {/* Mortality */}
                 {type === 'mortality' && (
                   <>
-                    <Text style={styles.title}>Add Mortality</Text>
+                    <Text style={styles.title}>
+                      {initialData ? 'Edit Mortality' : 'Add Mortality'}
+                    </Text>
                     <Text style={styles.label}>Quantity</Text>
                     <TextInput
                       placeholder="Enter quantity..."
@@ -305,7 +332,6 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                         style={styles.dateIcon}
                       />
                     </TouchableOpacity>
-
                     {showExpirePicker && (
                       <DateTimePicker
                         value={expireDate || new Date()}
@@ -409,7 +435,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                       keyboardType="numeric"
                       style={styles.input}
                     />
-                      {/* <TextInput
+                    {/* <TextInput
                       placeholder="Enter treatment days..."
                       value={treatmentDays}
                       onChangeText={text => {
@@ -445,17 +471,17 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                     <Text style={styles.label}>Customer Name</Text>
                     <View style={{ zIndex: 1000, marginBottom: 10 }}>
                       <Dropdown
-      style={styles.dropdownElement}
-      containerStyle={styles.dropdownContainerElement}
-      data={customerItems}
-      labelField="label"
-      valueField="value"
-      placeholder="Select customer"
-      value={customer}
-      onChange={item => setCustomer(item.value)}
-      selectedTextStyle={styles.selectedText}
-      placeholderStyle={styles.placeholderText}
-    />
+                        style={styles.dropdownElement}
+                        containerStyle={styles.dropdownContainerElement}
+                        data={customerItems}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Select customer"
+                        value={customer}
+                        onChange={item => setCustomer(item.value)}
+                        selectedTextStyle={styles.selectedText}
+                        placeholderStyle={styles.placeholderText}
+                      />
                     </View>
 
                     <Text style={styles.label}>Flock</Text>
@@ -597,26 +623,26 @@ const styles = StyleSheet.create({
     height: 20,
     tintColor: Theme.colors.iconPrimary,
   },
-dropdownElement: {
-  height: 50,
-  borderColor: Theme.colors.borderLight,
-  borderWidth: 1,
-  borderRadius: 8,
-  paddingHorizontal: 12,
-  backgroundColor: Theme.colors.lightGrey,
-  marginBottom: 10,
-},
-dropdownContainerElement: {
-  backgroundColor: Theme.colors.white,
-  borderColor: Theme.colors.borderLight,
-  borderRadius: 8,
-},
-selectedText: {
-  color: Theme.colors.black,
-},
-placeholderText: {
-  color: Theme.colors.black,
-},
+  dropdownElement: {
+    height: 50,
+    borderColor: Theme.colors.borderLight,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: Theme.colors.lightGrey,
+    marginBottom: 10,
+  },
+  dropdownContainerElement: {
+    backgroundColor: Theme.colors.white,
+    borderColor: Theme.colors.borderLight,
+    borderRadius: 8,
+  },
+  selectedText: {
+    color: Theme.colors.black,
+  },
+  placeholderText: {
+    color: Theme.colors.black,
+  },
 
   dropdown: {
     backgroundColor: Theme.colors.lightGrey,

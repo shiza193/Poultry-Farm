@@ -38,8 +38,7 @@ interface BusinessUnitModalProps {
     newPassword: string;
     confirmPassword: string;
   }) => void;
-  flockItems?: { label: string; value: string }[];
-  supplierItems?: { label: string; value: string }[];
+
   selectedFlockId?: string | null;
   selectedSupplier?: string | null;
   isComplete?: boolean;
@@ -83,6 +82,15 @@ interface BusinessUnitModalProps {
   modalTitle?: string;
   singleFieldLabel?: string;
   singleFieldValue?: string;
+  flockItems?: {
+    label: string;
+    id: string;
+  }[];
+
+  supplierItems?: {
+    label: string;
+    id: string;
+  }[];
 }
 
 const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
@@ -299,7 +307,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 containerStyle={styles.dropdownContainer}
                 data={flockItems}
                 labelField="label"
-                valueField="value"
+                valueField="id"
                 placeholder="Select flock"
                 value={selectedFlockId}
                 placeholderStyle={styles.dropdownPlaceholder}
@@ -315,7 +323,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 containerStyle={styles.dropdownContainer}
                 data={supplierItems}
                 labelField="label"
-                valueField="value"
+                valueField="id"
                 placeholder="Select supplier"
                 value={selectedSupplier}
                 placeholderStyle={styles.dropdownPlaceholder}
