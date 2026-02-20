@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   eggsProductionCard: {
     flexDirection: 'row',
     backgroundColor: Theme.colors.white,
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: Theme.colors.white,

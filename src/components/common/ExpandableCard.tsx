@@ -60,6 +60,10 @@ const ExpandableCard: React.FC<Props> = ({
     setData({ ...data, [key]: value });
   };
 
+  const genderOptions = [
+    { label: 'Hen', value: 'Hen' },
+    { label: 'Rooster', value: 'Rooster' },
+  ];
   const handleSave = () => {
     if (onSave) onSave(data);
     setEditing(false);
@@ -184,6 +188,20 @@ const ExpandableCard: React.FC<Props> = ({
                               handleChange('flockTypeId', item.value)
                             }
                           />
+                        ) : key === 'gender' ? (
+                          <Dropdown
+                            key="gender-dropdown"
+                            style={styles.dropdown}
+                            containerStyle={styles.dropdownContainer}
+                            data={genderOptions}
+                            labelField="label"
+                            valueField="value"
+                            placeholder="Select Gender"
+                            value={data.gender || null}
+                            onChange={item =>
+                              handleChange('gender', item.value)
+                            }
+                          />
                         ) : key === 'supplierId' ? (
                           <Dropdown
                             key={`supplier-${supplierOptions.length}`}
@@ -211,6 +229,8 @@ const ExpandableCard: React.FC<Props> = ({
                             ? data[key]
                               ? new Date(data[key]).toLocaleDateString('en-GB')
                               : 'N/A'
+                            : key === 'gender'
+                            ? data.gender || 'N/A'
                             : key === 'supplierId'
                             ? getSupplierName(data[key]) || 'N/A'
                             : key === 'flockTypeId'

@@ -328,3 +328,40 @@ export const updateVaccinationSchedule = async (
 
   return response.data;
 };
+
+
+
+export interface UpdateVaccinationPayload {
+  vaccinationScheduleId: string;
+  businessUnitId: string;
+  flockId: string;
+  vaccineId: number;
+  quantity: number;
+  scheduledDate: string; // format: YYYY-MM-DD
+}
+
+/**
+ * Updates a vaccination schedule
+ * @param vaccinationScheduleId - ID of the vaccination schedule to update
+ * @param payload - Object containing updated vaccination info
+ * @returns Response data from API
+ */
+export const updateVaccinationScheduleApi = async (
+  vaccinationScheduleId: string,
+  payload: UpdateVaccinationPayload
+) => {
+  try {
+    const response = await api.put(
+      `/api/VaccinationSchedule/update-vaccination-schedule/${vaccinationScheduleId}`,
+      payload
+    );
+    if (response.data.status === 'Success') {
+      return response.data.data; // return updated vaccination schedule
+    } else {
+      throw new Error(response.data.message || 'Failed to update vaccination');
+    }
+  } catch (error: any) {
+    console.error('Update Vaccination Schedule Error:', error);
+    throw error;
+  }
+};

@@ -61,7 +61,7 @@ interface FlocksScreenProps {
   onCloseAddModal?: () => void;
   onOpenAddModal?: () => void;
   setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
- currentPage: number;
+  currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   // Add these two props
   filterState: {
@@ -96,7 +96,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
   setGlobalLoading,
   openAddModal,
   onCloseAddModal,
-    currentPage,
+  currentPage,
   setCurrentPage,
   filterState,
   setFilterState,
@@ -482,96 +482,27 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
     <SafeAreaView style={styles.safeArea}>
       <ScrollView>
         <View style={styles.mainContainer}>
-          <View style={styles.filterSection}>
-            <View style={styles.searchCompleteRow}>
-              {/* SEARCH BAR */}
-              <View style={{ flex: 1 }}>
-                <SearchBar
-                  placeholder="Search Flock..."
-                  initialValue={filterState.searchKey}
-                  onSearch={value => {
-                    setFilterState(prev => ({ ...prev, searchKey: value }));
-                  }}
-                />
-              </View>
-
-              {/* COMPLETE CHECKBOX */}
-              <TouchableOpacity
-                style={styles.completeCheckboxContainerRow}
-                onPress={() =>
-                  setFilterState(prev => ({ ...prev, isEnded: !prev.isEnded }))
-                }
-              >
-                <View
-                  style={[
-                    styles.checkboxSmall,
-                    filterState.isEnded && {
-                      backgroundColor: Theme.colors.primaryYellow,
-                    },
-                  ]}
-                />
-                <Text style={styles.completeText}>Complete</Text>
-              </TouchableOpacity>
+          <View style={styles.searchCompleteRow}>
+            {/* SEARCH BAR */}
+            <View style={{ flex: 1 }}>
+              <SearchBar
+                placeholder="Search Flock..."
+                initialValue={filterState.searchKey}
+                onSearch={value => {
+                  setFilterState(prev => ({ ...prev, searchKey: value }));
+                }}
+              />
             </View>
 
-            {/* ===== DROPDOWNS + RESET BUTTON ===== */}
-            <View style={styles.dropdownRow}>
-              <Dropdown
-                style={styles.inlineDropdown}
-                containerStyle={styles.inlineDropdownContainer}
-                data={filterState.options?.flocks || []}
-                labelField="label"
-                valueField="id"
-                placeholder="Select Flock"
-                selectedTextStyle={styles.selectedText}
-                placeholderStyle={styles.placeholderText}
-                value={filterState.selected.flockId}
-                onChange={item =>
-                  setFilterState(prev => ({
-                    ...prev,
-                    selected: { ...prev.selected, flockId: item.id },
-                  }))
-                }
-              />
-
-              <Dropdown
-                style={styles.inlineDropdown}
-                containerStyle={styles.inlineDropdownContainer}
-                data={filterState.options?.suppliers || []}
-                labelField="label"
-                valueField="id"
-                placeholder="Select Supplier"
-                selectedTextStyle={styles.selectedText}
-                placeholderStyle={styles.placeholderText}
-                value={filterState.selected.supplierId}
-                onChange={item =>
-                  setFilterState(prev => ({
-                    ...prev,
-                    selected: { ...prev.selected, supplierId: item.id },
-                  }))
-                }
-              />
-
-              {(filterState.isEnded ||
-                filterState.selected.flockId ||
-                filterState.selected.supplierId ||
-                filterState.searchKey) && (
-                <TouchableOpacity
-                  style={styles.inlineResetButton}
-                  onPress={() => {
-                    setFilterState(prev => ({
-                      ...prev,
-                      isEnded: false,
-                      selected: { flockId: null, supplierId: null },
-                      searchKey: '',
-                    }));
-                  }}
-                >
-                  <Text style={styles.resetText}>Reset </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            {/* FILTER ICON */}
+            <TouchableOpacity
+              style={styles.filterBtn}
+              onPress={() => setModals(prev => ({ ...prev, filter: true }))}
+            >
+              <Image source={Theme.icons.filter} style={styles.filterIcon} />
+            </TouchableOpacity>
           </View>
+
           {/* ===== FLOCK LIST ===== */}
           {flocks.length === 0 ? (
             <View style={styles.noDataContainer}>
@@ -747,13 +678,13 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
           onConfirm={DeleteFlock}
         />
 
-        {/* ===== FILTER MODAL =====
+        {/* ===== FILTER MODAL ===== */}
         <BusinessUnitModal
           visible={modals.filter}
           onClose={() => setModals(prev => ({ ...prev, filter: false }))}
           mode="filter"
-          flockItems={filterState.options.flocks}
-          supplierItems={filterState.options.suppliers}
+          flockItems={filterState.options?.flocks}
+          supplierItems={filterState.options?.suppliers}
           selectedFlockId={filterState.selected.flockId}
           selectedSupplier={filterState.selected.supplierId}
           isComplete={filterState.isEnded}
@@ -769,7 +700,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
 
             setModals(prev => ({ ...prev, filter: false }));
           }}
-        /> */}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -862,8 +793,11 @@ const styles = StyleSheet.create({
   searchCompleteRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop:7,
+    marginBottom: 8,
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 6,
   },
 
   completeCheckboxContainerRow: {

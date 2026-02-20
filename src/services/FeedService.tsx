@@ -1,4 +1,4 @@
-import api from "../api/Api";
+import api from '../api/Api';
 
 export interface FeedRecord {
   feedRecordId: string;
@@ -18,22 +18,20 @@ export interface GetFeedRecordPayload {
   supplierId?: string | null;
 }
 
-export const getFeedRecords = async (
-  payload: GetFeedRecordPayload
-) => {
+export const getFeedRecords = async (payload: GetFeedRecordPayload) => {
   try {
     const response = await api.post(
-      "api/FeedRecord/get-feed-record-by-search-and-filter-with-pagination",
-      payload
+      'api/FeedRecord/get-feed-record-by-search-and-filter-with-pagination',
+      payload,
     );
 
     return response.data.data;
     // { totalCount, list }
   } catch (error) {
-    console.log("Get Feed Records Error:", error);
+    console.log('Get Feed Records Error:', error);
     throw error;
   }
-}
+};
 
 /* ===== MODELS ===== */
 export interface FeedConsumptionRecord {
@@ -57,22 +55,21 @@ export interface GetFeedConsumptionPayload {
 
 /* ===== API CALL ===== */
 export const getFeedConsumptionRecords = async (
-  payload: GetFeedConsumptionPayload
+  payload: GetFeedConsumptionPayload,
 ) => {
   try {
     const response = await api.post(
-      "api/FeedRecordConsumption/get-feed-record-consumption-by-search-and-filter-with-pagination",
-      payload
+      'api/FeedRecordConsumption/get-feed-record-consumption-by-search-and-filter-with-pagination',
+      payload,
     );
 
     return response.data.data;
     // { totalCount, list }
   } catch (error) {
-    console.log("Get Feed Consumption Error:", error);
+    console.log('Get Feed Consumption Error:', error);
     throw error;
   }
 };
-
 
 /* ===== MODEL ===== */
 export interface FeedStock {
@@ -87,18 +84,20 @@ export interface FeedStock {
 export const getFeedStock = async (businessUnitId: string) => {
   try {
     const response = await api.get(
-      `api/FeedRecord/get-feed-stock/${businessUnitId}`
+      `api/FeedRecord/get-feed-stock/${businessUnitId}`,
     );
 
     return response.data.data as FeedStock[];
   } catch (error) {
-    console.log("Get Feed Stock Error:", error);
+    console.log('Get Feed Stock Error:', error);
     throw error;
   }
 };
 
 // Function to get feeds from API
-export const getFeeds = async (): Promise<{ label: string; value: number }[]> => {
+export const getFeeds = async (): Promise<
+  { label: string; value: number }[]
+> => {
   try {
     const res = await api.get('api/Master/get-feeds');
 
@@ -115,7 +114,6 @@ export const getFeeds = async (): Promise<{ label: string; value: number }[]> =>
     return [];
   }
 };
-
 
 export interface FeedTypeItem {
   label: string;
@@ -139,7 +137,6 @@ export const getFeedTypes = async (): Promise<FeedTypeItem[]> => {
   }
 };
 
-
 export interface AddFeedRecordPayload {
   businessUnitId: string;
   feedId: number;
@@ -160,17 +157,16 @@ export interface AddFeedRecordResponse {
 }
 
 export const addFeedRecord = async (
-  payload: AddFeedRecordPayload
+  payload: AddFeedRecordPayload,
 ): Promise<AddFeedRecordResponse> => {
   try {
-    const res = await api.post("api/FeedRecord/add-feed-record", payload);
+    const res = await api.post('api/FeedRecord/add-feed-record', payload);
     return res.data;
   } catch (error) {
-    console.log("Add Feed Record Error:", error);
+    console.log('Add Feed Record Error:', error);
     throw error;
   }
 };
-
 
 export interface AddFeedConsumptionPayload {
   businessUnitId: string;
@@ -182,7 +178,7 @@ export interface AddFeedConsumptionPayload {
 }
 
 export const addFeedConsumption = async (
-  payload: AddFeedConsumptionPayload
+  payload: AddFeedConsumptionPayload,
 ) => {
   const response = await api.post(
     'api/FeedRecordConsumption/add-feed-record-consumption',
@@ -196,7 +192,7 @@ export const addFeedConsumption = async (
         typeof payload.date === 'string'
           ? payload.date
           : payload.date.toISOString().split('T')[0],
-    }
+    },
   );
 
   return response.data;
@@ -205,23 +201,66 @@ export const addFeedConsumption = async (
 export const deleteFeedRecord = async (feedRecordId: string) => {
   try {
     const response = await api.delete(
-      `api/FeedRecord/delete-feed-record?feedRecordId=${feedRecordId}`
+      `api/FeedRecord/delete-feed-record?feedRecordId=${feedRecordId}`,
     );
     return response.data;
   } catch (error) {
-    console.error("Delete Feed Record Error:", error);
+    console.error('Delete Feed Record Error:', error);
     throw error;
   }
 };
 
-export const deleteFeedConsumption = async (feedRecordConsumptionId: string) => {
+export const deleteFeedConsumption = async (
+  feedRecordConsumptionId: string,
+) => {
   try {
     const response = await api.delete(
-      `api/FeedRecordConsumption/delete-feed-record-consumption/${feedRecordConsumptionId}`
+      `api/FeedRecordConsumption/delete-feed-record-consumption/${feedRecordConsumptionId}`,
     );
     return response.data;
   } catch (error) {
-    console.error("Delete Feed Consumption Error:", error);
+    console.error('Delete Feed Consumption Error:', error);
+    throw error;
+  }
+};
+
+//for update
+
+export interface UpdateFeedConsumptionPayload {
+  feedRecordConsumptionId: string;
+  businessUnitId: string;
+  flockId: string;
+  date: string;
+  feedId: number;
+  quantity: number;
+}
+
+export const updateFeedConsumption = async (
+  payload: UpdateFeedConsumptionPayload,
+) => {
+  try {
+    const response = await api.put(
+      'api/FeedRecordConsumption/update-feed-record-consumption',
+      payload,
+    );
+    return response.data;
+  } catch (error) {
+    console.log('Update Feed Consumption Error:', error);
+    throw error;
+  }
+};
+
+export const deleteFeedRecordConsumption = async (
+  feedRecordConsumptionId: string,
+) => {
+  try {
+    const response = await api.delete(
+      `api/FeedRecordConsumption/delete-feed-record-consumption/${feedRecordConsumptionId}`,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.log('Delete Feed Record Consumption Error:', error);
     throw error;
   }
 };

@@ -173,6 +173,62 @@ const AddModal: React.FC<AddModalProps> = ({
       reset();
     }
   }, [type, initialData, visible]);
+
+
+  useEffect(() => {
+  if (type === 'Feed Consumption' && initialData && visible) {
+    setSelectedFlock(initialData.flockId ?? null);
+    setSelectedFeedId(initialData.feedId ?? null);
+    setbag(
+      initialData.bag !== undefined
+        ? String(initialData.bag)
+        : initialData.quantity !== undefined
+        ? String(initialData.quantity)
+        : '1'
+    );
+
+    setFeedDate(
+      initialData.date ? new Date(initialData.date) : null
+    );
+  }
+  if (type === 'Feed Consumption' && !initialData && visible) {
+    setSelectedFeedId(null);
+    setbag('1');
+    setFeedDate(null);
+  }
+}, [type, initialData, visible]);
+
+useEffect(() => {
+  if (type === 'Feed Record' && initialData && visible) {
+    setSelectedFeedId(initialData.feedId ?? null);
+    setSelectedFeedTypeId(initialData.feedTypeId ?? null);
+    setQuantity(
+      initialData.quantity ? String(initialData.quantity) : ''
+    );
+    setFeedDate(
+      initialData.date ? new Date(initialData.date) : null
+    );
+    setSupplier(initialData.supplierId ?? null);
+    setPrice(
+      initialData.price ? String(initialData.price) : ''
+    );
+    setNote(initialData.note || '');
+    setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
+  }
+
+  if (type === 'Feed Record' && !initialData && visible) {
+    setSelectedFeedId(null);
+    setSelectedFeedTypeId(null);
+    setQuantity('');
+    setFeedDate(null);
+    setSupplier(null);
+    setPrice('');
+    setNote('');
+    setPaymentStatus('Paid');
+  }
+}, [type, initialData, visible]);
+
+
   const [passwordError, setPasswordError] = useState('');
   /* ===== Eggs States ===== */
   const [intactEggs, setIntactEggs] = useState<number>(0);

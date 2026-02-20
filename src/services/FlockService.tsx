@@ -210,21 +210,21 @@ export const getFlockHealthRecords = async (
 
 
 // ================= Delete Flock Health Record =================
-export const deleteFlockHealthRecord = async (flockHealthId: string): Promise<void> => {
-  try {
-    // Send DELETE request with FlockHealthId as query param
-    const response = await api.delete(`api/Flock/delete-flock-health-record?FlockHealthId=${flockHealthId}`);
+// export const deleteFlockHealthRecord = async (flockHealthId: string): Promise<void> => {
+//   try {
+//     // Send DELETE request with FlockHealthId as query param
+//     const response = await api.delete(`api/Flock/delete-flock-health-record?FlockHealthId=${flockHealthId}`);
 
-    if (response.data.status === 'Success') {
-      console.log('Flock health record deleted successfully.');
-    } else {
-      throw new Error(response.data.message || 'Failed to delete flock health record.');
-    }
-  } catch (error: any) {
-    console.error('Error deleting flock health record:', error.response || error.message);
-    throw error;
-  }
-};
+//     if (response.data.status === 'Success') {
+//       console.log('Flock health record deleted successfully.');
+//     } else {
+//       throw new Error(response.data.message || 'Failed to delete flock health record.');
+//     }
+//   } catch (error: any) {
+//     console.error('Error deleting flock health record:', error.response || error.message);
+//     throw error;
+//   }
+// };
 
 
 
@@ -883,5 +883,58 @@ export const updateFlockDetail = async (
   } catch (error) {
     console.error('Error updating flock detail:', error);
     throw error;
+  }
+};
+
+
+
+export const deleteEggProduction = async (eggProductionId: string) => {
+  try {
+    const response = await api.delete(
+      `api/EggProduction/delete-eggProduction/${eggProductionId}`
+    );
+
+    if (response.data.status === "Success") {
+      return response.data;
+    } else {
+      throw new Error(
+        response.data.message || "Failed to delete egg production"
+      );
+    }
+  } catch (error) {
+    console.error("Error deleting egg production:", error);
+    throw error;
+  }
+};
+
+
+// services/FlockHealthService.ts
+
+export const deleteFlockHealthRecord = async (flockHealthId: string) => {
+  try {
+    const response = await api.delete(
+      `/api/Flock/delete-flock-health-record`,
+      {
+        params: { FlockHealthId: flockHealthId },
+      }
+    );
+
+    if (response.data?.status === "Success") {
+      return {
+        status: "Success",
+        message: response.data.message || "Health record deleted successfully",
+      };
+    } else {
+      return {
+        status: "Error",
+        message: response.data?.message || "Failed to delete health record",
+      };
+    }
+  } catch (error: any) {
+    console.error("Delete Flock Health Record Error:", error.response?.data || error.message);
+    return {
+      status: "Error",
+      message: error?.response?.data?.message || error.message || "Something went wrong",
+    };
   }
 };

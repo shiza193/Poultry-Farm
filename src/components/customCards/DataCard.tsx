@@ -23,7 +23,7 @@ export interface TableColumn {
   isTitle?: boolean;
   titleColor?: string;
   showDots?: boolean;
-  onDotsPress?: (row: any) => void; // ✅ added to fix TS error
+  onDotsPress?: (row: any) => void;
 }
 
 interface DataCardProps {
@@ -38,6 +38,8 @@ interface DataCardProps {
   currentPage?: number;
   totalRecords?: number;
   onPageChange?: (page: number) => void;
+
+  showPagination?: boolean;
 }
 
 const DataCard: React.FC<DataCardProps> = ({
@@ -49,6 +51,7 @@ const DataCard: React.FC<DataCardProps> = ({
   renderExpandedRow,
   currentPage = 1,
   totalRecords = 0,
+  showPagination = true,
   onPageChange,
 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -228,15 +231,14 @@ const DataCard: React.FC<DataCardProps> = ({
 
                   {/* EXPANDED ROW */}
                   {expandedIndex === globalIndex && renderExpandedRow && (
-                    
-                    <View style={{
-                      paddingVertical: 10,
-                      backgroundColor: Theme.colors.lightGrey, 
-                  
-                    }}>
+                    <View
+                      style={{
+                        paddingVertical: 10,
+                        backgroundColor: Theme.colors.lightGrey,
+                      }}
+                    >
                       {renderExpandedRow(row)}
                     </View>
-            
                   )}
                 </View>
               );
@@ -276,6 +278,7 @@ const DataCard: React.FC<DataCardProps> = ({
       )}
 
       {/* CUSTOM SCROLLBAR */}
+      
       <View style={styles.scrollBarTrack}>
         <View
           style={[
@@ -291,59 +294,60 @@ const DataCard: React.FC<DataCardProps> = ({
       </View>
 
       {/* PAGINATION */}
-      <View style={styles.paginationContainer}>
-        <TouchableOpacity
-          disabled={isFirstPage}
-          onPress={() => {
-            const newPage = 1;
-            onPageChange?.(newPage); 
-          }}
-          style={[styles.pageButton, isFirstPage && styles.disabled]}
-        >
-          <Text style={styles.pageText}>⏮</Text>
-        </TouchableOpacity>
+      {showPagination && (
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity
+            disabled={isFirstPage}
+            onPress={() => {
+              const newPage = 1;
+              onPageChange?.(newPage);
+            }}
+            style={[styles.pageButton, isFirstPage && styles.disabled]}
+          >
+            <Text style={styles.pageText}>⏮</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          disabled={isFirstPage}
-          onPress={() => {
-            const newPage = currentPage - 1;
-            onPageChange?.(newPage); 
-          }}
-          style={[styles.pageButton, isFirstPage && styles.disabled]}
-        >
-          <Text style={styles.pageText}>◀</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            disabled={isFirstPage}
+            onPress={() => {
+              const newPage = currentPage - 1;
+              onPageChange?.(newPage);
+            }}
+            style={[styles.pageButton, isFirstPage && styles.disabled]}
+          >
+            <Text style={styles.pageText}>◀</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.pageInfo}>
-          {`${(currentPage - 1) * itemsPerPage + 1} – ${Math.min(
-            currentPage * itemsPerPage,
-            totalRecords,
-          )} of ${totalRecords}`}
-        </Text>
+          <Text style={styles.pageInfo}>
+            {`${(currentPage - 1) * itemsPerPage + 1} – ${Math.min(
+              currentPage * itemsPerPage,
+              totalRecords,
+            )} of ${totalRecords}`}
+          </Text>
 
-        <TouchableOpacity
-          disabled={isLastPage}
-          onPress={() => {
-            const newPage = currentPage + 1;
-            onPageChange?.(newPage); 
-          }}
-          style={[styles.pageButton, isLastPage && styles.disabled]}
-        >
-          <Text style={styles.pageText}>▶</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            disabled={isLastPage}
+            onPress={() => {
+              const newPage = currentPage + 1;
+              onPageChange?.(newPage);
+            }}
+            style={[styles.pageButton, isLastPage && styles.disabled]}
+          >
+            <Text style={styles.pageText}>▶</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          disabled={isLastPage}
-          onPress={() => {
-            const newPage = totalPages;
-            onPageChange?.(newPage); 
-          }}
-          style={[styles.pageButton, isLastPage && styles.disabled]}
-        >
-          <Text style={styles.pageText}>⏭</Text>
-        </TouchableOpacity>
-      </View>
-
+          <TouchableOpacity
+            disabled={isLastPage}
+            onPress={() => {
+              const newPage = totalPages;
+              onPageChange?.(newPage);
+            }}
+            style={[styles.pageButton, isLastPage && styles.disabled]}
+          >
+            <Text style={styles.pageText}>⏭</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
