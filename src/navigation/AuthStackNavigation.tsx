@@ -25,6 +25,7 @@ import FeedRecordScreen from "../screens/more/feed/FeedRecordScreen";
 import FeedConsumptionScreen from "../screens/more/feed/FeedConsumptionScreen";
 import FeedStockScreen from "../screens/more/feed/FeedStockScreen";
 import FlockDetailScreen from "../screens/flocks/FlockDetailScreen";
+import FlockMainScreen from "./FlockMainTab";
 const Stack = createNativeStackNavigator();
 
 const AuthStackNavigation = () => {
@@ -110,6 +111,10 @@ const AuthStackNavigation = () => {
         component={FlockStockScreen}
       />
        <Stack.Screen
+        name={CustomConstants.FLOCK_MAIN_SCREEN}
+        component={FlockMainScreen}
+      />
+       <Stack.Screen
         name={CustomConstants.HOSPITALITY_SCREEN}
         component={HospitalityScreen}
       />
@@ -134,6 +139,10 @@ const AuthStackNavigation = () => {
         <Stack.Screen
         name={CustomConstants.FEED_STOCK_SCREEN}
         component={FeedStockScreen}
+      />
+       <Stack.Screen
+        name={CustomConstants.POULTRY_DETAIL_TAB}
+        component={PoultryDetailTab}
       />
     </Stack.Navigator>
   );

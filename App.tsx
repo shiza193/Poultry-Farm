@@ -8,19 +8,9 @@ import Theme from './src/theme/Theme';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/utils/AppToast';
 import { BusinessUnitProvider } from './src/context/BusinessContext';
-import { initToken } from './src/api/Api';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
-
-  // Load token from AsyncStorage to memory on app start
-  useEffect(() => {
-    const loadToken = async () => {
-      await initToken();
-      console.log('Token initialized from AsyncStorage');
-    };
-    loadToken();
-  }, []);
 
   return (
     <BusinessUnitProvider>

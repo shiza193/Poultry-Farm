@@ -15,7 +15,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Theme from '../../../theme/Theme';
 import BackArrow from '../../../components/common/ScreenHeaderWithBack';
 import SearchBar from '../../../components/common/SearchBar';
-import DataCard, { TableColumn } from '../../../components/customCards/DataCard';
+import DataCard, {
+  TableColumn,
+} from '../../../components/customCards/DataCard';
 import LoadingOverlay from '../../../components/loading/LoadingOverlay';
 import { showErrorToast } from '../../../utils/AppToast';
 
@@ -26,6 +28,7 @@ import {
   PartyItem,
 } from '../../../services/LedgerService';
 import { useBusinessUnit } from '../../../context/BusinessContext';
+import { formatDisplayDate } from '../../../utils/validation';
 
 type LedgerItem = {
   voucherNumber: string;
@@ -51,74 +54,58 @@ const LedgerScreen = () => {
   const [dropdownItems, setDropdownItems] = useState<
     { label: string; value: string }[]
   >([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
 
-
-  const fetchLedgerData = async () => {
+  const fetchLedgerData = async (page: number = 1) => {
     try {
       setLoading(true);
 
       const selectedPartyName = selectedParty
         ? parties.find(p => p.partyId === selectedParty)?.name
         : null;
+
       const payload = {
         businessUnitId,
         searchKey: search || null,
         fromDate: filterDate ? filterDate.toISOString() : null,
         toDate: filterDate ? filterDate.toISOString() : null,
-        pageNumber: 1,
-        pageSize:50,
+        pageNumber: page,
+        pageSize,
         accountHeadId: selectedParty || null,
         accountHeadName: selectedPartyName || null,
       };
 
-      console.log(
-        'Fetching Ledger with payload:',
-        JSON.stringify(payload, null, 2),
-      );
-
       const res = await getLedgersWithBalance(payload);
 
-      // CASE-INSENSITIVE frontend filter
-      const filteredList = res.list.filter(item =>
-        selectedParty
-          ? item.accountHead
-              .toLowerCase()
-              .includes(selectedPartyName?.toLowerCase() || '')
-          : true,
-      );
-      const mappedData = filteredList.map((item: LedgerApiItem) => ({
+      const mappedData = (res.list || []).map((item: LedgerApiItem) => ({
         voucherNumber: item.voucherNumber,
         voucherType: item.voucherType,
-        voucherDate: formatDate(item.voucherDate),
+        voucherDate: formatDisplayDate(item.voucherDate),
         debit: item.debit.toFixed(2),
         credit: item.credit.toFixed(2),
         balance: item.balance.toFixed(2),
       }));
 
-      console.log('Mapped Ledger Data:', mappedData);
-
       setLedgerData(mappedData);
+      setTotalRecords(res.totalCount || mappedData.length); // set total records
     } catch (err: any) {
       console.error('Ledger Fetch Error:', err);
       showErrorToast('Failed to fetch ledger data');
+      setLedgerData([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
-  };
-  // Format date as dd/mm/yyyy
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const day = ('0' + d.getDate()).slice(-2);
-    const month = ('0' + (d.getMonth() + 1)).slice(-2);
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
   };
 
   // Fetch data on focus
   useFocusEffect(
     useCallback(() => {
-      fetchLedgerData();
-    }, [filterDate, selectedParty]),
+      setCurrentPage(1);
+      fetchLedgerData(1);
+    }, [filterDate, selectedParty, search, businessUnitId]),
   );
 
   // Fetch parties on focus
@@ -265,7 +252,17 @@ const LedgerScreen = () => {
 
       <ScrollView>
         <View style={styles.listContainer}>
-          <DataCard columns={columns} data={tableData} itemsPerPage={10} />
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={pageSize}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchLedgerData(page);
+            }}
+          />
         </View>
       </ScrollView>
 

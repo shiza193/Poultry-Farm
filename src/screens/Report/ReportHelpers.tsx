@@ -76,9 +76,34 @@ export const getFlocksExcel = async (
   } catch (error) {
     console.error('Error fetching Flocks Excel:', error);
   }
+
+
 };
 
 
+
+// ===== Flock Stock Excel =====
+export const getFlockStockExcel = async (
+  fileName = 'FlockStockReport',
+  businessUnitId: string
+) => {
+  try {
+    console.log('Sending Flock Stock Excel Request for BU:', businessUnitId);
+
+    const response = await api.get(
+      `api/Export/flock-stock-excel/${businessUnitId}`,
+      { responseType: 'arraybuffer' } // use arraybuffer for binary Excel
+    );
+
+    await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
+
+    console.log(
+      ` Excel saved at: /storage/emulated/0/Android/data/com.poultryfarm/files/Download/${fileName}.xlsx`
+    );
+  } catch (error) {
+    console.error(' Error fetching Flock Stock Excel:', error);
+  }
+};
 
 // ===== Save + Open =====
 const saveAndOpenExcelFromArrayBuffer = async (

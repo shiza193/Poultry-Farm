@@ -6,7 +6,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import Theme from '../../../theme/Theme';
 import BackArrow from '../../../components/common/ScreenHeaderWithBack';
 import SearchBar from '../../../components/common/SearchBar';
-import DataCard, { TableColumn } from '../../../components/customCards/DataCard';
+import DataCard, {
+  TableColumn,
+} from '../../../components/customCards/DataCard';
 import LoadingOverlay from '../../../components/loading/LoadingOverlay';
 import { showErrorToast, showSuccessToast } from '../../../utils/AppToast';
 
@@ -41,25 +43,30 @@ const AccountHeadScreen = () => {
     { label: string; value: string }[]
   >([]);
 
-  const pageSize = 1000;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
   const { businessUnitId } = useBusinessUnit();
 
   /* ================= FETCH ACCOUNT HEADS ================= */
-  const fetchAccountHeads = async () => {
+  const fetchAccountHeads = async (page: number = 1) => {
+    if (!businessUnitId) return;
+
     try {
       setLoading(true);
 
       const payload = {
         searchKey: search || null,
         businessUnitId,
-        pageNumber: 1,
+        pageNumber: page,
         pageSize,
       };
 
       const res = await getAccountHeads(payload);
 
+      const list = res?.list || [];
       setAccountHeads(
-        (res?.list || []).map((item: any) => ({
+        list.map((item: any) => ({
           id: item.accountHeadId,
           code: item.code,
           name: item.name,
@@ -69,8 +76,12 @@ const AccountHeadScreen = () => {
           businessUnit: item.businessUnit,
         })),
       );
+
+      setTotalRecords(res?.totalCount || list.length);
     } catch {
       showErrorToast('Failed to fetch account heads');
+      setAccountHeads([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -78,8 +89,9 @@ const AccountHeadScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchAccountHeads();
-    }, [search]),
+      setCurrentPage(1);
+      fetchAccountHeads(1);
+    }, [search, businessUnitId]),
   );
 
   /* ================= FETCH PARENT ACCOUNT HEADS ================= */
@@ -175,7 +187,17 @@ const AccountHeadScreen = () => {
 
       <ScrollView>
         <View style={styles.listContainer}>
-          <DataCard columns={columns} data={tableData} itemsPerPage={10} />
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={pageSize}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchAccountHeads(page);
+            }}
+          />
         </View>
       </ScrollView>
 

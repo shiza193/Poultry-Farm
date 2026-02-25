@@ -39,4 +39,7 @@ FEED_RECORD_SCREEN:"FeedRecordScreen",
 FEED_CONSUMPTION_SCREEN:"FeedConsumptionScreen",
 FEED_STOCK_SCREEN:"FeedStockScreen",
   FLOCK_DETAIL_SCREEN: 'FlockDetailScreen',
+  FLOCK_MAIN_SCREEN: 'FlockMainScreen',
+
+  
 } as const;

@@ -3,11 +3,11 @@ import {
   View,
   Text,
   Image,
-  ActivityIndicator,
   TouchableOpacity,
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import InputField from '../../components/customInputs/Input';
 import PrimaryButton from '../../components/customButtons/customButton';
 import { CustomConstants } from '../../constants/CustomConstants';
@@ -16,18 +16,17 @@ import { loginUser } from '../../services/AuthService';
 
 import styles from './style';
 import Theme from '../../theme/Theme';
-import { saveToken } from '../../api/Api';
 
 const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const [errors, setErrors] = useState({
     email: '',
     password: '',
   });
-
-  const [showPassword, setShowPassword] = useState(false);
 
   // Email validation
   const handleEmailBlur = () => {
@@ -38,6 +37,7 @@ const LoginScreen = ({ navigation }: any) => {
     }
   };
 
+  // Password validation
   const handlePasswordBlur = () => {
     if (!isValidPassword(password)) {
       setErrors(prev => ({
@@ -50,7 +50,6 @@ const LoginScreen = ({ navigation }: any) => {
     }
   };
 
-  // Form valid if all fields filled
   const isFormValid =
     email.trim().length > 0 &&
     password.length > 0 &&
@@ -59,20 +58,41 @@ const LoginScreen = ({ navigation }: any) => {
 
   const handleLogin = async () => {
     Keyboard.dismiss();
+
     handleEmailBlur();
     handlePasswordBlur();
+
     if (!isFormValid) return;
+
     try {
       setLoading(true);
+
+      // Login API call
       const res = await loginUser({ email, password });
+      // token already saved in loginUser
       const token = res?.token;
+
       if (token) {
-        // Save token in memory + AsyncStorage
-        await saveToken(token);
+        Toast.show({
+          type: 'success',
+          text1: 'Welcome Back to PoultryCloud 🐔',
+          text2: 'Your farm insights and operations are ready to manage.',
+        });
+
         navigation.replace(CustomConstants.DASHBOARD_TABS);
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Login Failed',
+          text2: 'Invalid email or password',
+        });
       }
-    } catch (error) {
-      console.log('Login failed', error); // interceptors  handel error toast
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: error?.response?.data?.message || 'Something went wrong',
+      });
     } finally {
       setLoading(false);
     }
@@ -93,6 +113,8 @@ const LoginScreen = ({ navigation }: any) => {
           value={email}
           onChangeText={setEmail}
           onBlur={handleEmailBlur}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
         {errors.email ? (
           <Text style={styles.errorText}>{errors.email}</Text>
@@ -112,6 +134,7 @@ const LoginScreen = ({ navigation }: any) => {
           {errors.password ? (
             <Text style={styles.errorText}>{errors.password}</Text>
           ) : null}
+
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
             style={{
@@ -134,26 +157,16 @@ const LoginScreen = ({ navigation }: any) => {
 
         {/* Login Button */}
         <PrimaryButton
-          title={loading ? 'Logging in...' : 'Login'}
+          title="Login"
           onPress={handleLogin}
           disabled={!isFormValid || loading}
-          style={
-            !isFormValid ? { backgroundColor: Theme.colors.buttonDisabled } : {}
-          }
+          loading={loading}
           textStyle={{ color: Theme.colors.black }}
         />
 
-        {loading && (
-          <ActivityIndicator
-            size="small"
-            color={Theme.colors.borderYellow}
-            style={{ marginTop: 10 }}
-          />
-        )}
-
         {/* Signup navigation */}
         <View style={{ flexDirection: 'row', marginTop: 20 }}>
-          <Text style={{ color: '#555' }}>Not an account? </Text>
+          <Text style={{ color: '#555' }}>Don't have an account? </Text>
 
           <TouchableOpacity
             onPress={() => navigation.navigate(CustomConstants.SIGN_UP_SCREEN)}
@@ -164,7 +177,7 @@ const LoginScreen = ({ navigation }: any) => {
                 fontWeight: '600',
               }}
             >
-              Signup now
+              Register
             </Text>
           </TouchableOpacity>
         </View>
