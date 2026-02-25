@@ -201,7 +201,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     if (mode === 'singleField') {
       setName(singleFieldValue || '');
     }
-
     if (mode === 'reset') {
       setNewPassword('');
       setConfirmPassword('');
