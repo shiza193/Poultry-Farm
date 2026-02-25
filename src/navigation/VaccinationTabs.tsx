@@ -16,6 +16,7 @@ const VaccinationMainScreen = () => {
     const [activeTab, setActiveTab] = useState<TabType>("vaccinations");
     const [openAddModal, setOpenAddModal] = useState(false);
     const [globalLoading, setGlobalLoading] = useState(false);
+    const pageSize = 10;
     const [filters, setFilters] = useState({
         searchKey: "",
         supplierId: null as string | null,
@@ -109,9 +110,12 @@ const VaccinationMainScreen = () => {
                                         searchKey: filters.searchKey || null,
                                         supplierId: filters.supplierId || null,
                                         pageNumber: currentPage,
-                                        pageSize: 10,
+                                        pageSize: pageSize,
                                     };
-                                    await getVaccinesExcel("VaccinationsReport", payload);
+                                    console.log("Vaccination report payload:", payload);
+
+                                    const response = await getVaccinesExcel("VaccinationsReport", payload);
+                                    console.log("Excel response:", response);
                                 }
                                 // Optionally handle stock tab export if needed
                                 if (activeTab === "stock") {

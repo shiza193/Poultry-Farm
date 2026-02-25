@@ -155,20 +155,20 @@ export const getVaccinesExcel = async (
   payload: any = {}
 ) => {
   try {
-    console.log(' Sending Vaccines Excel Request Payload:', payload);
+    console.log('Sending Vaccines Excel Request Payload:', payload);
 
-    const response = await api.post(
-      'api/Export/vaccines-excel',
-      payload,
-      { responseType: 'blob' }
-    );
+    const response = await api.post('api/Export/vaccines-excel', payload, {
+      responseType: 'arraybuffer', // <-- yahan blob ki jagah arraybuffer
+    });
 
-    const blob = response.data;
     await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
+
+    console.log('✅ Vaccines Excel generated successfully');
   } catch (error) {
     console.error('❌ Error fetching Vaccines Excel:', error);
   }
 };
+
 
 // ===== Vaccine Stock Excel =====
 export const getVaccineStockExcel = async (

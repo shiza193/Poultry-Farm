@@ -28,11 +28,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Theme.colors.success,
         borderRadius: 8,
-        minHeight: 40,
+        minHeight: 42,
         paddingHorizontal: 5,
         paddingVertical: 3,
     },
-
     inlineDropdownContainer: {
         borderColor: Theme.colors.success,
         borderRadius: 8,
@@ -71,14 +70,7 @@ export const vsstyles = StyleSheet.create({
         alignItems: "center",
         marginTop: 20,
     },
-    sidebarIcon: { width: 24, height: 24, tintColor: Theme.colors.black },
-    topRowTitle: {
-        flex: 1,
-        textAlign: "center",
-        fontSize: 20,
-        fontWeight: "bold",
-        color: Theme.colors.black,
-    },
+   
     // ===== SEARCH + DROPDOWN ROW =====
     filterRow: {
         flexDirection: "row",
@@ -89,12 +81,23 @@ export const vsstyles = StyleSheet.create({
         gap: 10,
     },
     dropdownWrapper: { width: 120, zIndex: 1 },
-    dropdown: {
-        borderColor: Theme.colors.success, height: 40,
-        minHeight: 40,
+      inlineDropdown: {
+        width: 120,
+        borderWidth: 1,
+        borderColor: Theme.colors.success,
+        borderRadius: 8,
+        minHeight: 42,
+        paddingHorizontal: 5,
+        paddingVertical: 3,
     },
-    dropdownContainer: { borderColor: Theme.colors.success },
-    dropdownText: { color: Theme.colors.black },
+    inlineDropdownContainer: {
+        borderColor: Theme.colors.success,
+        borderRadius: 8,
+    },
+    dropdownText: {
+        fontSize: 14,
+        color: Theme.colors.textPrimary,
+    },
     resetRow: {
         flexDirection: "row",
         justifyContent: "flex-end",

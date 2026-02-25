@@ -341,6 +341,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         marginLeft: 250,
+        marginTop:-9,
     },
     menuSeparator: {
         height: 2,
