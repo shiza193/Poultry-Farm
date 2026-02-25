@@ -16,6 +16,8 @@ import { showErrorToast, showSuccessToast } from "../../utils/AppToast";
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
 import SearchBar from '../../components/common/SearchBar';
 import { Dropdown } from 'react-native-element-dropdown';
+import { formatDisplayDate } from '../../utils/validation';
+import { normalizeDataFormat } from '../../utils/NormalizeDataFormat';
 
 interface Flock {
   flockId: string;
@@ -29,7 +31,6 @@ type Props = {
   onOpenAddModal?: () => void;
   setGlobalLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
-
 const EggProductionScreen: React.FC<Props> = ({
   setGlobalLoading,
   openAddModal,
@@ -45,15 +46,19 @@ const EggProductionScreen: React.FC<Props> = ({
     flockId: null as string | null,
   });
   const [masterData, setMasterData] = useState<{
-    flocks: { label: string; value: string; isSelected?: boolean }[];
+    flocks: { label: string; value: string }[];
     units: { label: string; value: number }[];
   }>({
     flocks: [],
     units: [],
   });
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedEggProduction, setSelectedEggProduction] = useState<EggProduction | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [modalState, setModalState] = useState<{
+    type: 'edit' | 'delete' | null;
+    selectedRecord: EggProduction | null;
+  }>({
+    type: null,
+    selectedRecord: null,
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const pageSize = 10;
@@ -67,81 +72,63 @@ const EggProductionScreen: React.FC<Props> = ({
       key: 'date',
       title: 'DATE',
       width: 120,
-      render: (value: string) => {
-        const date = new Date(value);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return <Text>{`${day}/${month}/${year}`}</Text>;
-      },
+      render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
     },
     { key: 'totalEggs', title: 'TOTAL EGGS', width: 120 },
     { key: 'fertileEggs', title: 'FERTILE', width: 100 },
     { key: 'brokenEggs', title: 'BROKEN', width: 80 },
   ];
   // FETCH DATA
-  const fetchEggProduction = async (page: number = 1) => {
+  const fetchEggProduction = async (page = currentPage) => {
     if (!businessUnitId) return;
-
     setGlobalLoading(true);
-
     const payload = {
       businessUnitId,
       flockId: filters.flockId,
       searchKey: filters.searchKey || null,
       pageNumber: page,
-      pageSize,
+      pageSize: pageSize,
     };
-
     try {
-      const data = await getEggProduction(payload);
-      setEggProductionList(data.items);
-      setTotalRecords(data.totalRecords);
-      setCurrentPage(page);
+      const response = await getEggProduction(payload);
+      const normalizedEggProduction = normalizeDataFormat(response.items, 'array', 'EggProduction');
+      setEggProductionList(normalizedEggProduction);
+      setTotalRecords(response.totalRecords);
     } catch (err) {
       console.error(err);
     } finally {
       setGlobalLoading(false);
     }
   };
-
   useFocusEffect(
     useCallback(() => {
-      setCurrentPage(1);
-      fetchEggProduction(1);
+      fetchEggProduction();
       setMasterData(prev => ({ ...prev, selectedFlock: null }));
-    }, [businessUnitId])
+    }, [businessUnitId, filters])
   );
   // ===== FETCH FLOCKS =====
   const fetchFlocks = async () => {
     if (!businessUnitId) return;
-
     try {
       const flocks: Flock[] = await getFlocks(businessUnitId);
-      const dropdownData = flocks.map(f => ({
+      const normalizedFlocks: Flock[] = normalizeDataFormat(flocks, 'array', 'Flocks');
+      const dropdownData = normalizedFlocks.map((f: Flock) => ({
         label: f.flockRef,
         value: f.flockId,
-        isSelected: false,
       }));
-      setMasterData(prev => ({ ...prev, flocks: dropdownData }));
+      setMasterData(prev => ({
+        ...prev,
+        flocks: dropdownData,
+      }));
     } catch (error) {
       console.error("Failed to fetch flocks:", error);
     }
   };
-
-  useEffect(() => {
-    fetchFlocks();
-    fetchUnits();
-  }, [businessUnitId]);
-  useEffect(() => {
-    if (businessUnitId) {
-      fetchEggProduction();
-    }
-  }, [filters]);
   const fetchUnits = async () => {
     try {
       const units = await getUnitsByProductType(1);
-      const dropdownData = units.map((u: any) => ({
+      const normalizedUnits = normalizeDataFormat(units, 'array', 'Units');
+      const dropdownData = normalizedUnits.map((u: any) => ({
         label: u.value,
         value: u.unitId,
       }));
@@ -150,75 +137,99 @@ const EggProductionScreen: React.FC<Props> = ({
       console.error("Failed to fetch units", error);
     }
   };
+  useEffect(() => {
+    fetchFlocks();
+    fetchUnits();
+  }, [businessUnitId]);
   // ===== HANDLERS =====
-  const handleAddEditEggProduction = async (data: any) => {
+  const handleAddEggProduction = async (data: any) => {
     if (!businessUnitId) return;
     setGlobalLoading(true);
-
     try {
-      // Convert numbers
       const intact = Number(data?.intactEggs || 0);
       const broken = Number(data?.brokenEggs || 0);
-      if (isEditMode && selectedEggProduction) {
-        // ===== EDIT PAYLOAD =====
-        const updatePayload: UpdateEggProductionPayload = {
-          eggProductionId: selectedEggProduction.eggProductionId,
-          ref: selectedEggProduction.ref,
-          flockId: data.flockId,
-          businessUnitId,
-          unitId: data.unitId !== null ? Number(data.unitId) : null,
-          date: data.date.toISOString().split('T')[0],
-          fertileEggs: intact,
-          brokenEggs: broken,
-          totalEggs: intact + broken,
-          typeId: null,
-          varietyId: null,
-        };
-        // Call Update API
-        await updateEggProduction(
-          selectedEggProduction.eggProductionId,
-          updatePayload
-        );
-        showSuccessToast("Egg production updated successfully");
-      } else {
-        // ===== ADD PAYLOAD =====
-        const payload: AddEggProductionPayload = {
-          flockId: data.flockId,
-          businessUnitId,
-          date: data.date.toISOString().split('T')[0],
-          fertileEggs: intact,
-          brokenEggs: broken,
-          totalEggs: intact + broken,
-          unitId: data.unitId,
-          varietyId: null,
-          typeId: null,
-        };
-        // Call Add API
-        await addEggProduction(payload);
+
+      const payload: AddEggProductionPayload = {
+        flockId: data.flockId,
+        businessUnitId,
+        date: data.date.toISOString().split('T')[0],
+        fertileEggs: intact,
+        brokenEggs: broken,
+        totalEggs: intact + broken,
+        unitId: data.unitId,
+        varietyId: null,
+        typeId: null,
+      };
+      const res = await addEggProduction(payload);
+      if (res.status === "Success") {
+        setEggProductionList(prev => [...prev, res.data]);
+        setTotalRecords(prev => prev + 1);
+        setCurrentPage(1);
         showSuccessToast("Egg production added successfully");
       }
-      // Refresh list
-      fetchEggProduction();
     } catch (err: any) {
-      showErrorToast(err.message || "Failed to save egg production");
+      showErrorToast(err.message || "Failed to add egg production");
     } finally {
       setGlobalLoading(false);
-      setIsEditMode(false);
-      setSelectedEggProduction(null);
+      setModalState({ type: null, selectedRecord: null });
+    }
+  };
+  const handleEditEggProduction = async (data: any, selectedRecord: EggProduction) => {
+    if (!businessUnitId) return;
+    setGlobalLoading(true);
+    try {
+      const intact = Number(data?.intactEggs || 0);
+      const broken = Number(data?.brokenEggs || 0);
+      const updatePayload: UpdateEggProductionPayload = {
+        eggProductionId: selectedRecord.eggProductionId,
+        ref: selectedRecord.ref,
+        flockId: data.flockId,
+        businessUnitId,
+        unitId: data.unitId !== null ? Number(data.unitId) : null,
+        date: data.date.toISOString().split('T')[0],
+        fertileEggs: intact,
+        brokenEggs: broken,
+        totalEggs: intact + broken,
+        typeId: null,
+        varietyId: null,
+      };
+      const res = await updateEggProduction(selectedRecord.eggProductionId, updatePayload);
+      if (res && res.status === 'Success') {
+        setEggProductionList(prev =>
+          prev.map(ep => ep.eggProductionId === selectedRecord.eggProductionId ? res.data : ep)
+        );
+      }
+    } catch (err: any) {
+      showErrorToast(err.message || "Failed to update egg production");
+    } finally {
+      setGlobalLoading(false);
+      setModalState({ type: null, selectedRecord: null });
     }
   };
   const handleDelete = async () => {
-    if (!selectedEggProduction) return;
+    if (!modalState.selectedRecord) return;
     setGlobalLoading(true);
     try {
-      await deleteEggProduction(selectedEggProduction.eggProductionId);
-      showSuccessToast("Egg production deleted successfully");
-      fetchEggProduction();
+      const res = await deleteEggProduction(modalState.selectedRecord.eggProductionId);
+      if (res.status === "Success") {
+        setEggProductionList(prev =>
+          prev.filter(v => v.eggProductionId !== modalState.selectedRecord!.eggProductionId)
+        );
+        setTotalRecords(prev => prev - 1);
+        if ((eggProductionList.length - 1) === 0 && currentPage > 1) {
+          const newPage = currentPage - 1;
+          setCurrentPage(newPage);
+          fetchEggProduction(newPage);
+        }
+        showSuccessToast("Egg production deleted successfully");
+      }
     } catch (err: any) {
       showErrorToast("Failed to delete");
     } finally {
-      setDeleteModalVisible(false);
-      setSelectedEggProduction(null);
+      setModalState({
+        type: null,
+        selectedRecord: null,
+      });
       setGlobalLoading(false);
     }
   };
@@ -241,12 +252,16 @@ const EggProductionScreen: React.FC<Props> = ({
           <Dropdown
             style={styles.inlineDropdown}
             containerStyle={styles.inlineDropdownContainer}
-            data={masterData.flocks}
-            labelField="label"
+            data={
+              masterData.flocks.length > 0
+                ? masterData.flocks
+                : [{ label: "No result found", value: null, disabled: true }]
+            } labelField="label"
             valueField="value"
-            placeholder="Flock"
+            placeholder="Select Flock"
             value={filters.flockId}
-            selectedTextStyle={styles.dropdownText}
+            selectedTextStyle={styles.selectedTextStyle}
+            placeholderStyle={styles.placeholderStyle}
             onChange={(item) => {
               setFilters(prev => ({
                 ...prev,
@@ -283,9 +298,17 @@ const EggProductionScreen: React.FC<Props> = ({
           onPageChange={page => {
             setCurrentPage(page);
             fetchEggProduction(page);
-          }} renderRowMenu={(row, closeMenu) => (
+          }}
+          renderRowMenu={(row, closeMenu) => (
             <View>
-              <TouchableOpacity onPress={() => { setIsEditMode(true); setSelectedEggProduction(row); onOpenAddModal?.(); closeMenu(); }}
+              <TouchableOpacity onPress={() => {
+                setModalState({
+                  type: 'edit',
+                  selectedRecord: row,
+                });
+                onOpenAddModal?.();
+                closeMenu();
+              }}
                 style={{ marginBottom: 8 }}
               >
                 <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
@@ -293,8 +316,10 @@ const EggProductionScreen: React.FC<Props> = ({
               <View style={styles.menuSeparator} />
               <TouchableOpacity
                 onPress={() => {
-                  setSelectedEggProduction(row);
-                  setDeleteModalVisible(true);
+                  setModalState({
+                    type: 'delete',
+                    selectedRecord: row,
+                  });
                   closeMenu();
                 }}
                 style={{ marginTop: 8 }}
@@ -308,21 +333,34 @@ const EggProductionScreen: React.FC<Props> = ({
       {/* ===== ADD / EDIT MODAL ===== */}
       <AddModal
         visible={openAddModal}
-        title={isEditMode ? "Edit Egg Production" : "Add Egg Production"}
+        title={modalState.type === 'edit' ? "Edit Egg Production" : "Add Egg Production"}
         type="Egg production"
         unitItems={masterData.units}
         flockItems={masterData.flocks}
-        initialData={selectedEggProduction}
-        isEdit={isEditMode}
-        onClose={() => { onCloseAddModal(); setIsEditMode(false); setSelectedEggProduction(null); }}
-        onSave={handleAddEditEggProduction}
-      />
+        initialData={modalState.selectedRecord}
+        isEdit={modalState.type === 'edit'}
+        onClose={() => {
+          onCloseAddModal();
+          setModalState({ type: null, selectedRecord: null });
+        }}
+        onSave={(formData) => {
+          if (modalState.type === 'edit' && modalState.selectedRecord) {
+            handleEditEggProduction(formData, modalState.selectedRecord);
+          } else {
+            handleAddEggProduction(formData);
+          }
+        }} />
       {/* ===== DELETE CONFIRMATION ===== */}
       <ConfirmationModal
         type="delete"
-        visible={deleteModalVisible}
-        title={`Are you sure you want to delete ${selectedEggProduction?.ref}?`}
-        onClose={() => { setDeleteModalVisible(false); setSelectedEggProduction(null); }}
+        visible={modalState.type === 'delete'}
+        title={`Are you sure you want to delete ${modalState.selectedRecord?.ref}?`}
+        onClose={() =>
+          setModalState({
+            type: null,
+            selectedRecord: null,
+          })
+        }
         onConfirm={handleDelete}
       />
     </View>
@@ -361,9 +399,13 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.success,
     borderRadius: 8,
   },
-  dropdownText: {
-    fontSize: 14,
-    color: Theme.colors.textPrimary,
+  placeholderStyle: {
+    fontSize: 12,
+    color: Theme.colors.black,
+  },
+  selectedTextStyle: {
+    fontSize: 12,
+    color: Theme.colors.black,
   },
   resetRow: {
     flexDirection: "row",

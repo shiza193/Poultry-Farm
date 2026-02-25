@@ -9,7 +9,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import BackArrow from "../../../components/common/ScreenHeaderWithBack";
 import SearchBar from "../../../components/common/SearchBar";
 import BusinessUnitModal from "../../../components/customPopups/BusinessUnitModal";
-import ReusableDetailsModal from "../../../components/customPopups/VoucherDetailPopup";
+import VoucherDetailPopup from "../../../components/customPopups/VoucherDetailPopup";
 interface VoucherEntry {
     accountHead: string;
     debit: number;
@@ -24,72 +24,82 @@ const VoucherScreen = () => {
     const { businessUnitId } = useBusinessUnit();
     const [vouchers, setVouchers] = useState<Voucher[]>([]);
     const [loading, setLoading] = useState(false);
-    const [searchKey, setSearchKey] = useState<string | null>(null);
-    const [showFilterModal, setShowFilterModal] = useState(false);
     const [filters, setFilters] = useState({
+        searchKey: null as string | null,
         fromDate: null as Date | null,
         toDate: null as Date | null,
         accountId: null as string | null,
         voucherTypeId: null as number | null,
     });
-    const [accountOptions, setAccountOptions] = useState<
-        { label: string; value: string }[]
-    >([]);
-    const [voucherTypeOptions, setVoucherTypeOptions] = useState<
-        { label: string; value: number }[]
-    >([]);
-    const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
-    const [showVoucherModal, setShowVoucherModal] = useState(false);
-    const openVoucherModal = (voucher: Voucher) => {
-        setSelectedVoucher(voucher);
-        setShowVoucherModal(true);
-    };
-    const fetchVouchers = useCallback(async () => {
+    const [filterOptions, setFilterOptions] = useState<{
+        accounts: { label: string; value: string }[],
+        voucherTypes: { label: string; value: number }[]
+    }>({
+        accounts: [],
+        voucherTypes: [],
+    });
+    const [modalState, setModalState] = useState<{
+        type: 'add' | 'detail' | 'filter' | null;
+        selectedVoucher: Voucher | null;
+    }>({
+        type: null,
+        selectedVoucher: null,
+    });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const pageSize = 10;
+    // Simpler fetch function
+    const fetchVouchers = async (page = currentPage) => {
         if (!businessUnitId) return;
-
         setLoading(true);
+        const payload = {
+            businessUnitId,
+            accountHeadId: filters.accountId,
+            voucherTypeId: filters.voucherTypeId,
+            searchKey: filters.searchKey || null,
+            from: filters.fromDate ? formatDate(filters.fromDate) : null,
+            to: filters.toDate ? formatDate(filters.toDate) : null,
+            pageNumber: page,
+            pageSize: pageSize,
+        };
         try {
-            const payload: VoucherPayload = {
-                searchKey,
-                businessUnitId,
-                accountHeadId: filters.accountId,
-                voucherTypeId: filters.voucherTypeId,
-                from: formatDate(filters.fromDate),
-                to: formatDate(filters.toDate),
-                pageNumber: 1,
-                pageSize: 1000,
-            };
             const response = await getVouchers(payload);
             setVouchers(response.data.list);
-        } catch (error) {
-            console.error("Failed to fetch vouchers:", error);
+            setTotalRecords(response.data.totalCount);
+        } catch (err) {
+            console.error("Failed to fetch vouchers:", err);
         } finally {
             setLoading(false);
         }
-    }, [businessUnitId, searchKey, filters]);
+    };
     useFocusEffect(
         useCallback(() => {
             fetchVouchers();
-        }, [fetchVouchers])
+        }, [businessUnitId, filters])
     );
-    useEffect(() => {
+    // Fetch accounts
+    const fetchAccounts = async () => {
         if (!businessUnitId) return;
-
-        getAccounts(businessUnitId)
-            .then(res => setAccountOptions(res))
-            .catch(err => {
-                console.error("Account fetch error", err);
-                setAccountOptions([]);
-            });
-    }, [businessUnitId]);
+        try {
+            const res = await getAccounts(businessUnitId);
+            setFilterOptions(prev => ({ ...prev, accounts: res }));
+        } catch (err) {
+            console.error("Account fetch error:", err);
+        }
+    };
+    // Fetch voucher types
+    const fetchVoucherTypes = async () => {
+        try {
+            const res = await getVoucherTypes();
+            setFilterOptions(prev => ({ ...prev, voucherTypes: res }));
+        } catch (err) {
+            console.error("Voucher type fetch error:", err);
+        }
+    };
     useEffect(() => {
-        getVoucherTypes()
-            .then(res => setVoucherTypeOptions(res))
-            .catch(err => {
-                console.error("Voucher type fetch error", err);
-                setVoucherTypeOptions([]);
-            });
-    }, []);
+        fetchAccounts();
+        fetchVoucherTypes();
+    }, [businessUnitId]);
     // Define columns for DataCard
     const columns: TableColumn[] = [
         {
@@ -98,19 +108,25 @@ const VoucherScreen = () => {
             isTitle: true,
             width: 150,
             render: (value: string, row: Voucher) => (
-                <TouchableOpacity onPress={() => openVoucherModal(row)}>
+                <TouchableOpacity
+                    onPress={() =>
+                        setModalState({ type: 'detail', selectedVoucher: row })
+                    }
+                >
                     <Text style={{ color: Theme.colors.black, fontWeight: "bold" }}>{value}</Text>
                 </TouchableOpacity>
             )
         },
-        { key: "voucherType", title: "VOUCHER TYPE", width: 130 },
+        { key: "voucherType", title: "VOUCHER TYPE", width: 140 },
         {
             key: "debit",
             title: "DEBIT (RS)",
             width: 100,
             render: (_, row: Voucher) => {
-                const totalDebit = row.voucherEntries.reduce((sum, entry) => sum + entry.debit, 0);
-                return <Text>{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>;
+                const debitEntry = row.voucherEntries.find(e => e.debit > 0);
+                return <Text>
+                    {debitEntry ? debitEntry.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
+                </Text>;
             },
         },
         {
@@ -118,8 +134,10 @@ const VoucherScreen = () => {
             title: "CREDIT (RS)",
             width: 100,
             render: (_, row: Voucher) => {
-                const totalCredit = row.voucherEntries.reduce((sum, entry) => sum + entry.credit, 0);
-                return <Text>{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>;
+                const creditEntry = row.voucherEntries.find(e => e.credit > 0);
+                return <Text>
+                    {creditEntry ? creditEntry.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
+                </Text>;
             },
         },
         {
@@ -146,14 +164,17 @@ const VoucherScreen = () => {
                     <SearchBar
                         placeholder="Search voucher"
                         onSearch={(value) => {
-                            setSearchKey(value || null);
+                            setFilters(prev => ({
+                                ...prev,
+                                searchKey: value || null,
+                            }));
                         }}
                     />
                 </View>
                 {/* FILTER ICON */}
                 <TouchableOpacity
                     style={styles.filterBtn}
-                    onPress={() => setShowFilterModal(true)}
+                    onPress={() => setModalState(prev => ({ ...prev, type: 'filter' }))}
                 >
                     <Image
                         source={Theme.icons.filter}
@@ -162,36 +183,48 @@ const VoucherScreen = () => {
                 </TouchableOpacity>
             </View>
             <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 10 }}>
-                <DataCard columns={columns} data={vouchers} itemsPerPage={10} />
+                <DataCard
+                    columns={columns}
+                    data={vouchers}
+                    itemsPerPage={pageSize}
+                    currentPage={currentPage}
+                    totalRecords={totalRecords}
+                    onPageChange={page => {
+                        setCurrentPage(page);
+                        fetchVouchers(page);
+                    }}
+                />
             </View>
             <LoadingOverlay visible={loading} />
             <BusinessUnitModal
-                visible={showFilterModal}
+                visible={modalState.type === 'filter'}
                 mode="voucher"
-                accountOptions={accountOptions}
-                voucherTypeOptions={voucherTypeOptions}
-                onClose={() => setShowFilterModal(false)}
+                accountOptions={filterOptions.accounts}
+                voucherTypeOptions={filterOptions.voucherTypes}
+                onClose={() => setModalState({ type: null, selectedVoucher: null })}
                 onApplyvoucherFilter={(fromDate, toDate, accountId, voucherTypeId) => {
-                    setFilters({
+                    setFilters(prev => ({
+                        ...prev,
                         fromDate,
                         toDate,
                         accountId,
                         voucherTypeId,
-                    });
+                    }));
                 }}
             />
-            <ReusableDetailsModal
-                visible={showVoucherModal && !!selectedVoucher}
+            <VoucherDetailPopup
+                visible={modalState.type === 'detail' && !!modalState.selectedVoucher}
                 title="Voucher Details"
-                onClose={() => setShowVoucherModal(false)}
-                leftDetails={selectedVoucher ? [
-                    { label: "VOUCHER NUMBER", value: selectedVoucher.voucherNumber },
-                    { label: "VOUCHER DATE", value: new Date(selectedVoucher.createdAt).toLocaleDateString("en-GB") },
-                    { label: "DESCRIPTION", value: selectedVoucher.description || "—" },
+                onClose={() => setModalState({ type: null, selectedVoucher: null })}
+                leftDetails={modalState.selectedVoucher ? [
+                    { label: "VOUCHER NUMBER", value: modalState.selectedVoucher.voucherNumber },
+                    { label: "VOUCHER DATE", value: new Date(modalState.selectedVoucher.createdAt).toLocaleDateString("en-GB") },
+                    { label: "DESCRIPTION", value: modalState.selectedVoucher.description || "—" },
                 ] : []}
-                rightDetails={selectedVoucher ? [
-                    { label: "VOUCHER TYPE", value: selectedVoucher.voucherType },
-                    { label: "CREATED BY", value: selectedVoucher.createdBy || "—" },
+
+                rightDetails={modalState.selectedVoucher ? [
+                    { label: "VOUCHER TYPE", value: modalState.selectedVoucher.voucherType },
+                    { label: "CREATED BY", value: modalState.selectedVoucher.createdBy || "—" },
                 ] : []}
                 tableColumns={[
                     { key: "accountHead", label: "Account Head", width: 140 },
@@ -210,13 +243,11 @@ const VoucherScreen = () => {
                     { key: "description", label: "Description", width: 120 },
                     { key: "createdAt", label: "Created At", width: 120, render: (val: string) => new Date(val).toLocaleDateString("en-GB") },
                 ]}
-                tableData={selectedVoucher?.voucherEntries || []}
-            />
+                tableData={modalState.selectedVoucher?.voucherEntries || []} />
         </View>
     );
 };
 export default VoucherScreen;
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -229,7 +260,6 @@ const styles = StyleSheet.create({
         marginTop: 10,
         paddingHorizontal: 16,
     },
-
     filterBtn: {
         height: 40,
         width: 40,
@@ -240,7 +270,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: Theme.colors.white,
     },
-
     filterIcon: {
         width: 20,
         height: 20,

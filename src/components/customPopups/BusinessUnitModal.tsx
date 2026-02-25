@@ -14,6 +14,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { isValidPassword } from '../../utils/validation';
 
 export type SaleFilterModel = {
   fromDate: Date | null;
@@ -55,14 +56,14 @@ interface BusinessUnitModalProps {
   ) => void;
   // mode
   mode?:
-    | 'add'
-    | 'edit'
-    | 'filter'
-    | 'reset'
-    | 'singleField'
-    | 'accountHead'
-    | 'saleFilter'
-    | 'voucher';
+  | 'add'
+  | 'edit'
+  | 'filter'
+  | 'reset'
+  | 'singleField'
+  | 'accountHead'
+  | 'saleFilter'
+  | 'voucher';
 
   // Add/Edit mode
   onSave?: (data: {
@@ -132,6 +133,18 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const handlePasswordBlur = () => {
+    if (!isValidPassword(newPassword)) {
+      setPasswordError(
+        'Password must be at least 8 characters long, include uppercase, lowercase, number, and special character.'
+      );
+    } else {
+      setPasswordError(null);
+    }
+  };
   /* ===== ACCOUNT HEAD ===== */
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<string | null>(null);
@@ -139,7 +152,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
 
   const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
   /* ===== Voucher ===== */
-
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
@@ -167,7 +179,17 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     setSelectedFlockId(initialFlockId || null);
     setSelectedSupplier(initialSupplier || null);
   }, [initialData, initialFlockId, initialSupplier, visible]);
-
+  useEffect(() => {
+    if (mode === 'reset') {
+      // Clear password fields
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setPasswordError(null);
+      setPasswordMismatch(false);
+    }
+  }, [visible, mode]);
   // ===== PREFILL DATA =====
   useEffect(() => {
     if (mode === 'edit' && initialData) {
@@ -459,6 +481,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   placeholder="Enter new password"
                   value={newPassword}
                   onChangeText={setNewPassword}
+                  onBlur={handlePasswordBlur}
                   secureTextEntry={!showNewPassword}
                   style={{ paddingRight: 40, paddingVertical: 5 }}
                 />
@@ -476,29 +499,50 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   />
                 </TouchableOpacity>
               </View>
-
+              {passwordError && (
+                <Text style={{ color: 'red', marginTop: -4 }}>{passwordError}</Text>
+              )}
               <Text style={styles.inputLabel}>Confirm Password</Text>
-              <View style={styles.passwordContainer}>
-                <InputField
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showConfirmPassword}
-                  style={{ paddingRight: 40, paddingVertical: 5 }}
-                />
-                <TouchableOpacity
-                  style={styles.eyeIconContainer}
-                  onPress={() => setShowConfirmPassword(prev => !prev)}
-                >
-                  <Image
-                    source={
-                      showConfirmPassword
-                        ? Theme.icons.showPassword
-                        : Theme.icons.hidePassword
-                    }
-                    style={{ width: 24, height: 24 }}
+              <View style={{ flexDirection: 'column', marginBottom: 10 }}>
+                <View style={styles.passwordContainer}>
+                  <InputField
+                    placeholder="Confirm password"
+                    value={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      if (newPassword && text && newPassword !== text) {
+                        setPasswordMismatch(true);
+                      } else {
+                        setPasswordMismatch(false);
+                      }
+                    }}
+                    secureTextEntry={!showConfirmPassword}
+                    onBlur={() => {
+                      if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+                        setPasswordMismatch(true);
+                      } else {
+                        setPasswordMismatch(false);
+                      }
+                    }}
+                    style={{ paddingRight: 40, paddingVertical: 5 }}
                   />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.eyeIconContainer}
+                    onPress={() => setShowConfirmPassword(prev => !prev)}
+                  >
+                    <Image
+                      source={showConfirmPassword ? Theme.icons.showPassword : Theme.icons.hidePassword}
+                      style={{ width: 24, height: 24 }}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Validation text below field */}
+                {passwordMismatch && (
+                  <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>
+                    Password do not match
+                  </Text>
+                )}
               </View>
 
               <View style={styles.buttonRow}>
@@ -510,17 +554,20 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                     Discard
                   </Text>
                 </TouchableOpacity>
-
+                {/* Save Button */}
                 <TouchableOpacity
                   style={[
                     styles.button,
                     styles.saveButton,
                     (newPassword.trim() === '' ||
-                      confirmPassword.trim() === '') &&
-                      styles.saveButtonDisabled,
+                      confirmPassword.trim() === '' ||
+                      passwordMismatch) &&
+                    styles.saveButtonDisabled,
                   ]}
                   disabled={
-                    newPassword.trim() === '' || confirmPassword.trim() === ''
+                    !newPassword ||
+                    !confirmPassword ||
+                    passwordMismatch
                   }
                   onPress={() => {
                     if (onResetPassword) {
@@ -598,9 +645,8 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
 
               {/* INPUT FIELD */}
               <InputField
-                placeholder={`Enter ${
-                  singleFieldLabel?.toLowerCase() || 'value'
-                }...`}
+                placeholder={`Enter ${singleFieldLabel?.toLowerCase() || 'value'
+                  }...`}
                 value={name}
                 onChangeText={setName}
               />
@@ -833,12 +879,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 16,
-    color: '#050505',
+    color: Theme.colors.black,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#555',
+    color: Theme.colors.black,
     marginBottom: 6,
     marginTop: 8,
   },

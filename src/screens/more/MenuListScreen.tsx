@@ -139,7 +139,7 @@ const MenuListScreen = ({ navigation }: any) => {
       <ScrollView>
         <Section title="Feed">
           <MenuItem
-            title="Feed Record"
+            title="Feed Records"
             icon={Theme.icons.feedc}
             onPress={() => navigation.navigate(CustomConstants.FEED_RECORD_SCREEN)}
           />

@@ -8,6 +8,9 @@ export interface FeedRecord {
   date: string;
   quantity: number;
   price: number;
+      feedTypeId?: number;   // optional add karo
+    feedId?: number | null; // optional add karo
+    expiryDate?: string;   
 }
 
 export interface GetFeedRecordPayload {
@@ -37,11 +40,11 @@ export const getFeedRecords = async (payload: GetFeedRecordPayload) => {
 export interface FeedConsumptionRecord {
   feedRecordConsumptionId: string;
   ref: string;
-  flockRef: string;
-  feed: string;
+  flockRef?: string;
+  feed?: string;
   date: string;
-  totalQuantity: number;
-  quantity: number;
+  totalQuantity?: number;
+  quantity?: number;
 }
 
 export interface GetFeedConsumptionPayload {
@@ -104,7 +107,7 @@ export const getFeeds = async (): Promise<
     if (res.data.status === 'Success' && Array.isArray(res.data.data)) {
       return res.data.data.map((feed: any) => ({
         label: feed.name,
-        value: feed.feedId.toString(),
+        value: Number(feed.feedId),
       }));
     } else {
       return [];
@@ -261,6 +264,42 @@ export const deleteFeedRecordConsumption = async (
     return response.data;
   } catch (error) {
     console.log('Delete Feed Record Consumption Error:', error);
+    throw error;
+  }
+};
+
+
+/* ===== UPDATE FEED RECORD ===== */
+
+export interface UpdateFeedRecordPayload {
+  feedRecordId: string;
+  businessUnitId: string;
+  feedId: number;
+  feedTypeId: number;
+  supplierId: string | null;
+  quantity: number;
+  price: number;
+  date: string;     
+  expiryDate: string; 
+  note?: string;
+}
+export interface UpdateFeedRecordResponse {
+  status: string;
+  message: string;
+  data: any;
+}
+export const updateFeedRecord = async (
+  payload: UpdateFeedRecordPayload,
+): Promise<UpdateFeedRecordResponse> => {
+  try {
+    const response = await api.put(
+      'api/FeedRecord/update-feed-record',
+      payload,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.log('Update Feed Record Error:', error);
     throw error;
   }
 };

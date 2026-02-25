@@ -109,8 +109,6 @@ const AddModal: React.FC<AddModalProps> = ({
   const [salary, setSalary] = useState('');
   const [joiningDate, setJoiningDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [date, setDate] = useState<Date | null>(null);
-
   const [typeOpen, setTypeOpen] = useState(false);
   const [selectedEmployeeTypeId, setSelectedEmployeeTypeId] = useState<
     number | null
@@ -176,57 +174,62 @@ const AddModal: React.FC<AddModalProps> = ({
 
 
   useEffect(() => {
-  if (type === 'Feed Consumption' && initialData && visible) {
-    setSelectedFlock(initialData.flockId ?? null);
-    setSelectedFeedId(initialData.feedId ?? null);
-    setbag(
-      initialData.bag !== undefined
-        ? String(initialData.bag)
-        : initialData.quantity !== undefined
-        ? String(initialData.quantity)
-        : '1'
-    );
+    if (type === 'Feed Consumption' && initialData && visible) {
+      setSelectedFlock(initialData.flockId ?? null);
+      setSelectedFeedId(initialData.feedId ?? null);
+      setbag(
+        initialData.bag !== undefined
+          ? String(initialData.bag)
+          : initialData.quantity !== undefined
+            ? String(initialData.quantity)
+            : '1'
+      );
+      console.log("Initial feedId:", initialData?.feedId);
+      console.log("Feed Items:", feedItems);
+      setFeedDate(
+        initialData.date ? new Date(initialData.date) : null
+      );
+    }
+    if (type === 'Feed Consumption' && !initialData && visible) {
+      setSelectedFeedId(null);
+      setbag('1');
+      setFeedDate(null);
+    }
+  }, [type, initialData, visible]);
 
-    setFeedDate(
-      initialData.date ? new Date(initialData.date) : null
-    );
-  }
-  if (type === 'Feed Consumption' && !initialData && visible) {
-    setSelectedFeedId(null);
-    setbag('1');
-    setFeedDate(null);
-  }
-}, [type, initialData, visible]);
-
-useEffect(() => {
-  if (type === 'Feed Record' && initialData && visible) {
-    setSelectedFeedId(initialData.feedId ?? null);
-    setSelectedFeedTypeId(initialData.feedTypeId ?? null);
-    setQuantity(
-      initialData.quantity ? String(initialData.quantity) : ''
-    );
-    setFeedDate(
-      initialData.date ? new Date(initialData.date) : null
-    );
-    setSupplier(initialData.supplierId ?? null);
-    setPrice(
-      initialData.price ? String(initialData.price) : ''
-    );
-    setNote(initialData.note || '');
-    setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
-  }
-
-  if (type === 'Feed Record' && !initialData && visible) {
-    setSelectedFeedId(null);
-    setSelectedFeedTypeId(null);
-    setQuantity('');
-    setFeedDate(null);
-    setSupplier(null);
-    setPrice('');
-    setNote('');
-    setPaymentStatus('Paid');
-  }
-}, [type, initialData, visible]);
+  useEffect(() => {
+    if (type === 'Feed Record' && initialData && visible) {
+      setSelectedFeedId(Number(initialData.feedId)); 
+      setQuantity(
+        initialData.quantity ? String(initialData.quantity) : ''
+      );
+      setFeedDate(
+        initialData.date ? new Date(initialData.date) : null
+      );
+      setSelectedFeedTypeId(initialData.feedTypeId ?? null);
+      setSupplier(initialData.supplierId ?? null);
+      setPrice(
+        initialData.price ? String(initialData.price) : ''
+      );
+      setNote(initialData.note || '');
+      setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
+      // 👇 ADD THIS
+      setExpiryDate(
+        initialData.expiryDate ? new Date(initialData.expiryDate) : null
+      );
+    }
+    if (type === 'Feed Record' && !initialData && visible) {
+      setSelectedFeedId(null);
+      setSelectedFeedTypeId(null);
+      setQuantity('');
+      setFeedDate(null);
+      setSupplier(null);
+      setPrice('');
+      setNote('');
+      setPaymentStatus('Paid');
+      setExpiryDate(null);
+    }
+  }, [type, initialData, visible]);
 
 
   const [passwordError, setPasswordError] = useState('');
@@ -267,10 +270,10 @@ useEffect(() => {
   );
   const [feedDate, setFeedDate] = useState<Date | null>(null);
   const [showFeedDatePicker, setShowFeedDatePicker] = useState(false);
-  const [feedOpen, setFeedOpen] = useState(false);
   const [feedtypeOpen, setFeedTypeOpen] = useState(false);
   const [bag, setbag] = useState('1');
-
+  const [expiryDate, setExpiryDate] = useState<Date | null>(null);
+  const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   /* ===== Egg Sale ===== */
   const [trayCount, setTrayCount] = useState('');
   const [eggCount, setEggCount] = useState('');
@@ -281,7 +284,6 @@ useEffect(() => {
     eggs: number;
     patti: number;
   } | null>(null);
-  const [loadingFlockEggs, setLoadingFlockEggs] = useState(false);
   const [patti, setPatti] = useState('');
   const [totalPrice, setTotalPrice] = useState(0);
   const calculateTotalPrice = () => {
@@ -302,10 +304,8 @@ useEffect(() => {
   useEffect(() => {
     const fetchFlockEggs = async () => {
       if (selectedFlock) {
-        setLoadingFlockEggs(true);
         const data = await getFlockTotalEggs(selectedFlock);
         setFlockEggs(data);
-        setLoadingFlockEggs(false);
       } else {
         setFlockEggs(null);
       }
@@ -455,11 +455,11 @@ useEffect(() => {
 
       setIsSaveEnabled(
         selectedCustomer !== null &&
-          selectedFlock !== null &&
-          endDate !== null &&
-          price.trim().length > 0 &&
-          selectedUnit !== null &&
-          valid,
+        selectedFlock !== null &&
+        endDate !== null &&
+        price.trim().length > 0 &&
+        selectedUnit !== null &&
+        valid,
       );
       console.log('AddModal Save Data:', {
         price,
@@ -1446,14 +1446,7 @@ useEffect(() => {
                   value={selectedFeedId}
                   data={feedItems || []}
                   placeholder="Select feed..."
-                  style={[
-                    styles.dropdown,
-                    {
-                      height: 45,
-                      borderColor: Theme.colors.borderLight,
-                      borderWidth: 1,
-                    },
-                  ]}
+                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
                   containerStyle={styles.dropdownContainer}
                   onChange={item => setSelectedFeedId(item.value)}
                   labelField="label"
@@ -1513,7 +1506,40 @@ useEffect(() => {
                     }}
                   />
                 )}
+                {/* EXPIRY DATE - SHOW ONLY IN EDIT */}
+                {isEdit && (
+                  <>
+                    <Text style={styles.label}>
+                      Expiry Date<Text style={styles.required}>*</Text>
+                    </Text>
 
+                    <TouchableOpacity
+                      style={styles.inputWithIcon}
+                      onPress={() => setShowExpiryPicker(true)}
+                    >
+                      <Text style={{ flex: 1 }}>
+                        {expiryDate
+                          ? expiryDate.toLocaleDateString('en-GB')
+                          : 'DD/MM/YYYY'}
+                      </Text>
+                      <Image source={Theme.icons.date} style={styles.dateIcon} />
+                    </TouchableOpacity>
+
+                    {showExpiryPicker && (
+                      <DateTimePicker
+                        value={expiryDate || new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(event, date) => {
+                          setShowExpiryPicker(false);
+                          if (event.type === 'set' && date) {
+                            setExpiryDate(date);
+                          }
+                        }}
+                      />
+                    )}
+                  </>
+                )}
                 {/* SUPPLIER */}
                 <Text style={styles.label}>
                   Supplier<Text style={styles.required}>*</Text>
@@ -1529,7 +1555,6 @@ useEffect(() => {
                   style={styles.dropdown}
                   dropDownContainerStyle={styles.dropdownContainer}
                 />
-
                 {/* PRICE */}
                 <Text style={styles.label}>Price</Text>
                 <TextInput
@@ -1553,29 +1578,32 @@ useEffect(() => {
                   onChangeText={setNote}
                 />
                 {/* PAYMENT STATUS */}
-                <View style={styles.radioRow}>
-                  {['Paid', 'Unpaid'].map(status => (
-                    <TouchableOpacity
-                      key={status}
-                      style={styles.radioContainer}
-                      onPress={() =>
-                        setPaymentStatus(status as 'Paid' | 'Unpaid')
-                      }
-                    >
-                      <View
-                        style={[
-                          styles.radioOuter,
-                          paymentStatus === status && styles.radioSelectedOuter,
-                        ]}
+                {!isEdit && (
+
+                  <View style={styles.radioRow}>
+                    {['Paid', 'Unpaid'].map(status => (
+                      <TouchableOpacity
+                        key={status}
+                        style={styles.radioContainer}
+                        onPress={() =>
+                          setPaymentStatus(status as 'Paid' | 'Unpaid')
+                        }
                       >
-                        {paymentStatus === status && (
-                          <Text style={styles.radioCheck}>✔</Text>
-                        )}
-                      </View>
-                      <Text style={styles.radioLabel}>{status}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <View
+                          style={[
+                            styles.radioOuter,
+                            paymentStatus === status && styles.radioSelectedOuter,
+                          ]}
+                        >
+                          {paymentStatus === status && (
+                            <Text style={styles.radioCheck}>✔</Text>
+                          )}
+                        </View>
+                        <Text style={styles.radioLabel}>{status}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </>
             )}
             {type === 'Feed Consumption' && (

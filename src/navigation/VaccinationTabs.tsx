@@ -6,7 +6,7 @@ import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
 import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
 import LoadingOverlay from "../components/loading/LoadingOverlay";
-import { getVaccinesExcel } from "../screens/Report/ReportHelpers";
+import { getVaccinesExcel, getVaccineStockExcel } from "../screens/Report/ReportHelpers";
 import { useBusinessUnit } from "../context/BusinessContext";
 
 type TabType = "vaccinations" | "schedule" | "stock";
@@ -113,13 +113,13 @@ const VaccinationMainScreen = () => {
                                         pageSize: pageSize,
                                     };
                                     console.log("Vaccination report payload:", payload);
-
                                     const response = await getVaccinesExcel("VaccinationsReport", payload);
                                     console.log("Excel response:", response);
                                 }
-                                // Optionally handle stock tab export if needed
                                 if (activeTab === "stock") {
-                                    // await getStockExcel(...) // similar to vaccines
+                                    setGlobalLoading(true);
+                                    await getVaccineStockExcel(businessUnitId, "VaccineStockReport");
+                                    setGlobalLoading(false);
                                 }
                             } catch (error) {
                                 console.error("Error exporting Vaccinations Excel:", error);
@@ -132,7 +132,6 @@ const VaccinationMainScreen = () => {
                 showAdminPortal={true}
                 showLogout={true}
             />
-
             {/* TOP TOGGLE BUTTONS */}
             <View style={styles.tabContainer}>
                 <TabButton

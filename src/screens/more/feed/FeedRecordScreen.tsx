@@ -5,7 +5,7 @@ import DataCard, { TableColumn } from "../../../components/customCards/DataCard"
 import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import { useBusinessUnit } from "../../../context/BusinessContext";
 import BackArrow from "../../../components/common/ScreenHeaderWithBack";
-import { getFeedRecords, FeedRecord, FeedTypeItem, getFeedTypes, AddFeedRecordPayload, addFeedRecord, deleteFeedRecord } from "../../../services/FeedService";
+import { getFeedRecords, FeedRecord, FeedTypeItem, getFeedTypes, AddFeedRecordPayload, addFeedRecord, deleteFeedRecord, updateFeedRecord, UpdateFeedRecordPayload } from "../../../services/FeedService";
 import { useFocusEffect } from "@react-navigation/native";
 import { Dropdown } from "react-native-element-dropdown";
 import SearchBar from "../../../components/common/SearchBar";
@@ -14,7 +14,9 @@ import AddModal from "../../../components/customPopups/AddModal";
 import { getFeeds } from "../../../services/FeedService";
 import { showErrorToast, showSuccessToast } from "../../../utils/AppToast";
 import ConfirmationModal from "../../../components/customPopups/ConfirmationModal";
-
+import { formatDisplayDate } from "../../../utils/validation";
+import { normalizeDataFormat } from "../../../utils/NormalizeDataFormat";
+import { getFeedRecordsExcel } from "../../Report/ReportHelpers";
 const FeedRecordScreen: React.FC = () => {
     const { businessUnitId } = useBusinessUnit();
     const [feedData, setFeedData] = useState<FeedRecord[]>([]);
@@ -26,76 +28,81 @@ const FeedRecordScreen: React.FC = () => {
     const [feedGroupData, setFeedGroupData] = useState<{
         feeds: { label: string; value: number }[];
         feedTypes: FeedTypeItem[];
-        suppliers: { label: string; value: string;  }[];
+        suppliers: { label: string; value: string; }[];
     }>({
         feeds: [],
         feedTypes: [],
         suppliers: [],
     });
     const [modalState, setModalState] = useState<{
-        showFeed: boolean;
-        delete: {
-            visible: boolean;
-            record?: FeedRecord;
-        };
+        type: 'add' | 'edit' | 'delete' | null;
+        selectedRecord: FeedRecord | null;
     }>({
-        showFeed: false,
-        delete: { visible: false },
+        type: null,
+        selectedRecord: null,
     });
-    const fetchFeedRecords = async () => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const pageSize = 10;
+    const fetchFeedRecords = async (page = currentPage) => {
+        if (!businessUnitId) return;
+        setLoading(true);
+
+        const payload = {
+            businessUnitId,
+            pageNumber: page,
+            pageSize: pageSize,
+            searchKey: filters.searchKey || null,
+            supplierId: filters.supplierId,
+        };
         try {
-            if (!businessUnitId) return;
-            setLoading(true);
-            const payload = {
-                businessUnitId,
-                pageNumber: 1,
-                pageSize: 10,
-                searchKey: filters.searchKey || null,
-                supplierId: filters.supplierId,
-            };
             const res = await getFeedRecords(payload);
-            const mappedData = res.list.map((item: any) => ({
-                feedRecordId: item.feedRecordId,
-                feedName: item.feed,
-                feedType: item.feedType,
-                supplier: item.supplier,
-                date: item.date,
-                quantity: item.quantity,
-                price: item.price,
+            const normalizedData = normalizeDataFormat(res.list, 'array', 'FeedRecords');
+            const mappedData = normalizedData.map((item: any) => ({
+                feedRecordId: item.feedRecordId ?? null,
+                feedTypeId: item.feedTypeId ?? null,
+                supplierId: item.supplierId ?? null,
+                feedName: item.feed ?? '',
+                feedType: item.feedType ?? '',
+                supplier: item.supplier ?? '',
+                date: item.date ?? '',
+                expiryDate: item.expiryDate ?? '',
+                quantity: item.quantity ?? 0,
+                price: item.price ?? 0,
             }));
             setFeedData(mappedData);
+            setTotalRecords(res.totalCount ?? 0);
         } catch (e) {
             console.log("Feed Record Screen Error:", e);
         } finally {
             setLoading(false);
         }
     };
-
     useFocusEffect(
         useCallback(() => {
             fetchFeedRecords();
-            fetchSuppliers();
-        }, [businessUnitId])
+        }, [businessUnitId, filters])
     );
-
     const fetchSuppliers = async () => {
         if (!businessUnitId) return;
-        const res = await getSuppliers(businessUnitId);
-        const dropdownData = res.map((s: any) => ({
-            label: s.name,
-            value: s.partyId,
-        }));
-
-        setFeedGroupData(prev => ({
-            ...prev,
-            suppliers: dropdownData,
-        }));
+        try {
+            const res = await getSuppliers(businessUnitId);
+            const normalizedSuppliers = normalizeDataFormat(res, 'array', 'Suppliers');
+            const dropdownData = normalizedSuppliers.map((s: any) => ({
+                label: s.name ?? 'Unknown Supplier',
+                value: s.partyId ?? null,
+            }));
+            setFeedGroupData(prev => ({
+                ...prev,
+                suppliers: dropdownData,
+            }));
+        } catch (err) {
+            console.error("Fetch Suppliers Error:", err);
+        }
     };
-    useEffect(() => {
-        fetchFeedRecords();
-    }, [filters, businessUnitId]);
     const fetchFeedTypes = async () => {
         const res = await getFeedTypes();
+        const normalizedFeedTypes = normalizeDataFormat(res, 'array', 'FeedTypes');
         setFeedGroupData(prev => ({
             ...prev,
             feedTypes: res,
@@ -103,6 +110,7 @@ const FeedRecordScreen: React.FC = () => {
     };
     const fetchFeeds = async () => {
         const res = await getFeeds();
+        const normalizedFeeds = normalizeDataFormat(res, 'array', 'Feeds');
         setFeedGroupData(prev => ({
             ...prev,
             feeds: res,
@@ -111,9 +119,12 @@ const FeedRecordScreen: React.FC = () => {
     useEffect(() => {
         fetchFeeds();
         fetchFeedTypes();
+        fetchSuppliers();
     }, []);
-    const formatDate = (d: Date | string) => {
-        const dateObj = typeof d === "string" ? new Date(d) : d;
+    const formatDate = (d: Date | string | undefined | null) => {
+        if (!d) return "";
+        const dateObj = d instanceof Date ? d : new Date(d);
+        if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "";
         const day = dateObj.getDate().toString().padStart(2, "0");
         const month = (dateObj.getMonth() + 1).toString().padStart(2, "0");
         const year = dateObj.getFullYear();
@@ -138,15 +149,92 @@ const FeedRecordScreen: React.FC = () => {
             console.log("Payload before API:", payload);
             const res = await addFeedRecord(payload);
             if (res.status === "Success") {
+                const newRow = {
+                    ...res.data,
+                    feedName: res.data.feed ?? "",
+                    feedType: res.data.feedType ?? "",
+                    supplier: res.data.supplier ?? "",
+                    date: res.data.date ?? "",
+                    quantity: res.data.quantity ?? 0,
+                    price: res.data.price ?? 0,
+                };
+                setFeedData(prev => [...prev, newRow]);
+                setTotalRecords(prev => prev + 1);
                 showSuccessToast("Feed Record Added Successfully");
             }
-            setModalState(prev => ({
-                ...prev,
-                showFeed: false
-            }));
-            fetchFeedRecords();
+            setModalState({ type: null, selectedRecord: null });
         } catch (error) {
             showErrorToast("Failed to Add feed Record");
+        } finally {
+            setLoading(false);
+        }
+    };
+    const handleUpdateFeedRecord = async (data: any) => {
+        if (!businessUnitId || !modalState.selectedRecord) {
+            return;
+        }
+        const payload: UpdateFeedRecordPayload = {
+            feedRecordId: modalState.selectedRecord.feedRecordId,
+            businessUnitId,
+            feedId: Number(data.feedId),
+            feedTypeId: Number(data.feedTypeId),
+            supplierId: data.supplierId || null,
+            quantity: Number(data.quantity),
+            price: Number(data.price),
+            date: formatDate(data.date ?? modalState.selectedRecord.date),
+            expiryDate: formatDate(data.expiryDate ?? modalState.selectedRecord.expiryDate),
+            note: data.note || "",
+        };
+        console.log("Payload to update API:", payload);
+        try {
+            setLoading(true);
+            const res = await updateFeedRecord(payload);
+            if (res.status === "Success") {
+                const updatedRow = {
+                    ...res.data,
+                    feedName: res.data.feed ?? "",
+                    feedType: res.data.feedType ?? "",
+                    supplier: res.data.supplier ?? "",
+                    date: res.data.date ?? "",
+                    expiryDate: res.data.expiryDate ?? "",
+                    quantity: res.data.quantity ?? 0,
+                    price: res.data.price ?? 0,
+                };
+                setFeedData(prev =>
+                    prev.map(item =>
+                        item.feedRecordId === updatedRow.feedRecordId
+                            ? updatedRow
+                            : item
+                    )
+                );
+                showSuccessToast("Feed Record Updated Successfully");
+            } else {
+                console.warn("Update failed:", res);
+                showErrorToast("Failed to update feed record");
+            }
+        } catch (error) {
+            console.error("Update Error:", error);
+        } finally {
+            setLoading(false);
+            setModalState({ type: null, selectedRecord: null });
+        }
+    };
+    const handleGenerateReport = async () => {
+        if (!businessUnitId) return;
+        try {
+            setLoading(true);
+            const reportPayload = {
+                businessUnitId,
+                pageNumber: currentPage,
+                pageSize: pageSize,
+                searchKey: filters.searchKey || null,
+                supplierId: filters.supplierId || null,
+            };
+            await getFeedRecordsExcel('FeedRecordsReport', reportPayload);
+            showSuccessToast('Report generated successfully');
+        } catch (error) {
+            console.error('Error generating Feed Records report:', error);
+            showErrorToast('Failed to generate report');
         } finally {
             setLoading(false);
         }
@@ -159,13 +247,7 @@ const FeedRecordScreen: React.FC = () => {
             key: "date",
             title: "DATE",
             width: 120,
-            render: (value) => {
-                const d = new Date(value);
-                const day = d.getDate().toString().padStart(2, "0");
-                const month = (d.getMonth() + 1).toString().padStart(2, "0");
-                const year = d.getFullYear();
-                return <Text>{`${day}/${month}/${year}`}</Text>;
-            },
+            render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
         },
         { key: "quantity", title: "QUANTITY", width: 100 },
         { key: "price", title: "PRICE", width: 100 },
@@ -176,12 +258,12 @@ const FeedRecordScreen: React.FC = () => {
                 title="Feed Records"
                 showBack
                 onAddNewPress={() =>
-                    setModalState(prev => ({
-                        ...prev,
-                        showFeed: true
-                    }))
+                    setModalState({
+                        type: 'add',
+                        selectedRecord: null,
+                    })
                 }
-                onReportPress={() => console.log("Generate Report")}
+                onReportPress={handleGenerateReport}
             />
             <View style={styles.filterRow}>
                 {/* SEARCH */}
@@ -217,7 +299,7 @@ const FeedRecordScreen: React.FC = () => {
                 </View>
             </View>
             {/* RIGHT SIDE: RESET FILTER */}
-            {( filters.supplierId) && (
+            {(filters.supplierId) && (
                 <Text
                     style={styles.resetText}
                     onPress={() => {
@@ -234,12 +316,19 @@ const FeedRecordScreen: React.FC = () => {
                 <DataCard
                     columns={columns}
                     data={feedData}
-                    itemsPerPage={5}
+                    itemsPerPage={pageSize}
+                    currentPage={currentPage}
+                    totalRecords={totalRecords}
+                    onPageChange={page => {
+                        setCurrentPage(page);
+                        fetchFeedRecords(page);
+                    }}
                     renderRowMenu={(row, closeMenu) => (
                         <View>
                             <TouchableOpacity
                                 onPress={() => {
-                                    // Edit logic here
+                                    setModalState({ type: 'edit', selectedRecord: row });
+                                    closeMenu();
                                 }}
                                 style={{ marginBottom: 8 }}
                             >
@@ -248,10 +337,7 @@ const FeedRecordScreen: React.FC = () => {
                             <View style={styles.menuSeparator} />
                             <TouchableOpacity
                                 onPress={() => {
-                                    setModalState(prev => ({
-                                        ...prev,
-                                        delete: { visible: true, record: row },
-                                    }));
+                                    setModalState({ type: 'delete', selectedRecord: row });
                                     closeMenu();
                                 }}
                                 style={{ marginTop: 8 }}
@@ -264,43 +350,38 @@ const FeedRecordScreen: React.FC = () => {
             </View>
             <LoadingOverlay visible={loading} />
             <AddModal
-                visible={modalState.showFeed}
-                onClose={() => setModalState(prev => ({
-                    ...prev,
-                    showFeed: false
-                }))}
+                visible={modalState.type === 'add' || modalState.type === 'edit'}
+                onClose={() => setModalState({ type: null, selectedRecord: null })}
                 type="Feed Record"
-                title="Add Feed Record"
+                initialData={modalState.selectedRecord ?? undefined}
+                title={modalState.type === 'edit' ? "Edit Feed Records" : "Add Feed Records"}
+                isEdit={modalState.type === 'edit'}
                 supplierItems={feedGroupData.suppliers}
                 feedItems={feedGroupData.feeds}
                 feedTypeItems={feedGroupData.feedTypes}
-                onSave={handleAddFeedRecords}
+                onSave={
+                    modalState.type === "edit"
+                        ? handleUpdateFeedRecord
+                        : handleAddFeedRecords
+                }
             />
             <ConfirmationModal
                 type="delete"
-                visible={modalState.delete.visible}
+                visible={modalState.type == 'delete'}
                 title={`Are you sure you want to delete this Feed Record?`}
-                onClose={() =>
-                    setModalState(prev => ({
-                        ...prev,
-                        delete: { visible: false, record: undefined }
-                    }))
-                }
+                onClose={() => setModalState({ type: null, selectedRecord: null })}
                 onConfirm={async () => {
-                    if (!modalState.delete.record) return;
+                    if (modalState.type !== 'delete' || !modalState.selectedRecord) return;
                     try {
                         setLoading(true);
-                        await deleteFeedRecord(modalState.delete.record.feedRecordId);
+                        await deleteFeedRecord(modalState.selectedRecord!.feedRecordId);
                         showSuccessToast("Feed record deleted successfully");
                         fetchFeedRecords();
                     } catch (error) {
                         showErrorToast("Failed to delete feed record");
                     } finally {
                         setLoading(false);
-                        setModalState(prev => ({
-                            ...prev,
-                            delete: { visible: false, record: undefined }
-                        }));
+                        setModalState({ type: null, selectedRecord: null });
                     }
                 }}
             />
@@ -321,7 +402,7 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     dropdown: {
-        height: 40,
+        height: 42,
         borderColor: Theme.colors.success,
         borderWidth: 1,
         borderRadius: 8,
@@ -341,7 +422,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         marginLeft: 250,
-        marginTop:-9,
+        marginTop: -9,
     },
     menuSeparator: {
         height: 2,

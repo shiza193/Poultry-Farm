@@ -483,7 +483,6 @@ const UserScreen = () => {
         visible={groupState.showAssignFarmModal}
         farms={farms}
         roleItems={roleItems}
-        getUserRoles={getUserRoles}
         onClose={() =>
           setGroupState(prev => ({ ...prev, showAssignFarmModal: false }))
         }
