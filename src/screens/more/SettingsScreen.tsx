@@ -152,74 +152,72 @@ const SettingsScreen = () => {
 
   // ===== TOGGLE STATUS =====
   const toggleStatus = async (id: number | string) => {
-  // 1 Current tab ka saara data array me store karte hain
-  // Example: agar activeTab 'Egg Units' hai → tabItems = items['Egg Units']
-  const tabItems = items[activeTab];
-  
-  // 2 Current item find karte hain jisko toggle karna hai
-  // Har type me alag ID field hoti hai
-  const current = tabItems.find(i => {
-    if ('unitId' in i) return i.unitId === id;      
-    if ('feedId' in i) return i.feedId === id;       
-    if ('empNo' in i) return i.id === id;         
-    if ('vaccineNo' in i) return i.id === id;        
-    return false;
-  });
+    // 1 Current tab ka saara data array me store karte hain
+    // Example: agar activeTab 'Egg Units' hai → tabItems = items['Egg Units']
+    const tabItems = items[activeTab];
 
-  // 3 Agar current item nahi mila → function exit ho jaye
-  if (!current) return;
+    // 2 Current item find karte hain jisko toggle karna hai
+    // Har type me alag ID field hoti hai
+    const current = tabItems.find(i => {
+      if ('unitId' in i) return i.unitId === id;
+      if ('feedId' in i) return i.feedId === id;
+      if ('empNo' in i) return i.id === id;
+      if ('vaccineNo' in i) return i.id === id;
+      return false;
+    });
 
-  // 4 Previous items ka copy bna lete hain (API fail hone par restore ke liye)
-  const prevItems = [...tabItems];
+    // 3 Agar current item nahi mila → function exit ho jaye
+    if (!current) return;
 
-  const newItems = tabItems.map(i => {
-    if (i === current) {  // Sirf current item ko toggle karna
-      if ('isActive' in i) 
-        return { ...i, isActive: !i.isActive };      
-      if ('status' in i)
-        return {                                 
-          ...i,
-          status: i.status === 'Active' ? 'Inactive' : 'Active',
-        };
+    // 4 Previous items ka copy bna lete hain (API fail hone par restore ke liye)
+    const prevItems = [...tabItems];
+
+    const newItems = tabItems.map(i => {
+      if (i === current) {
+        // Sirf current item ko toggle karna
+        if ('isActive' in i) return { ...i, isActive: !i.isActive };
+        if ('status' in i)
+          return {
+            ...i,
+            status: i.status === 'Active' ? 'Inactive' : 'Active',
+          };
+      }
+      return i;
+    });
+
+    setItems(prev => ({
+      ...prev,
+      [activeTab as keyof AllItemsState]: newItems as ItemType[],
+    }));
+
+    try {
+      if (activeTab === 'Egg Units')
+        await updateUnitIsActive(
+          (current as EggUnit).unitId,
+          !(current as EggUnit).isActive,
+        );
+      else if (activeTab === 'Feed Types')
+        await updateFeedIsActive(
+          (current as Feed).feedId,
+          !(current as Feed).isActive,
+        );
+      else if (activeTab === 'Employee Types')
+        await updateEmployeeTypeIsActive(
+          (current as EmployeeType).empNo,
+          (current as EmployeeType).status === 'Inactive',
+        );
+      else if (activeTab === 'Vaccines')
+        await updateVaccineIsActive(
+          Number((current as VaccineType).vaccineNo),
+          (current as VaccineType).status === 'Inactive',
+        );
+
+      showSuccessToast('Status updated successfully');
+    } catch {
+      // 8 Agar API fail ho jaye → local state ko previous items se restore
+      setItems(prev => ({ ...prev, [activeTab]: prevItems }));
     }
-    return i; 
-  });
-
-  setItems(prev => ({
-    ...prev,
-    [activeTab as keyof AllItemsState]: newItems as ItemType[],
-  }));
-
-  try {
-    if (activeTab === 'Egg Units')
-      await updateUnitIsActive(
-        (current as EggUnit).unitId,
-        !(current as EggUnit).isActive, 
-      );
-    else if (activeTab === 'Feed Types')
-      await updateFeedIsActive(
-        (current as Feed).feedId,
-        !(current as Feed).isActive,
-      );
-    else if (activeTab === 'Employee Types')
-      await updateEmployeeTypeIsActive(
-        (current as EmployeeType).empNo,
-        (current as EmployeeType).status === 'Inactive', 
-      );
-    else if (activeTab === 'Vaccines')
-      await updateVaccineIsActive(
-        Number((current as VaccineType).vaccineNo),
-        (current as VaccineType).status === 'Inactive', 
-      );
-
-        showSuccessToast('Status updated successfully');
-
-  } catch {
-    // 8 Agar API fail ho jaye → local state ko previous items se restore
-    setItems(prev => ({ ...prev, [activeTab]: prevItems }));
-  }
-};
-
+  };
 
   // ===== DELETE =====
   const onDeletePress = (id: number | string) => {
@@ -253,9 +251,8 @@ const SettingsScreen = () => {
         await deleteEmployeeType(deleteItem.id as number);
       else if (deleteItem.type === 'Vaccines')
         await deleteVaccine(deleteItem.id as number);
-      
-        showSuccessToast('Deleted successfully');
 
+      showSuccessToast('Deleted successfully');
     } catch {
       setItems(prev => ({ ...prev, [deleteItem.type]: prevItems }));
     }
@@ -585,6 +582,7 @@ const SettingsScreen = () => {
           <DataCard
             columns={getColumns()}
             data={items[activeTab]}
+            showPagination={false}
             itemsPerPage={5}
           />
         </View>
@@ -637,7 +635,7 @@ const styles = StyleSheet.create({
   activeTabText: { color: Theme.colors.white, fontWeight: '700' },
   overlay: {
     position: 'absolute',
-    top: 0,
+    top: 40,
     bottom: 0,
     left: 0,
     right: 0,

@@ -34,7 +34,7 @@ interface BusinessUnitModalProps {
   accountTypeItems?: { label: string; value: string }[];
   accountOptions?: { label: string; value: string }[];
   voucherTypeOptions?: { label: string; value: number }[];
-
+  initialSaleFilters?: SaleFilterModel;
   onResetPassword?: (data: {
     newPassword: string;
     confirmPassword: string;
@@ -104,6 +104,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   onSaveSingleField,
   isComplete,
   mode = 'add',
+  initialSaleFilters,
   flockItems = [],
   supplierItems = [],
   selectedFlockId: initialFlockId,
@@ -242,7 +243,13 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
       setShowConfirmPassword(false);
     }
   }, [visible, mode]);
-
+  useEffect(() => {
+    if (visible && mode === 'saleFilter') {
+      setSaleFromDate(initialSaleFilters?.fromDate || null);
+      setSaleToDate(initialSaleFilters?.toDate || null);
+      setSaleCustomer(initialSaleFilters?.customerId || null);
+    }
+  }, [visible, mode, initialSaleFilters]);
   useEffect(() => {
     if (!visible || mode !== 'filter') return;
 
@@ -335,7 +342,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 placeholderStyle={styles.dropdownPlaceholder}
                 selectedTextStyle={styles.dropdownText}
                 onChange={item => {
-                  setSelectedFlockId(item.value);
+                  setSelectedFlockId(item.id);
                 }}
               />
 
@@ -351,7 +358,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 placeholderStyle={styles.dropdownPlaceholder}
                 selectedTextStyle={styles.dropdownText}
                 onChange={item => {
-                  setSelectedSupplier(item.value);
+                  setSelectedSupplier(item.id);
                 }}
               />
 
@@ -755,6 +762,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
           )}
           {mode === 'saleFilter' && (
             <>
+              {/* DATE RANGE */}
               <View style={styles.dateRangeContainer}>
                 <TouchableOpacity
                   style={styles.dateItem}
@@ -783,7 +791,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 </TouchableOpacity>
               </View>
 
-              {/* CUSTOMER */}
+              {/* CUSTOMER DROPDOWN */}
               <Text style={styles.inputLabel}>Customer</Text>
               <Dropdown
                 style={styles.dropdown}
@@ -792,8 +800,8 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 labelField="label"
                 valueField="value"
                 placeholder="Select customer"
-                value={saleCustomer}
-                onChange={item => setSaleCustomer(item.value)}
+                value={saleCustomer || null} // value must match Dropdown's valueField
+                onChange={item => setSaleCustomer(String(item.value))} // ensure string
               />
 
               {/* BUTTONS */}
@@ -830,6 +838,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 </TouchableOpacity>
               </View>
 
+              {/* DATE PICKERS */}
               {showSaleFromPicker && (
                 <DateTimePicker
                   value={saleFromDate || new Date()}
@@ -840,7 +849,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   }}
                 />
               )}
-
               {showSaleToPicker && (
                 <DateTimePicker
                   value={saleToDate || new Date()}

@@ -31,7 +31,11 @@ import {
   AutoFeedRecordPayload,
   CalculateFCRPayload,
 } from '../../services/FlockService';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import {
+  CommonActions,
+  useFocusEffect,
+  useNavigation,
+} from '@react-navigation/native';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
 import SearchBar from '../../components/common/SearchBar';
@@ -61,10 +65,10 @@ interface FlocksScreenProps {
   onCloseAddModal?: () => void;
   onOpenAddModal?: () => void;
   setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
-  currentPage: number;
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
+  currentPage?: number;
+  setCurrentPage?: React.Dispatch<React.SetStateAction<number>>;
   // Add these two props
-  filterState: {
+  filterState?: {
     searchKey: string;
     isEnded: boolean;
     selected: {
@@ -76,7 +80,7 @@ interface FlocksScreenProps {
       suppliers?: { label: string; id: string }[];
     };
   };
-  setFilterState: React.Dispatch<
+  setFilterState?: React.Dispatch<
     React.SetStateAction<{
       searchKey: string;
       isEnded: boolean;
@@ -97,9 +101,14 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
   openAddModal,
   onCloseAddModal,
   currentPage,
-  setCurrentPage,
-  filterState,
-  setFilterState,
+  setCurrentPage = () => {},
+  filterState = {
+    searchKey: '',
+    isEnded: false,
+    selected: { flockId: null, supplierId: null },
+    options: { flocks: [], suppliers: [] },
+  },
+  setFilterState = () => {},
 }) => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
@@ -276,11 +285,16 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
       width: 100,
       render: (value, row) => (
         <TouchableOpacity
-          onPress={() =>
-            navigation.navigate(CustomConstants.FLOCKS_MORTALITY_SCREEN, {
+          onPress={() => {
+            // 'Flock' bottom tab select kar
+            navigation.navigate('Flock');
+
+            // Stack ke andar push karo
+            navigation.push('FlockMainScreen', {
+              initialTab: 'mortality',
               flockId: row.raw.flockId,
-            })
-          }
+            });
+          }}
         >
           <Text style={{ fontWeight: '700', color: Theme.colors.black }}>
             {value}
@@ -659,6 +673,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
           visible={modals.mortality}
           onClose={() => setModals(prev => ({ ...prev, mortality: false }))}
           type="mortality"
+          maxQuantity={selectedFlock?.remainingQuantity || 0}
           onSave={Mortality}
         />
 
@@ -689,14 +704,19 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
           selectedSupplier={filterState.selected.supplierId}
           isComplete={filterState.isEnded}
           onApplyFilter={(flockId, supplierId, isComplete) => {
-            setFilterState(prev => ({
-              ...prev,
+            const updatedState = {
+              ...filterState,
               selected: {
                 flockId: flockId || null,
                 supplierId: supplierId || null,
               },
               isEnded: isComplete ?? false,
-            }));
+            };
+
+            setFilterState(updatedState);
+
+            setCurrentPage(1);
+            fetchFlocks(1);
 
             setModals(prev => ({ ...prev, filter: false }));
           }}
@@ -794,7 +814,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginTop:7,
+    marginTop: 7,
     marginBottom: 8,
     justifyContent: 'space-between',
     gap: 6,

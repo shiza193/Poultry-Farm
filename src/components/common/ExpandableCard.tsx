@@ -8,6 +8,7 @@ import {
   TextInput,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import Theme from '../../theme/Theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -33,15 +34,19 @@ interface Props {
   suppliers?: any[];
   customLabels?: Partial<Record<keyof FlockInfo, string>>;
   fieldsPerRow?: number;
+  onOpen?: () => Promise<void>;
+  isDataLoading?: boolean;
 }
 
 const ExpandableCard: React.FC<Props> = ({
   title,
   initialData,
+  onOpen,
   onSave,
   fieldsPerRow = 2,
   flockTypes = [],
   suppliers = [],
+  isDataLoading = false,
   customLabels = {},
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -51,6 +56,11 @@ const ExpandableCard: React.FC<Props> = ({
     key: keyof FlockInfo;
     visible: boolean;
   }>({ key: 'arrivalDate', visible: false });
+  const [localLoading, setLocalLoading] = useState(false); // NEW
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const formatLabel = (key: keyof FlockInfo) =>
     customLabels[key] ??
@@ -64,18 +74,17 @@ const ExpandableCard: React.FC<Props> = ({
     { label: 'Hen', value: 'Hen' },
     { label: 'Rooster', value: 'Rooster' },
   ];
+
   const handleSave = () => {
     if (onSave) onSave(data);
     setEditing(false);
   };
-  useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
 
   const handleDiscard = () => {
     setData(initialData);
     setEditing(false);
   };
+
   const flockTypeOptions = flockTypes.map(item => ({
     label: item.name,
     value: item.flockTypeId,
@@ -87,11 +96,10 @@ const ExpandableCard: React.FC<Props> = ({
   }));
 
   const handleDateSelect = (key: keyof FlockInfo, date: Date | undefined) => {
-    if (date) handleChange(key, date.toISOString().split('T')[0]); // yyyy-mm-dd
+    if (date) handleChange(key, date.toISOString().split('T')[0]);
     setShowDatePicker({ key, visible: false });
   };
 
-  // Split data into rows
   const entries = Object.keys(data) as (keyof FlockInfo)[];
   const rows: (keyof FlockInfo)[][] = [];
   for (let i = 0; i < entries.length; i += fieldsPerRow) {
@@ -117,7 +125,16 @@ const ExpandableCard: React.FC<Props> = ({
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.header}
-        onPress={() => setExpanded(!expanded)}
+        onPress={async () => {
+          const newValue = !expanded;
+          setExpanded(newValue);
+
+          if (newValue && onOpen) {
+            setLocalLoading(true); // START LOADER
+            await onOpen();
+            setLocalLoading(false); // STOP LOADER
+          }
+        }}
       >
         <Text style={styles.title}>{title}</Text>
         <Image
@@ -128,169 +145,184 @@ const ExpandableCard: React.FC<Props> = ({
 
       {expanded && (
         <View style={styles.content}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {rows.map((rowKeys, idx) => (
-              <View key={idx} style={styles.row}>
-                {rowKeys.map(key => {
-                  const isDateField =
-                    key === 'arrivalDate' || key === 'dateOfBirth';
-                  const isWeightField = key === 'averageWeight';
-                  return (
-                    <View key={key} style={styles.fieldContainer}>
-                      <Text style={styles.label}>
-                        {key === 'averageWeight'
-                          ? 'Average Weight (G)'
-                          : formatLabel(key)}
-                      </Text>
+         {isDataLoading || localLoading ? (
+  <View style={styles.loaderWrapper}>
+    <ActivityIndicator
+      size="large"
+      color={Theme.colors.buttonPrimary}
+    />
+    <Text style={styles.loaderText}>Please wait, flock information is loading...</Text>
+  </View>
+) : (
 
-                      {editing ? (
-                        isDateField ? (
-                          <TouchableOpacity
-                            style={[
-                              styles.input,
-                              {
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                              },
-                            ]}
-                            onPress={() =>
-                              setShowDatePicker({ key, visible: true })
-                            }
-                          >
-                            <Text>
-                              {data[key]
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {rows.map((rowKeys, idx) => (
+                <View key={idx} style={styles.row}>
+                  {rowKeys.map(key => {
+                    const isDateField =
+                      key === 'arrivalDate' || key === 'dateOfBirth';
+                    const isWeightField = key === 'averageWeight';
+                    return (
+                      <View key={key} style={styles.fieldContainer}>
+                        <Text style={styles.label}>
+                          {key === 'averageWeight'
+                            ? 'Average Weight (G)'
+                            : formatLabel(key)}
+                        </Text>
+
+                        {editing ? (
+                          isDateField ? (
+                            <TouchableOpacity
+                              style={[
+                                styles.input,
+                                {
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                },
+                              ]}
+                              onPress={() =>
+                                setShowDatePicker({ key, visible: true })
+                              }
+                            >
+                              <Text>
+                                {data[key]
+                                  ? new Date(data[key]).toLocaleDateString(
+                                      'en-GB',
+                                    )
+                                  : '--'}
+                              </Text>
+                              <Image
+                                source={Theme.icons.date}
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  tintColor: Theme.colors.buttonPrimary,
+                                }}
+                              />
+                            </TouchableOpacity>
+                          ) : key === 'flockTypeId' ? (
+                            <Dropdown
+                              style={styles.dropdown}
+                              containerStyle={styles.dropdownContainer}
+                              data={flockTypeOptions}
+                              labelField="label"
+                              valueField="value"
+                              placeholder="Select Flock Type"
+                              value={data.flockTypeId ?? null}
+                              onChange={item =>
+                                handleChange('flockTypeId', item.value)
+                              }
+                            />
+                          ) : key === 'gender' ? (
+                            <Dropdown
+                              style={styles.dropdown}
+                              containerStyle={styles.dropdownContainer}
+                              data={genderOptions}
+                              labelField="label"
+                              valueField="value"
+                              placeholder="Select Gender"
+                              value={data.gender || null}
+                              onChange={item =>
+                                handleChange('gender', item.value)
+                              }
+                            />
+                          ) : key === 'supplierId' ? (
+                            <Dropdown
+                              style={styles.dropdown}
+                              containerStyle={styles.dropdownContainer}
+                              data={supplierOptions}
+                              labelField="label"
+                              valueField="value"
+                              placeholder="Select Supplier"
+                              value={data.supplierId ?? null}
+                              onChange={item =>
+                                handleChange('supplierId', item.value)
+                              }
+                            />
+                          ) : (
+                            <TextInput
+                              style={styles.input}
+                              value={data[key]}
+                              onChangeText={text => handleChange(key, text)}
+                            />
+                          )
+                        ) : (
+                          <Text style={styles.value}>
+                            {isDateField
+                              ? data[key]
                                 ? new Date(data[key]).toLocaleDateString(
                                     'en-GB',
                                   )
-                                : '--'}
-                            </Text>
-                            <Image
-                              source={Theme.icons.date}
-                              style={{
-                                width: 20,
-                                height: 20,
-                                tintColor: Theme.colors.buttonPrimary,
+                                : 'N/A'
+                              : key === 'gender'
+                              ? data.gender || 'N/A'
+                              : key === 'supplierId'
+                              ? getSupplierName(data[key]) || 'N/A'
+                              : key === 'flockTypeId'
+                              ? getFlockTypeName(data[key]) || 'N/A'
+                              : isWeightField
+                              ? data[key] && data[key].trim() !== ''
+                                ? `${data[key]}`
+                                : 'N/A'
+                              : data[key] && data[key].trim() !== ''
+                              ? data[key]
+                              : 'N/A'}
+                          </Text>
+                        )}
+
+                        {showDatePicker.visible &&
+                          showDatePicker.key === key && (
+                            <DateTimePicker
+                              value={
+                                data[key] ? new Date(data[key]) : new Date()
+                              }
+                              mode="date"
+                              display="default"
+                              onChange={(e, date) => {
+                                if (Platform.OS === 'android')
+                                  setShowDatePicker({ key, visible: false });
+                                handleDateSelect(key, date);
                               }}
                             />
-                          </TouchableOpacity>
-                        ) : key === 'flockTypeId' ? (
-                          <Dropdown
-                            key={`flock-${flockTypeOptions.length}`}
-                            style={styles.dropdown}
-                            containerStyle={styles.dropdownContainer}
-                            data={flockTypeOptions}
-                            labelField="label"
-                            valueField="value"
-                            placeholder="Select Flock Type"
-                            value={data.flockTypeId ?? null}
-                            onChange={item =>
-                              handleChange('flockTypeId', item.value)
-                            }
-                          />
-                        ) : key === 'gender' ? (
-                          <Dropdown
-                            key="gender-dropdown"
-                            style={styles.dropdown}
-                            containerStyle={styles.dropdownContainer}
-                            data={genderOptions}
-                            labelField="label"
-                            valueField="value"
-                            placeholder="Select Gender"
-                            value={data.gender || null}
-                            onChange={item =>
-                              handleChange('gender', item.value)
-                            }
-                          />
-                        ) : key === 'supplierId' ? (
-                          <Dropdown
-                            key={`supplier-${supplierOptions.length}`}
-                            style={styles.dropdown}
-                            containerStyle={styles.dropdownContainer}
-                            data={supplierOptions}
-                            labelField="label"
-                            valueField="value"
-                            placeholder="Select Supplier"
-                            value={data.supplierId ?? null}
-                            onChange={item =>
-                              handleChange('supplierId', item.value)
-                            }
-                          />
-                        ) : (
-                          <TextInput
-                            style={styles.input}
-                            value={data[key]}
-                            onChangeText={text => handleChange(key, text)}
-                          />
-                        )
-                      ) : (
-                        <Text style={styles.value}>
-                          {isDateField
-                            ? data[key]
-                              ? new Date(data[key]).toLocaleDateString('en-GB')
-                              : 'N/A'
-                            : key === 'gender'
-                            ? data.gender || 'N/A'
-                            : key === 'supplierId'
-                            ? getSupplierName(data[key]) || 'N/A'
-                            : key === 'flockTypeId'
-                            ? getFlockTypeName(data[key]) || 'N/A'
-                            : isWeightField
-                            ? data[key] && data[key].trim() !== ''
-                              ? `${data[key]}`
-                              : 'N/A'
-                            : data[key] && data[key].trim() !== ''
-                            ? data[key]
-                            : 'N/A'}
-                        </Text>
-                      )}
+                          )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
 
-                      {showDatePicker.visible && showDatePicker.key === key && (
-                        <DateTimePicker
-                          value={data[key] ? new Date(data[key]) : new Date()}
-                          mode="date"
-                          display="default"
-                          onChange={(e, date) => {
-                            if (Platform.OS === 'android')
-                              setShowDatePicker({ key, visible: false });
-                            handleDateSelect(key, date);
-                          }}
-                        />
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            ))}
+              <View style={styles.buttonRow}>
+                {editing && (
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      {
+                        backgroundColor: Theme.colors.white,
+                        borderWidth: 1,
+                        borderColor: Theme.colors.buttonPrimary,
+                      },
+                    ]}
+                    onPress={handleDiscard}
+                  >
+                    <Text style={styles.buttonText}>Discard</Text>
+                  </TouchableOpacity>
+                )}
 
-            <View style={styles.buttonRow}>
-              {editing && (
                 <TouchableOpacity
                   style={[
                     styles.button,
-                    {
-                      backgroundColor: Theme.colors.white,
-                      borderWidth: 1,
-                      borderColor: Theme.colors.buttonPrimary,
-                    },
+                    { backgroundColor: Theme.colors.buttonPrimary },
                   ]}
-                  onPress={handleDiscard}
+                  onPress={editing ? handleSave : () => setEditing(true)}
                 >
-                  <Text style={styles.buttonText}>Discard</Text>
+                  <Text style={styles.saveText}>
+                    {editing ? 'Save' : 'Edit'}
+                  </Text>
                 </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  { backgroundColor: Theme.colors.buttonPrimary },
-                ]}
-                onPress={editing ? handleSave : () => setEditing(true)}
-              >
-                <Text style={styles.saveText}>{editing ? 'Save' : 'Edit'}</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+              </View>
+            </ScrollView>
+          )}
         </View>
       )}
     </View>
@@ -313,6 +345,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 14,
     alignItems: 'center',
+  },
+  loaderWrapper: {
+    paddingVertical: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: { fontSize: 16, fontWeight: '700', color: Theme.colors.blue },
   icon: {
@@ -366,6 +403,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  loaderText: {
+  marginTop: 10,
+  fontSize: 14,
+  color: Theme.colors.success,
+  textAlign: 'center',
+},
   saveText: { color: Theme.colors.white, fontSize: 13, fontWeight: '700' },
 });
 

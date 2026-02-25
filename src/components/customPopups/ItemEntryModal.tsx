@@ -15,7 +15,12 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Theme from '../../theme/Theme';
-import { getFeeds, Feed, getParties } from '../../services/FlockService';
+import {
+  getFeeds,
+  Feed,
+  getParties,
+  getFlocks,
+} from '../../services/FlockService';
 import { useBusinessUnit } from '../../context/BusinessContext';
 import { Dropdown } from 'react-native-element-dropdown';
 
@@ -25,6 +30,8 @@ interface ItemEntryModalProps {
   onClose: () => void;
   onSave: (data: any) => Promise<{ fcr: number; message: string } | void>;
   businessUnitId?: string;
+  maxQuantity?: number;
+
   initialData?: {
     quantity?: number;
     expireDate?: Date;
@@ -32,12 +39,21 @@ interface ItemEntryModalProps {
   };
 }
 
+type RecordType = 'egg' | 'feed' | 'vaccination' | 'mortality' | 'hospitality';
+
+
+type EditState = {
+  type: RecordType | null;
+  data: any | null;
+};
+
 const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   visible,
   type = 'feed',
   onClose,
   initialData,
   onSave,
+  maxQuantity,
 }) => {
   const { businessUnitId } = useBusinessUnit();
   // ---------- Common States ----------
@@ -49,7 +65,8 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     fcr: number;
     message: string;
   } | null>(null);
-
+  const [quantity, setQuantity] = useState('');
+  const [error, setError] = useState('');
   // ---------- Flock Sale States ----------
   const [customer, setCustomer] = useState<string>(''); // partyId
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -57,13 +74,21 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     { label: string; value: string }[]
   >([]);
   const [customerName, setCustomerName] = useState('');
+  const [flockItems, setFlockItems] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [selectedFlock, setSelectedFlock] = useState<string>('');
+  const [flockOpen, setFlockOpen] = useState(false);
   const [flockName, setFlockName] = useState('');
   const [price, setPrice] = useState('');
   const [saleDate, setSaleDate] = useState<Date | null>(null);
   const [showSaleDatePicker, setShowSaleDatePicker] = useState(false);
-
+  const maxQty = maxQuantity || 0;
+   const [editState, setEditState] = useState<EditState>({
+      type: null,
+      data: null,
+    });
   // ---------- Other Fields ----------
-  const [quantity, setQuantity] = useState('');
   const [currentWeight, setCurrentWeight] = useState('');
   const [expireDate, setExpireDate] = useState<Date | null>(null);
   const [hospitalityDate, setHospitalityDate] = useState<Date | null>(null);
@@ -84,7 +109,8 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     setOpen(false);
     setItems([]);
     setFcrResult(null);
-
+    setFlockName('');
+    setError('');
     setCustomer('');
     setCustomerOpen(false);
     setCustomerItems([]);
@@ -106,7 +132,11 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     setVetName('');
     setRemarks('');
   };
-
+  useEffect(() => {
+    if (!visible) {
+      setError('');
+    }
+  }, [visible]);
   // ---------- Fetch Feeds ----------
   useEffect(() => {
     if (visible && type === 'feed') {
@@ -128,26 +158,20 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     }
   }, [visible]);
 
-useEffect(() => {
-  if (visible && initialData && type === 'mortality') {
-    console.log('Initial Data:', initialData);
+  useEffect(() => {
+    if (visible && initialData && type === 'mortality') {
+      console.log('Initial Data:', initialData);
 
-    setQuantity(
-      initialData.quantity !== undefined
-        ? String(initialData.quantity)
-        : ''
-    );
+      setQuantity(
+        initialData.quantity !== undefined ? String(initialData.quantity) : '',
+      );
 
-    // Handle both expireDate and date keys
-    const dateValue =
-      initialData.expireDate ||
-      (initialData as any).date;
+      // Handle both expireDate and date keys
+      const dateValue = initialData.expireDate || (initialData as any).date;
 
-    setExpireDate(
-      dateValue ? new Date(dateValue) : null
-    );
-  }
-}, [visible, initialData, type]);
+      setExpireDate(dateValue ? new Date(dateValue) : null);
+    }
+  }, [visible, initialData, type]);
   // ---------- Fetch Customers ----------
   useEffect(() => {
     if (visible && type === 'flockSale' && businessUnitId) {
@@ -163,6 +187,21 @@ useEffect(() => {
       };
       fetchCustomers();
     }
+    const fetchFlocks = async () => {
+      try {
+        const flocks = await getFlocks(businessUnitId);
+        console.log('Fetched flocks:', flocks);
+
+        const mappedFlocks = flocks.map((f: any) => ({
+          label: f.flockRef, // <-- fixed
+          value: f.flockId.toString(), // ID must be string
+        }));
+        setFlockItems(mappedFlocks);
+      } catch (err) {
+        console.error('Failed to fetch flocks:', err);
+      }
+    };
+    fetchFlocks();
   }, [visible, type, businessUnitId]);
 
   // ---------- Enable/Disable Save ----------
@@ -182,13 +221,39 @@ useEffect(() => {
       vetName) ||
     (type === 'flockSale' &&
       customer &&
-      flockName &&
+     selectedFlock &&
       quantity &&
       price &&
       saleDate);
 
   // ---------- Handle Save ----------
   const handleSave = async () => {
+    if (type === 'mortality') {
+      const qty = Number(quantity);
+      const maxQty = maxQuantity || 0;
+
+      if (!quantity) {
+        setError('Quantity is required');
+        return;
+      }
+
+      if (isNaN(qty)) {
+        setError('Enter valid number');
+        return;
+      }
+
+      if (qty < 1 || qty > maxQty) {
+        setError(`Quantity should be in range 1 to ${maxQty}`);
+        return;
+      }
+
+      if (!expireDate) {
+        setError('Expire date is required');
+        return;
+      }
+
+      setError('');
+    }
     if (type === 'fcr') {
       if (!currentWeight) return;
       try {
@@ -201,7 +266,7 @@ useEffect(() => {
         setFcrResult({ fcr: 0, message: 'Failed to calculate FCR.' });
       }
     } else if (type === 'flockSale') {
-      onSave({ customer, flockName, quantity, price, saleDate });
+      onSave({ customer, flockName: selectedFlock, quantity, price, saleDate });
       onClose();
     } else {
       onSave({
@@ -213,6 +278,7 @@ useEffect(() => {
         averageWeight,
         symptoms,
         diagnosis,
+        flockName: selectedFlock,
         medication,
         dosage,
         treatmentDays,
@@ -306,17 +372,47 @@ useEffect(() => {
                 {/* Mortality */}
                 {type === 'mortality' && (
                   <>
-                    <Text style={styles.title}>
-                      {initialData ? 'Edit Mortality' : 'Add Mortality'}
-                    </Text>
+                   <Text style={styles.title}>
+  {editState.data && editState.data.type === 'mortality'
+    ? 'Edit Mortality'
+    : 'Add Mortality'}
+</Text>
                     <Text style={styles.label}>Quantity</Text>
                     <TextInput
                       placeholder="Enter quantity..."
                       value={quantity}
-                      onChangeText={setQuantity}
+                      onChangeText={text => {
+                        const cleaned = text.replace(/[^0-9]/g, '');
+                        setQuantity(cleaned);
+
+                        const qty = Number(cleaned);
+                        const maxQty = maxQuantity || 0;
+
+                        if (!cleaned) {
+                          setError('');
+                          return;
+                        }
+
+                        if (qty < 1 || qty > maxQty) {
+                          setError(
+                            `Quantity should be in given  range 1 to ${maxQty}`,
+                          );
+                        } else {
+                          setError('');
+                        }
+                      }}
                       keyboardType="numeric"
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        error ? { borderColor: 'red' } : null,
+                      ]}
                     />
+
+                    {error ? (
+                      <Text style={{ color: 'red', marginBottom: 8 }}>
+                        {error}
+                      </Text>
+                    ) : null}
                     <Text style={styles.label}>Expire Date</Text>
                     <TouchableOpacity
                       style={styles.dateInput}
@@ -485,13 +581,18 @@ useEffect(() => {
                     </View>
 
                     <Text style={styles.label}>Flock</Text>
-                    <TextInput
-                      placeholder="Enter flock..."
-                      value={flockName}
-                      onChangeText={setFlockName}
-                      style={styles.input}
+                    <Dropdown
+                      style={styles.dropdownElement}
+                      containerStyle={styles.dropdownContainerElement}
+                      data={flockItems}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="Select flock..."
+                      value={selectedFlock} // bind to state
+                      onChange={item => setSelectedFlock(item.value)} // update selected state
+                      selectedTextStyle={styles.selectedText}
+                      placeholderStyle={styles.placeholderText}
                     />
-
                     <Text style={styles.label}>Quantity</Text>
                     <TextInput
                       placeholder="Enter quantity..."

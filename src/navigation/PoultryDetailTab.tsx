@@ -9,6 +9,7 @@ import MenuListScreen from '../screens/more/MenuListScreen';
 import EggMainScreen from './EggTabs';
 import FlocksScreen from '../screens/flocks/FlocksScreen';
 import FlockMainScreen from './FlockMainTab';
+import FlockStack from './FlockStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,9 +28,7 @@ const renderIcon = (icon: any, focused: boolean) => {
       style={[
         styles.icon,
         {
-          tintColor: focused
-            ? Theme.colors.primaryYellow
-            : Theme.colors.blue,
+          tintColor: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
         },
       ]}
     />
@@ -51,7 +50,9 @@ const PoultryDetailTab = () => (
           <Text
             style={[
               styles.label,
-              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
+              {
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
+              },
             ]}
           >
             Home
@@ -61,24 +62,22 @@ const PoultryDetailTab = () => (
       }}
     />
     <Tab.Screen
-      name="Flock"
-      component={FlockMainScreen}
-      options={{
-        tabBarLabel: ({ focused }) => (
-          <Text
-            style={[
-              styles.label,
-              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
-            ]}
-          >
-            Flock
-          </Text>
-        ),
-        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.hen, focused),
-      }}
-    />
-
-
+  name="Flock"
+  component={FlockStack} // Stack ke andar screen
+  options={{
+    tabBarLabel: ({ focused }) => (
+      <Text
+        style={[
+          styles.label,
+          { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
+        ]}
+      >
+        Flock
+      </Text>
+    ),
+    tabBarIcon: ({ focused }) => renderIcon(Theme.icons.hen, focused),
+  }}
+/>
 
     <Tab.Screen
       name="Eggs"
@@ -88,7 +87,9 @@ const PoultryDetailTab = () => (
           <Text
             style={[
               styles.label,
-              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
+              {
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
+              },
             ]}
           >
             Eggs
@@ -107,28 +108,27 @@ const PoultryDetailTab = () => (
             style={[
               styles.label,
               {
-                color: focused
-                  ? Theme.colors.primaryYellow
-                  : Theme.colors.blue,
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
               },
             ]}
           >
             Vaccine
           </Text>
         ),
-        tabBarIcon: ({ focused }) =>
-          renderIcon(Theme.icons.injection, focused),
+        tabBarIcon: ({ focused }) => renderIcon(Theme.icons.injection, focused),
       }}
     />
     <Tab.Screen
       name="More"
-     component={MenuListScreen}
+      component={MenuListScreen}
       options={{
         tabBarLabel: ({ focused }) => (
           <Text
             style={[
               styles.label,
-              { color: focused ? Theme.colors.primaryYellow : Theme.colors.blue },
+              {
+                color: focused ? Theme.colors.primaryYellow : Theme.colors.blue,
+              },
             ]}
           >
             More

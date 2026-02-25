@@ -53,27 +53,12 @@ const api = axios.create({
   },
 });
 
-// Request interceptor
-//Automatically attaches token from memory to Authorization header
 
-// Request interceptor: attach token
-api.interceptors.request.use(async config => {
-  // Use in-memory token first
-  if (!token) {
-    // Fallback: read from AsyncStorage if memory is empty
-    try {
-      const storedToken = await AsyncStorage.getItem(AsyncKeyLiterals.token);
-      if (storedToken) token = storedToken;
-    } catch (error) {
-      console.log('Failed to load token for request', error);
-    }
-  }
-
+api.interceptors.request.use(config => {
   if (token) {
     (config.headers as any).Authorization = `Bearer ${token}`;
     console.log('Token attached to request');
   }
-
   return config;
 });
 

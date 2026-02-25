@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,17 @@ import Header from '../components/common/LogoHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { useBusinessUnit } from '../context/BusinessContext';
-import { getFlocksExcel } from '../screens/Report/ReportHelpers';
+import {
+  getFlocksExcel,
+  getFlockStockExcel,
+} from '../screens/Report/ReportHelpers';
 // FLOCK SCREENS
 import FlocksScreen from '../screens/flocks/FlocksScreen';
 import FlocksMortalityScreen from '../screens/flocks/FlocksMortalityScreen';
 import FlockStockScreen from '../screens/flocks/FlockStockScreen';
 import FlockSaleScreen from '../screens/flocks/FlockSaleScreen';
 import HospitalityScreen from '../screens/flocks/HospitalityScreen';
-
+import { useRoute } from '@react-navigation/native';
 type TabType = 'flocks' | 'mortality' | 'stock' | 'sale' | 'hospitality';
 
 type FilterState = {
@@ -33,8 +36,11 @@ type FilterState = {
 
 const FlockMainScreen = () => {
   const { businessUnitId } = useBusinessUnit();
-  const [activeTab, setActiveTab] = useState<TabType>('flocks');
-  const [openAddModal, setOpenAddModal] = useState(false);
+const route = useRoute<any>();
+
+const [activeTab, setActiveTab] = useState<TabType>(
+  route.params?.initialTab || 'flocks'
+);  const [openAddModal, setOpenAddModal] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10; // same as your table page size
@@ -77,6 +83,12 @@ const FlockMainScreen = () => {
     }
   };
 
+
+useEffect(() => {
+  if (route.params?.initialTab) {
+    setActiveTab(route.params.initialTab); // always update
+  }
+}, [route.params?.initialTab]);
   // ================= TAB BUTTON =================
   const TabButton = ({
     title,
@@ -125,12 +137,14 @@ const FlockMainScreen = () => {
                       flockId: filterState.selected.flockId || null,
                       supplierId: filterState.selected.supplierId || null,
                       isEnded: filterState.isEnded ? true : null,
-                      pageNumber: currentPage, 
-                      pageSize: pageSize, 
+                      pageNumber: currentPage,
+                      pageSize: pageSize,
                     });
+                  } else if (activeTab === 'stock') {
+                    await getFlockStockExcel('FlockStock_2026', businessUnitId);
                   }
                 } catch (error) {
-                  console.log('Error exporting Flocks Excel:', error);
+                  console.log('Error exporting Excel:', error);
                 } finally {
                   setGlobalLoading(false);
                 }

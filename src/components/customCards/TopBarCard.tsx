@@ -10,6 +10,7 @@ import {
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
 import { getBusinessUnits } from '../../services/BusinessUnit';
+import { Dropdown } from 'react-native-element-dropdown';
 
 interface Props {
   searchValue?: string;
@@ -118,22 +119,21 @@ const TopBarCard: React.FC<Props> = ({
         {/* BUSINESS UNIT */}
         {!hideBUDropdown && (
           <View style={styles.businessDropdown}>
-            <DropDownPicker
-              open={buOpen}
-              value={buValue}
-              items={items}
-              setOpen={setBUOpen}
-              setValue={callback => {
-                const newVal =
-                  typeof callback === 'function' ? callback(buValue) : callback;
-                setBUValue(newVal ?? null);
-                onBusinessUnitChange?.(newVal ?? null);
-              }}
-              setItems={setItems}
-              placeholder="Poultry"
+            <Dropdown
               style={styles.dropdown}
-              dropDownContainerStyle={styles.dropdownContainer}
-              textStyle={styles.dropdownText}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.dropdownText}
+              data={items}
+              labelField="label"
+              valueField="value"
+              value={buValue}
+              onFocus={() => setBUOpen(true)}
+              onBlur={() => setBUOpen(false)}
+              onChange={item => {
+                setBUValue(item.value);
+                onBusinessUnitChange?.(item.value);
+              }}
+              placeholder="Poultry"
             />
           </View>
         )}
@@ -179,6 +179,21 @@ const styles = StyleSheet.create({
     padding: 12,
     zIndex: 1,
   },
+  dropdown: {
+    borderWidth: 1,
+    borderColor: Theme.colors.success,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  placeholderStyle: {
+    fontSize: 12,
+    color: Theme.colors.textPrimary,
+  },
+  dropdownText: {
+    fontSize: 10,
+    color: Theme.colors.textPrimary,
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   row2: { marginTop: 8, flexDirection: 'row', justifyContent: 'flex-end' },
   searchBox: {
@@ -195,13 +210,8 @@ const styles = StyleSheet.create({
   searchIcon: { width: 20, height: 20, tintColor: Theme.colors.success },
   clearIcon: { width: 20, height: 20, tintColor: Theme.colors.success },
   businessDropdown: { width: 90, zIndex: 2000 },
-  dropdown: {
-    borderColor: Theme.colors.success,
-    borderRadius: 8,
-    minHeight: 40,
-  },
+
   dropdownContainer: { borderRadius: 8, borderColor: Theme.colors.success },
-  dropdownText: { fontSize: 12 },
   statusWrapper: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   checkboxBox: {
     width: 20,
@@ -212,6 +222,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 4,
   },
+
   rightIcons: {
     flexDirection: 'row',
     alignItems: 'center',

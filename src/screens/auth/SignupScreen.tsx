@@ -3,18 +3,16 @@ import {
   View,
   Text,
   Image,
-  ActivityIndicator,
   TouchableOpacity,
   TouchableWithoutFeedback,
   Keyboard,
-  Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import InputField from '../../components/customInputs/Input';
 import PrimaryButton from '../../components/customButtons/customButton';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { isValidEmail, isValidPassword } from '../../utils/validation';
-
 import { registerUser } from '../../services/AuthService';
 
 import styles from './style';
@@ -47,7 +45,14 @@ const SignupScreen = ({ navigation }: any) => {
   const handleSignup = async () => {
     Keyboard.dismiss();
 
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Form',
+        text2: 'Please fill all fields correctly',
+      });
+      return;
+    }
 
     try {
       setLoading(true);
@@ -59,32 +64,35 @@ const SignupScreen = ({ navigation }: any) => {
         password: password,
       };
 
-      console.log(' Signup payload:', payload);
-
       const res = await registerUser(payload);
-      console.log(' Signup response:', res);
 
       if (res?.status === 'Success') {
-        Alert.alert(
-          'Success',
-          'Account created successfully. Please login.',
-          [
-            {
-              text: 'OK',
-              onPress: () =>
-                navigation.replace(CustomConstants.LOGIN_SCREEN),
-            },
-          ]
-        );
+        Toast.show({
+          type: 'success',
+          text1: 'Account Created 🎉',
+          text2: 'Please login to continue',
+        });
+
+        setTimeout(() => {
+          navigation.replace(CustomConstants.LOGIN_SCREEN);
+        }, 1500);
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Signup Failed',
+          text2: 'Something went wrong',
+        });
       }
     } catch (error: any) {
-      console.log(' Signup failed:', error);
-
       const errorMessage =
         error?.response?.data?.message ||
         'Something went wrong. Please try again.';
 
-      Alert.alert('Error', errorMessage);
+      Toast.show({
+        type: 'error',
+        text1: 'Signup Failed',
+        text2: errorMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -94,7 +102,7 @@ const SignupScreen = ({ navigation }: any) => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         {/* Logo */}
-        <Image source={Theme.icons.poultrycloud} style={styles.logo} />
+        <Image source={Theme.icons.poultrycloud1} style={styles.logo} />
 
         <Text style={styles.title}>Create an Account</Text>
 
@@ -121,6 +129,8 @@ const SignupScreen = ({ navigation }: any) => {
           value={email}
           onChangeText={setEmail}
           onBlur={handleEmailBlur}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
         {emailError ? (
           <Text style={styles.errorText}>{emailError}</Text>
@@ -155,28 +165,15 @@ const SignupScreen = ({ navigation }: any) => {
 
         {/* Signup Button */}
         <PrimaryButton
-          title={loading ? 'Creating account...' : 'Sign Up'}
+          title="Sign Up"
           onPress={handleSignup}
-          disabled={!isFormValid || loading}
-          style={
-            !isFormValid
-              ? { backgroundColor: Theme.colors.buttonDisabled }
-              : {}
-          }
-          textStyle={{ color: Theme.colors.black }}
+          disabled={!isFormValid}
+          loading={loading}
         />
-
-        {loading && (
-          <ActivityIndicator
-            size="small"
-            color={Theme.colors.borderYellow}
-            style={{ marginTop: 10 }}
-          />
-        )}
 
         {/* Login navigation */}
         <View style={{ flexDirection: 'row', marginTop: 20 }}>
-          <Text>Do you have an account? </Text>
+          <Text>Already have an account?</Text>
           <TouchableOpacity
             onPress={() =>
               navigation.navigate(CustomConstants.LOGIN_SCREEN)
@@ -188,7 +185,7 @@ const SignupScreen = ({ navigation }: any) => {
                 fontWeight: '600',
               }}
             >
-              Please login
+             Login 
             </Text>
           </TouchableOpacity>
         </View>

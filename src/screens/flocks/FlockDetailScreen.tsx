@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
 } from 'react-native';
 import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +14,8 @@ import { Circle } from 'react-native-progress';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import { useRoute } from '@react-navigation/native';
 import Theme from '../../theme/Theme';
+import { formatDisplayDate } from '../../utils/validation';
+
 import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import ExpandableCard from '../../components/common/ExpandableCard';
 import {
@@ -31,6 +32,8 @@ import {
   addFlockHealthRecord,
   addHospitality,
   deleteFlockHealthRecord,
+  updateFlockHealth,
+  UpdateFlockHealthPayload,
 } from '../../services/FlockService';
 import {
   addVaccinationSchedule,
@@ -61,23 +64,48 @@ import { useBusinessUnit } from '../../context/BusinessContext';
 import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
 
 type StatItem = {
-  icon: any;
+  icon?: any;
   label: string;
-  value: number | string;
+  value?: number;
   total?: number;
 };
 
-type StatsState = {
-  bird: StatItem[];
-  sale: StatItem[];
-  feed: StatItem[];
-  vaccine: StatItem[];
+type InlineRowProps = {
+  stats: StatItem[];
 };
+
+type EggsProductionCardProps = {
+  eggs: number;
+  productionPercentage: number;
+};
+
+type RecordType = 'egg' | 'feed' | 'vaccination' | 'mortality' | 'hospitality';
+
+type EditState = {
+  type: RecordType | null;
+  data: any | null;
+};
+
+type DeleteState = {
+  visible: boolean;
+  type: RecordType | null;
+  recordId: string | null;
+};
+
+type TabType =
+  | 'Egg Production'
+  | 'Feed Consumption'
+  | 'Vaccination Schedule'
+  | 'Mortality'
+  | 'Hospitality';
 
 const FlockDetailScreen = () => {
   const { businessUnitId } = useBusinessUnit();
   const route = useRoute<any>();
   const flock = route.params?.flock;
+  // 1 Active picker state
+  const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
+  // 2 Date range state
   const [dateRange, setDateRange] = useState<{
     from: Date | null;
     to: Date | null;
@@ -85,57 +113,45 @@ const FlockDetailScreen = () => {
     from: null,
     to: null,
   });
-  const [modals, setModals] = useState({
-    egg: false,
-    feed: false,
-    vaccination: false,
-    mortality: false,
-    hospitality: false,
-  }); // Controls visibility of various add/edit modals
-
-  const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
-  const [editData, setEditData] = useState<any>(null);
-  const [editType, setEditType] = useState<
-    'egg' | 'feed' | 'vaccination' | 'mortality' | null
-  >(null);
-
-  const [masterData, setMasterData] = useState({
-    units: [],
-    feeds: [],
-    vaccines: [],
-    flockTypes: [],
-    suppliers: [],
-  }); // Stores master/dropdown data fetched from APIs
-  const [stats, setStats] = useState<StatsState>({
-    bird: [],
-    sale: [],
-    feed: [],
-    vaccine: [],
-  }); // Holds summary statistics for display in InlineRow components
-  const [feedConsumptions, setFeedConsumptions] = useState<any[]>([]);
-  const [deleteModal, setDeleteModal] = useState<{
-    visible: boolean;
-    type?: 'egg' | 'feed' | 'vaccination' | 'mortality';
-    recordId?: string;
-  }>({ visible: false });
-
-  const [flockData, setFlockData] = useState<any>(null);
+  // 2 Global Loading
+  const [loading, setLoading] = useState(false);
+  // 3 Active Tab
+  const [activeTab, setActiveTab] = useState<TabType>('Egg Production');
+  // 4 Modal Control
+  const [activeModal, setActiveModal] = useState<RecordType | null>(null);
+  // 5 Edit State
+  const [editState, setEditState] = useState<EditState>({
+    type: null, //bataega ke kis type ka record edit ho raha hai (jaise egg, feed, vaccination)
+    data: null, // data us record ka actual data store karega.
+  });
+  // 6 Delete Modal State
+  const [deleteState, setDeleteState] = useState<DeleteState>({
+    visible: false,
+    type: null,
+    recordId: null,
+  });
+  // 7 Main Data State (ALL DATA HERE)
   const [dataState, setDataState] = useState({
-    eggProductionData: [] as any[],
-    feedConsumptionData: [] as any[],
-    vaccinationData: [] as any[],
-    mortalityData: [] as any[],
-    hospitalityData: [] as any[],
-    flockTypes: [] as any[],
-    suppliers: [] as any[],
-    feedMasterData: { feeds: [] as any[] },
-    vaccineItems: [] as any[],
-  }); // Stores table/list data and related master info for rendering
-  const [loading, setLoading] = useState<boolean>(false);
-  const [summaryData, setSummaryData] = useState<any>(null);
-  const [loadingSummary, setLoadingSummary] = useState<boolean>(false); // Controls loading state specifically for summary fetch
+    summary: null as any,
+    flockDetail: null as any,
 
-  const [activeTab, setActiveTab] = useState('Egg Production'); // Tracks currently active tab in the bottom section
+    tables: {
+      egg: [] as any[],
+      feed: [] as any[],
+      vaccination: [] as any[],
+      mortality: [] as any[],
+      hospitality: [] as any[],
+      feedConsumptionData: [] as any[],
+    },
+
+    master: {
+      units: [] as any[],
+      feeds: [] as any[],
+      vaccines: [] as any[],
+      flockTypes: [] as any[],
+      suppliers: [] as any[],
+    },
+  });
 
   const tabs = [
     'Egg Production',
@@ -162,7 +178,7 @@ const FlockDetailScreen = () => {
     {
       key: 'ref',
       title: 'REF',
-      width: 150,
+      width: 160,
       showDots: true,
     },
     { key: 'date', title: 'Date', width: 100 },
@@ -194,11 +210,14 @@ const FlockDetailScreen = () => {
             // Optimistic UI update
             setDataState(prev => ({
               ...prev,
-              vaccinationData: prev.vaccinationData.map(item =>
-                item.vaccinationScheduleId === row.vaccinationScheduleId
-                  ? { ...item, isVaccinated: newStatus }
-                  : item,
-              ),
+              tables: {
+                ...prev.tables,
+                vaccination: prev.tables.vaccination.map(item =>
+                  item.vaccinationScheduleId === row.vaccinationScheduleId
+                    ? { ...item, isVaccinated: newStatus }
+                    : item,
+                ),
+              },
             }));
 
             const success = await updateVaccinationStatus(
@@ -216,11 +235,14 @@ const FlockDetailScreen = () => {
               // rollback if API fails
               setDataState(prev => ({
                 ...prev,
-                vaccinationData: prev.vaccinationData.map(item =>
-                  item.vaccinationScheduleId === row.vaccinationScheduleId
-                    ? { ...item, isVaccinated: !newStatus }
-                    : item,
-                ),
+                tables: {
+                  ...prev.tables,
+                  vaccination: prev.tables.vaccination.map(item =>
+                    item.vaccinationScheduleId === row.vaccinationScheduleId
+                      ? { ...item, isVaccinated: newStatus } // mark new status
+                      : item,
+                  ),
+                },
               }));
 
               showErrorToast('Failed to update vaccination status');
@@ -277,18 +299,10 @@ const FlockDetailScreen = () => {
   const flockId = route.params?.flockId || route.params?.flock?.id;
 
   useEffect(() => {
-    fetchInitialData();
-  }, [flockId, dateRange.from, dateRange.to]);
-
-  useEffect(() => {
-    if (!flockData?.businessUnitId) return;
-
-    fetchSuppliers();
-    fetchFlockTypes();
-    fetchUnits();
-    fetchVaccines();
-    fetchFeeds();
-  }, [flockData?.businessUnitId]);
+    if (businessUnitId) {
+      fetchInitialData();
+    }
+  }, [flockId, dateRange.from, dateRange.to, businessUnitId]);
 
   useEffect(() => {
     if (!flockId) return;
@@ -297,51 +311,47 @@ const FlockDetailScreen = () => {
       case 'Egg Production':
         fetchEggProduction();
         break;
-
       case 'Feed Consumption':
         fetchFeedConsumption();
         break;
-
       case 'Vaccination Schedule':
         fetchVaccinationSchedules();
         break;
-
       case 'Mortality':
         fetchMortalityRecords();
         break;
-
       case 'Hospitality':
         fetchHospitality();
         break;
     }
-  }, [activeTab]);
+  }, [activeTab, flockId]);
 
   const fetchInitialData = async () => {
-    if (!flockId) return;
+    if (!flockId || !businessUnitId) return;
 
     try {
-      setLoadingSummary(true);
+      setLoading(true);
 
-      //  1. Sirf ek baar call
-      const flockDetail = await getFlockDetail(flockId);
-
-      //  2. Summary call
       const summaryResponse = await getFlockSummary(
-        flockDetail.businessUnitId,
+        businessUnitId,
         dateRange.from?.toISOString(),
         dateRange.to?.toISOString(),
         flockId,
       );
 
-      //  3. Pehle summary set karo
-      setSummaryData(summaryResponse.data || summaryResponse);
+      const flockDetailResponse = await getFlockDetail(flockId);
 
-      //  4. Phir flock info set karo
-      setFlockData(flockDetail);
+      // State update karo
+      setDataState(prev => ({
+        ...prev,
+        summary: summaryResponse.data || summaryResponse,
+        flockDetail: flockDetailResponse,
+      }));
     } catch (error) {
       console.error(error);
+      showErrorToast('Failed to fetch flock data');
     } finally {
-      setLoadingSummary(false);
+      setLoading(false);
     }
   };
 
@@ -353,13 +363,19 @@ const FlockDetailScreen = () => {
       const formattedData = eggData.map((item: any) => ({
         ref: item.ref,
         unit: item.unit,
-        date: new Date(item.date).toLocaleDateString('en-GB'),
+        date: formatDisplayDate(item.date),
         totalEggs: item.totalEggs,
         intactEggs: item.totalEggs - item.brokenEggs,
         brokenEggs: item.brokenEggs,
         raw: item,
       }));
-      setDataState(prev => ({ ...prev, eggProductionData: formattedData }));
+      setDataState(prev => ({
+        ...prev,
+        tables: {
+          ...prev.tables,
+          egg: formattedData,
+        },
+      }));
     } catch (error) {
       console.error('Error fetching egg production:', error);
     } finally {
@@ -389,7 +405,10 @@ const FlockDetailScreen = () => {
 
       setDataState(prev => ({
         ...prev,
-        feedConsumptionData: formattedFeedData,
+        tables: {
+          ...prev.tables,
+          feed: formattedFeedData,
+        },
       }));
     } catch (error) {
       console.error('Error fetching feed consumption:', error);
@@ -409,7 +428,7 @@ const FlockDetailScreen = () => {
         vaccinationScheduleId: item.vaccinationScheduleId,
         ref: item.ref,
         vaccinationName: item.vaccine,
-        scheduledDate: new Date(item.scheduledDate).toLocaleDateString('en-GB'),
+       scheduledDate: formatDisplayDate(item.scheduledDate),
         quantity: item.quantity,
         isVaccinated: item.isVaccinated,
         raw: item,
@@ -417,7 +436,10 @@ const FlockDetailScreen = () => {
 
       setDataState(prev => ({
         ...prev,
-        vaccinationData: formattedVaccineData,
+        tables: {
+          ...prev.tables,
+          vaccination: formattedVaccineData,
+        },
       }));
     } catch (error) {
       console.error('Error fetching vaccination schedules:', error);
@@ -437,14 +459,17 @@ const FlockDetailScreen = () => {
       const records = healthResponse?.data || [];
 
       const formattedMortalityData = records.map((item: any) => ({
-        expireDate: new Date(item.date).toLocaleDateString('en-GB'),
+         expireDate: formatDisplayDate(item.date),
         mortalityQuantity: item.quantity,
         raw: item,
       }));
 
       setDataState(prev => ({
         ...prev,
-        mortalityData: formattedMortalityData,
+        tables: {
+          ...prev.tables,
+          mortality: formattedMortalityData,
+        },
       }));
     } catch (error) {
       console.error('Error fetching mortality records:', error);
@@ -475,7 +500,10 @@ const FlockDetailScreen = () => {
 
       setDataState(prev => ({
         ...prev,
-        hospitalityData: formattedHospitalityData,
+        tables: {
+          ...prev.tables,
+          hospitality: formattedHospitalityData,
+        },
       }));
     } catch (error) {
       console.error('Error fetching hospitality:', error);
@@ -493,11 +521,11 @@ const FlockDetailScreen = () => {
       const intact = Number(data?.intactEggs || 0);
       const broken = Number(data?.brokenEggs || 0);
 
-      if (editData) {
+      if (editState.data) {
         //  UPDATE PAYLOAD
         const updatePayload = {
-          eggProductionId: editData.eggProductionId,
-          ref: editData.ref,
+          eggProductionId: editState.data.eggProductionId,
+          ref: editState.data.ref,
           flockId,
           businessUnitId,
           date: data.date.toISOString().split('T')[0],
@@ -509,7 +537,10 @@ const FlockDetailScreen = () => {
           typeId: null,
         };
 
-        await updateEggProduction(editData.eggProductionId, updatePayload);
+        await updateEggProduction(
+          editState.data.eggProductionId,
+          updatePayload,
+        );
 
         showSuccessToast('Egg production updated successfully');
       } else {
@@ -538,113 +569,127 @@ const FlockDetailScreen = () => {
       );
     } finally {
       setLoading(false);
-      setEditData(null);
+      setEditState({ type: null, data: null });
     }
   };
 
-const handleAddEditFeedConsumption = async (data: any) => {
-  if (!businessUnitId || !flockId) return;
+  const handleAddEditFeedConsumption = async (data: any) => {
+    if (!businessUnitId || !flockId) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    if (editData && editData.feedRecordConsumptionId) {
-      // EDIT existing record
-      const recordId = String(editData.feedRecordConsumptionId);
+      // Determine if we are editing or adding
+      const isEdit = editState.data && editState.data.feedRecordConsumptionId;
 
-      const updatePayload = {
-        feedRecordConsumptionId: recordId,
-        businessUnitId: String(businessUnitId),
-        flockId: String(flockId),
-        date:
-          data.date instanceof Date
-            ? data.date.toISOString().split('T')[0]
-            : new Date(data.date).toISOString().split('T')[0],
-        feedId: Number(data.feedId),
-        quantity: Number(data.bag ?? data.quantity ?? editData.quantity ?? 1),
-      };
+      if (isEdit) {
+        // --- UPDATE existing record ---
+        const recordId = String(editState.data.feedRecordConsumptionId);
+        const updatePayload = {
+          feedRecordConsumptionId: recordId,
+          businessUnitId: String(businessUnitId),
+          flockId: String(flockId),
+          date:
+            data.date instanceof Date
+              ? data.date.toISOString().split('T')[0]
+              : new Date(data.date).toISOString().split('T')[0],
+          feedId: Number(data.feedId),
+          quantity: Number(
+            data.bag ?? data.quantity ?? editState.data.quantity ?? 1,
+          ),
+        };
 
-      const updatedRecord = await updateFeedConsumption(updatePayload);
+        const updatedRecord = await updateFeedConsumption(updatePayload);
 
-      // Update dataState immediately so table shows changes
-      setDataState(prev => ({
-        ...prev,
-        feedConsumptionData: prev.feedConsumptionData.map(item =>
-          item.raw.feedRecordConsumptionId === updatedRecord.data.feedRecordConsumptionId
-            ? {
-                ...item,
-                ref: updatedRecord.data.ref,
-                date: new Date(updatedRecord.data.date).toLocaleDateString('en-GB'),
-                feed: updatedRecord.data.feed,
-                feedId: updatedRecord.data.feedId,
-                totalQuantity: updatedRecord.data.totalQuantity,
-                quantity: updatedRecord.data.quantity,
-                raw: updatedRecord.data,
-              }
-            : item,
-        ),
-      }));
-
-      showSuccessToast('Feed consumption updated successfully');
-    } else {
-      // ADD new record
-      const payload: AddFeedConsumptionPayload = {
-        businessUnitId: flockData.businessUnitId,
-        flockId,
-        feedId: Number(data.feedId),
-        quantity: Number(data.bag),
-        price: Number(data.bag),
-        date: data.date instanceof Date ? data.date.toISOString() : data.date,
-      };
-
-      const newRecord = await addFeedConsumption(payload);
-
-      // Immediately add new record to table
-      setDataState(prev => ({
-        ...prev,
-        feedConsumptionData: [
-          ...prev.feedConsumptionData,
-          {
-            ref: newRecord.data.ref,
-            date: new Date(newRecord.data.date).toLocaleDateString('en-GB'),
-            feed: newRecord.data.feed,
-            feedId: newRecord.data.feedId,
-            totalQuantity: newRecord.data.totalQuantity,
-            quantity: newRecord.data.quantity,
-            raw: newRecord.data,
+        // Update table immediately
+        setDataState(prev => ({
+          ...prev,
+          tables: {
+            ...prev.tables,
+            feed: prev.tables.feed.map(item =>
+              item.raw.feedRecordConsumptionId ===
+              updatedRecord.data.feedRecordConsumptionId
+                ? {
+                    ref: updatedRecord.data.ref,
+                    date: new Date(updatedRecord.data.date).toLocaleDateString(
+                      'en-GB',
+                    ),
+                    feed: updatedRecord.data.feed,
+                    feedId: updatedRecord.data.feedId,
+                    totalQuantity: updatedRecord.data.totalQuantity,
+                    quantity: updatedRecord.data.quantity,
+                    raw: updatedRecord.data,
+                  }
+                : item,
+            ),
           },
-        ],
-      }));
+        }));
 
-      showSuccessToast('Feed consumption added successfully');
+        showSuccessToast('Feed consumption updated successfully');
+      } else {
+        // --- ADD new record ---
+        const payload: AddFeedConsumptionPayload = {
+          businessUnitId: String(businessUnitId),
+          flockId,
+          feedId: Number(data.feedId),
+          quantity: Number(data.bag),
+          price: Number(data.bag),
+          date: data.date instanceof Date ? data.date.toISOString() : data.date,
+        };
+
+        const newRecord = await addFeedConsumption(payload);
+
+        // Append new record to table immediately
+        setDataState(prev => ({
+          ...prev,
+          tables: {
+            ...prev.tables,
+            feed: [
+              ...(prev.tables.feed || []),
+              {
+                ref: newRecord.data.ref,
+                date: new Date(newRecord.data.date).toLocaleDateString('en-GB'),
+                feed: newRecord.data.feed,
+                feedId: newRecord.data.feedId,
+                totalQuantity: newRecord.data.totalQuantity,
+                quantity: newRecord.data.quantity,
+                raw: newRecord.data,
+              },
+            ],
+          },
+        }));
+
+        showSuccessToast('Feed consumption added successfully');
+      }
+    } catch (err: any) {
+      showErrorToast(
+        err?.response?.data?.message || 'Failed to save feed consumption',
+      );
+    } finally {
+      setLoading(false);
+      setEditState({ type: null, data: null });
     }
-  } catch (err: any) {
-    showErrorToast(
-      err?.response?.data?.message || 'Failed to save feed consumption',
-    );
-  } finally {
-    setLoading(false);
-    setEditData(null);
-    setEditType(null);
-  }
-};
+  };
 
   const handleAddOrEditVaccination = async (data: any) => {
-    if (!flockData?.businessUnitId) return;
+    if (!dataState.flockDetail?.businessUnitId) return;
 
     try {
       const payload = {
-        businessUnitId: flockData.businessUnitId,
+        businessUnitId: dataState.flockDetail.businessUnitId,
         flockId,
         vaccineId: data.vaccineId,
         scheduledDate: data.scheduledDate?.toISOString().split('T')[0] || null,
         quantity: Number(data.quantity),
       };
 
-      if (editData && editData.vaccinationScheduleId) {
+      if (
+        dataState.flockDetail &&
+        dataState.flockDetail.vaccinationScheduleId
+      ) {
         // EDIT existing vaccination
         const updatedRecord = await updateVaccinationSchedule(
-          editData.vaccinationScheduleId, // ID as first argument
+          dataState.flockDetail.vaccinationScheduleId, // ID as first argument
           payload, // payload only contains allowed fields
         );
 
@@ -665,41 +710,81 @@ const handleAddEditFeedConsumption = async (data: any) => {
         err?.response?.data?.message || err.message || 'Something went wrong',
       );
     } finally {
-      setModals(prev => ({ ...prev, vaccination: false }));
-      setEditData(null);
-      setEditType(null);
+      setActiveModal(null);
+      setEditState({ type: null, data: null });
     }
   };
-
   const handleMortality = async (data: any) => {
     if (!flockId) return;
 
     try {
       setLoading(true);
 
-      const payload = {
-        flockId: flockId,
+      const payload: UpdateFlockHealthPayload = {
+        flockHealthId: editState.data?.flockHealthId ?? '', // existing ID for update
+        flockId: String(flockId),
         quantity: Number(data.quantity),
-        date:
-          data.expireDate?.toISOString().split('T')[0] ||
-          new Date().toISOString().split('T')[0],
-        flockHealthStatusId: 1,
+        date: data.expireDate
+          ? data.expireDate instanceof Date
+            ? data.expireDate.toISOString().split('T')[0]
+            : data.expireDate
+          : new Date().toISOString().split('T')[0],
+        flockHealthStatusId: 1, // Mortality
       };
 
-      await addFlockHealthRecord(payload);
+      if (editState.data && editState.data.flockHealthId) {
+        // Update existing record
+        await updateFlockHealth(payload);
+        showSuccessToast('Mortality record updated successfully');
 
-      showSuccessToast('Mortality added successfully');
+        // Update local state immediately
+        setDataState(prev => ({
+          ...prev,
+          tables: {
+            ...prev.tables,
+            mortality: prev.tables.mortality.map(item =>
+              item.flockHealthId === payload.flockHealthId
+                ? { ...item, ...payload }
+                : item,
+            ),
+          },
+        }));
+      } else {
+        // Add new record
+        const newRecord = await addFlockHealthRecord(payload);
+        showSuccessToast('Mortality added successfully');
 
-      setModals(prev => ({ ...prev, mortality: false }));
-      fetchMortalityRecords(); // refresh table
-    } catch (err) {
-      console.error('Mortality error:', err);
-      showErrorToast('Failed to add mortality');
+        // Add new record to local state
+        setDataState(prev => ({
+          ...prev,
+          tables: {
+            ...prev.tables,
+            mortality: [
+              ...prev.tables.mortality,
+              {
+                ...payload,
+                expireDate: payload.date,
+                mortalityQuantity: payload.quantity,
+                flockHealthId: newRecord.data.flockHealthId,
+                raw: newRecord.data, // optional: keep raw data for edit/delete
+              },
+            ],
+          },
+        }));
+      }
+
+      // Close modal
+      setActiveModal(null);
+      setEditState({ type: null, data: null });
+    } catch (err: any) {
+      console.error('Mortality API error:', err);
+      showErrorToast(
+        err?.response?.data?.message || 'Failed to save mortality record',
+      );
     } finally {
       setLoading(false);
     }
   };
-
   const handleHospitality = async (data: any) => {
     if (!flockId) return;
 
@@ -727,7 +812,7 @@ const handleAddEditFeedConsumption = async (data: any) => {
 
       showSuccessToast('Hospitality added successfully');
 
-      setModals(prev => ({ ...prev, hospitality: false }));
+      setActiveModal(null);
       fetchHospitality();
     } catch (err) {
       console.log('Hospitality error:', err);
@@ -741,7 +826,13 @@ const handleAddEditFeedConsumption = async (data: any) => {
         label: u.value,
         value: u.unitId,
       }));
-      setMasterData(prev => ({ ...prev, units: dropdownData }));
+      setDataState(prev => ({
+        ...prev,
+        master: {
+          ...prev.master,
+          units: dropdownData,
+        },
+      }));
     } catch (error) {
       console.error('Failed to fetch units', error);
     }
@@ -750,7 +841,10 @@ const handleAddEditFeedConsumption = async (data: any) => {
   const fetchFlockTypes = async () => {
     try {
       const types = await getFlockTypes();
-      setDataState(prev => ({ ...prev, flockTypes: types || [] }));
+      setDataState(prev => ({
+        ...prev,
+        master: { ...prev.master, flockTypes: types || [] },
+      }));
     } catch (error) {
       console.error(error);
     }
@@ -758,9 +852,14 @@ const handleAddEditFeedConsumption = async (data: any) => {
 
   const fetchSuppliers = async () => {
     try {
-      if (!flockData?.businessUnitId) return;
-      const supplierList = await getSuppliers(flockData.businessUnitId);
-      setDataState(prev => ({ ...prev, suppliers: supplierList || [] }));
+      if (!dataState.flockDetail?.businessUnitId) return;
+      const supplierList = await getSuppliers(
+        dataState.flockDetail.businessUnitId,
+      );
+      setDataState(prev => ({
+        ...prev,
+        master: { ...prev.master, suppliers: supplierList || [] },
+      }));
     } catch (error) {
       console.error(error);
     }
@@ -775,7 +874,10 @@ const handleAddEditFeedConsumption = async (data: any) => {
       }));
       setDataState(prev => ({
         ...prev,
-        feedMasterData: { feeds: mappedFeeds },
+        master: {
+          ...prev.master,
+          feeds: mappedFeeds,
+        },
       }));
     } catch (error) {
       console.error('Failed to fetch feeds:', error);
@@ -785,7 +887,13 @@ const handleAddEditFeedConsumption = async (data: any) => {
   const fetchVaccines = async () => {
     try {
       const data = await getVaccines();
-      setDataState(prev => ({ ...prev, vaccineItems: data || [] }));
+      setDataState(prev => ({
+        ...prev,
+        master: {
+          ...prev.master,
+          vaccines: data || [],
+        },
+      }));
     } catch (err) {
       console.error('Failed to fetch vaccines', err);
     }
@@ -802,9 +910,13 @@ const handleAddEditFeedConsumption = async (data: any) => {
       // Remove deleted record from local state
       setDataState(prev => ({
         ...prev,
-        feedConsumptionData: prev.feedConsumptionData.filter(
-          item => item.raw.feedRecordConsumptionId !== feedRecordConsumptionId,
-        ),
+        tables: {
+          ...prev.tables,
+          feed: prev.tables.feed.filter(
+            item =>
+              item.raw.feedRecordConsumptionId !== feedRecordConsumptionId,
+          ),
+        },
       }));
 
       showSuccessToast('Feed consumption deleted successfully');
@@ -826,17 +938,18 @@ const handleAddEditFeedConsumption = async (data: any) => {
       // Remove deleted record from local state
       setDataState(prev => ({
         ...prev,
-        eggProductionData: prev.eggProductionData.filter(
-          item => item.raw.eggProductionId !== eggProductionId,
-        ),
+        tables: {
+          ...prev.tables,
+          egg: prev.tables.egg.filter(
+            item => item.raw.eggProductionId !== eggProductionId,
+          ),
+        },
       }));
 
-      showSuccessToast('Egg production deleted successfully');
+      showSuccessToast('Egg production record deleted successfully');
     } catch (err: any) {
       console.error('Delete Egg Production Error:', err);
-      showErrorToast(
-        err?.response?.data?.message || 'Failed to delete egg production',
-      );
+      showErrorToast('Failed to delete egg production record');
     } finally {
       setLoading(false);
     }
@@ -852,9 +965,12 @@ const handleAddEditFeedConsumption = async (data: any) => {
         // Remove deleted record from local state
         setDataState(prev => ({
           ...prev,
-          vaccinationData: prev.vaccinationData.filter(
-            item => item.vaccinationScheduleId !== scheduleId,
-          ),
+          tables: {
+            ...prev.tables,
+            vaccination: prev.tables.vaccination.filter(
+              item => item.vaccinationScheduleId !== scheduleId,
+            ),
+          },
         }));
 
         showSuccessToast(res.message);
@@ -862,7 +978,7 @@ const handleAddEditFeedConsumption = async (data: any) => {
         showErrorToast(res.message);
       }
     } catch (err: any) {
-      console.error('Delete Vaccination Schedule Error:', err);
+      console.error('Delete Vaccination Error:', err);
       showErrorToast('Failed to delete vaccination schedule');
     } finally {
       setLoading(false);
@@ -875,12 +991,15 @@ const handleAddEditFeedConsumption = async (data: any) => {
       const res = await deleteFlockHealthRecord(recordId);
 
       if (res.status === 'Success') {
-        // Remove from local state
+        // Remove from local state (mortality table inside tables)
         setDataState(prev => ({
           ...prev,
-          mortalityData: prev.mortalityData.filter(
-            item => item.raw.flockHealthId !== recordId,
-          ),
+          tables: {
+            ...prev.tables,
+            mortality: prev.tables.mortality.filter(
+              item => item.raw.flockHealthId !== recordId,
+            ),
+          },
         }));
         showSuccessToast(res.message);
       } else {
@@ -893,88 +1012,6 @@ const handleAddEditFeedConsumption = async (data: any) => {
       setLoading(false);
     }
   };
-  const openFeedModalHandler = async () => {
-    if (dataState.feedMasterData.feeds.length === 0) {
-      await fetchFeeds();
-    }
-    setModals(prev => ({ ...prev, feed: true }));
-  };
-
-  useEffect(() => {
-    if (!summaryData) return;
-
-    setStats({
-      bird: [
-        {
-          icon: Theme.icons.hen,
-          label: 'Total Birds',
-          value: summaryData.totalBirds,
-          total: summaryData.totalRemainingBirds,
-        },
-        {
-          icon: Theme.icons.motality,
-          label: 'Mortality',
-          value: summaryData.totalMortalityBirds,
-        },
-        {
-          icon: Theme.icons.hospital,
-          label: 'Hospitalized',
-          value: summaryData.totalHospitalizedBirds,
-        },
-      ],
-      sale: [
-        {
-          icon: Theme.icons.trend,
-          label: 'Bird Sales',
-          value: summaryData.totalBirdsSale,
-        },
-        {
-          icon: Theme.icons.trend,
-          label: 'Egg Sales',
-          value: summaryData.totalEggSale,
-        },
-        {
-          icon: Theme.icons.trend,
-          label: 'Other Sales',
-          value: summaryData.totalOtherSale,
-        },
-      ],
-      feed: [
-        {
-          icon: Theme.icons.game,
-          label: 'Available',
-          value: summaryData.totalAvailableFeed,
-        },
-        {
-          icon: Theme.icons.game,
-          label: 'Purchased',
-          value: summaryData.totalPurchasedFeed,
-        },
-        {
-          icon: Theme.icons.game,
-          label: 'Consumed',
-          value: summaryData.totalFeedConsumed,
-        },
-      ],
-      vaccine: [
-        {
-          icon: Theme.icons.health,
-          label: 'Schedule',
-          value: summaryData.totalVaccineSchedule,
-        },
-        {
-          icon: Theme.icons.health,
-          label: 'Available',
-          value: summaryData.totalAvailableVaccine,
-        },
-        {
-          icon: Theme.icons.health,
-          label: 'Purchased',
-          value: summaryData.totalPurchasedVaccine,
-        },
-      ],
-    });
-  }, [summaryData]);
 
   const InlineStat = ({ icon, label, value, total }: any) => {
     const isTotalBirds = label === 'Total Birds';
@@ -999,9 +1036,9 @@ const handleAddEditFeedConsumption = async (data: any) => {
     );
   };
 
-  const InlineRow = ({ stats }: any) => (
+  const InlineRow: React.FC<InlineRowProps> = ({ stats }) => (
     <View style={styles.inlineRow}>
-      {stats.map((stat: any, idx: number) => (
+      {stats.map((stat: any, idx: any) => (
         <React.Fragment key={idx}>
           <InlineStat {...stat} />
           {idx < stats.length - 1 && (
@@ -1011,7 +1048,6 @@ const handleAddEditFeedConsumption = async (data: any) => {
       ))}
     </View>
   );
-
   const SectionDivider = ({ title }: { title: string }) => (
     <View style={styles.dividerRow}>
       <View style={styles.dividerLine} />
@@ -1020,22 +1056,21 @@ const handleAddEditFeedConsumption = async (data: any) => {
     </View>
   );
 
-  const EggsProductionCard = ({ eggs, productionPercentage }: any) => {
+  const EggsProductionCard: React.FC<EggsProductionCardProps> = ({
+    eggs = 0,
+    productionPercentage = 0,
+  }) => {
     const isAboveHundred = productionPercentage > 100;
 
-    // Graph progress (0–1)
     const progress =
-      productionPercentage && productionPercentage > 0
-        ? Math.min(productionPercentage / 100, 1)
-        : 0;
+      productionPercentage > 0 ? Math.min(productionPercentage / 100, 1) : 0;
 
-    // Graph color
     const circleColor = isAboveHundred
       ? Theme.colors.lightblue
       : Theme.colors.success;
+
     return (
       <View style={styles.eggsProductionCard}>
-        {/* LEFT : GRAPH + LEGENDS */}
         <View style={styles.leftBlock}>
           <View style={styles.circleWrapper}>
             <Circle
@@ -1048,11 +1083,10 @@ const handleAddEditFeedConsumption = async (data: any) => {
               borderWidth={0}
             />
 
-            {/* CENTER TEXT */}
             <View style={styles.circleCenterContent}>
               <Text style={styles.productionLabel}>Production</Text>
               <Text style={[styles.productionValue, { color: circleColor }]}>
-                {productionPercentage ?? 0}%
+                {productionPercentage}%
               </Text>
             </View>
           </View>
@@ -1064,7 +1098,6 @@ const handleAddEditFeedConsumption = async (data: any) => {
               alignItems: 'center',
             }}
           >
-            {/* > 100 */}
             <View style={[styles.statusRow, { marginRight: 14 }]}>
               <View
                 style={[
@@ -1075,7 +1108,6 @@ const handleAddEditFeedConsumption = async (data: any) => {
               <Text style={styles.statusText}>&gt; 100%</Text>
             </View>
 
-            {/* < 100 */}
             <View style={styles.statusRow}>
               <View
                 style={[
@@ -1088,7 +1120,6 @@ const handleAddEditFeedConsumption = async (data: any) => {
           </View>
         </View>
 
-        {/* CENTER ICON */}
         <View style={styles.centerWrapper}>
           <View style={styles.verticalSeparator} />
           <View style={styles.centerBlock}>
@@ -1096,16 +1127,22 @@ const handleAddEditFeedConsumption = async (data: any) => {
           </View>
         </View>
 
-        {/* RIGHT : TOTAL EGGS */}
         <View style={styles.rightBlock}>
           <Text style={styles.eggsLabel}>Total Eggs</Text>
-          <Text style={styles.eggsValue}>{eggs ?? 0}</Text>
+          <Text style={styles.eggsValue}>{eggs}</Text>
         </View>
       </View>
     );
   };
 
-  const onTabPress = (tab: string) => {
+  const onTabPress = (
+    tab:
+      | 'Egg Production'
+      | 'Feed Consumption'
+      | 'Vaccination Schedule'
+      | 'Mortality'
+      | 'Hospitality',
+  ) => {
     setActiveTab(tab);
   };
 
@@ -1115,10 +1152,7 @@ const handleAddEditFeedConsumption = async (data: any) => {
         title={flock ? `${flock.ref} (${flock.breed})` : 'Flock Detail'}
         showBack
       />
-      <LoadingOverlay
-        visible={loadingSummary || loading}
-        text="Fetching data..."
-      />
+      <LoadingOverlay visible={loading} text="Fetching data..." />
       <ScrollView style={{ padding: 11 }} keyboardShouldPersistTaps="handled">
         {/* Date Picker */}
         <View style={styles.dateRow}>
@@ -1168,85 +1202,159 @@ const handleAddEditFeedConsumption = async (data: any) => {
           <DateTimePicker
             value={
               activePicker === 'from'
-                ? dateRange.from || new Date()
-                : dateRange.to || new Date()
+                ? dateRange.from ?? new Date()
+                : dateRange.to ?? new Date()
             }
             mode="date"
             display="default"
             onChange={(event, selectedDate) => {
               if (event.type === 'set' && selectedDate) {
-                // Only update date if user pressed "OK"
+                // Safely update from/to based on activePicker
                 setDateRange(prev => ({
                   ...prev,
                   [activePicker]: selectedDate,
                 }));
               }
-              // Close the picker in both cases (Android/iOS)
+              // Close picker on any action
               setActivePicker(null);
             }}
           />
         )}
 
-        {activePicker === 'to' && (
-          <DateTimePicker
-            value={dateRange.to || new Date()}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              // Only update date if user pressed "OK"
-              if (event.type === 'set' && selectedDate) {
-                setDateRange(prev => ({
-                  ...prev,
-                  to: selectedDate,
-                }));
-              }
-              // Close the picker in all cases (OK or Cancel)
-              setActivePicker(null);
-            }}
-          />
-        )}
-
+        {/* ===================== BIRD STATS ===================== */}
         <SectionDivider title="Bird Stats" />
-        <InlineRow stats={stats.bird} />
-        <SectionDivider title="Sale Stats" />
-        <InlineRow stats={stats.sale} />
-        <SectionDivider title="Feed Stats" />
-        <InlineRow stats={stats.feed} />
-        <SectionDivider title="Vaccine Stats" />
-        <InlineRow stats={stats.vaccine} />
-
-        <EggsProductionCard
-          eggs={summaryData?.totalEggsProduced ?? 0}
-          productionPercentage={
-            summaryData?.totalEggsProductionsPercentage ?? 0
-          }
+        <InlineRow
+          stats={[
+            {
+              icon: Theme.icons.hen,
+              label: 'Total Birds',
+              value: dataState.summary?.totalBirds ?? 0,
+              total: dataState.summary?.totalRemainingBirds ?? 0,
+            },
+            {
+              icon: Theme.icons.motality,
+              label: 'Mortality',
+              value: dataState.summary?.totalMortalityBirds ?? 0,
+            },
+            {
+              icon: Theme.icons.hospital,
+              label: 'Hospitalized',
+              value: dataState.summary?.totalHospitalizedBirds ?? 0,
+            },
+          ]}
         />
-        {flockData && (
+
+        {/* ===================== SALE STATS ===================== */}
+        <SectionDivider title="Sale Stats" />
+        <InlineRow
+          stats={[
+            {
+              icon: Theme.icons.trend,
+              label: 'Bird Slae',
+              value: dataState.summary?.totalBirdsSale ?? 0,
+            },
+            {
+              icon: Theme.icons.trend,
+              label: 'Egg Sale',
+              value: dataState.summary?.totalEggSale ?? 0,
+            },
+            {
+              icon: Theme.icons.trend,
+              label: 'Other Sale',
+              value: dataState.summary?.totalOtherSale ?? 0,
+            },
+          ]}
+        />
+
+        {/* ===================== FEED STATS ===================== */}
+        <SectionDivider title="Feed Stats" />
+        <InlineRow
+          stats={[
+            {
+              icon: Theme.icons.feedGreen,
+              label: 'Avalibale ',
+              value: dataState.summary?.totalAvailableFeed ?? 0,
+            },
+            {
+              icon: Theme.icons.feedGreen,
+              label: 'Puechased ',
+              value: dataState.summary?.totalPurchasedFeed ?? 0,
+            },
+            {
+              icon: Theme.icons.feedGreen,
+              label: 'Consumed',
+              value: dataState.summary?.totalFeedConsumed ?? 0,
+            },
+          ]}
+        />
+
+        {/* ===================== VACCINE STATS ===================== */}
+        <SectionDivider title="Vaccine Stats" />
+        <InlineRow
+          stats={[
+            {
+              icon: Theme.icons.injection,
+              label: 'Scheduled ',
+              value: dataState.summary?.totalVaccineSchedule ?? 0,
+            },
+            {
+              icon: Theme.icons.injection,
+              label: 'Available',
+              value: dataState.summary?.totalAvailableVaccine ?? 0,
+            },
+            {
+              icon: Theme.icons.injection,
+              label: 'Purchased',
+              value: dataState.summary?.totalPurchasedVaccine ?? 0,
+            },
+          ]}
+        />
+
+        {/* ===================== EGG PRODUCTION CARD ===================== */}
+        <EggsProductionCard
+          eggs={dataState.summary?.totalEggsProduced ?? 0}
+          productionPercentage={dataState.summary?.productionPercentage ?? 0}
+        />
+
+        {/* ===================== FLOCK DETAIL ===================== */}
+        {dataState.flockDetail && (
           <ExpandableCard
+            isDataLoading={
+              dataState.master.flockTypes.length === 0 ||
+              dataState.master.suppliers.length === 0
+            }
+            onOpen={async () => {
+              if (dataState.master.flockTypes.length === 0) {
+                await fetchFlockTypes();
+              }
+              if (dataState.master.suppliers.length === 0) {
+                await fetchSuppliers();
+              }
+            }}
             title="Flock Information"
             customLabels={{
               flockTypeId: 'Flock Type',
               supplierId: 'Supplier',
             }}
-            flockTypes={dataState.flockTypes}
-            suppliers={dataState.suppliers}
+            flockTypes={dataState.master.flockTypes}
+            suppliers={dataState.master.suppliers}
             initialData={{
-              quantity: flockData.quantity?.toString() ?? '',
-              breed: flockData.breed ?? '',
-              flockTypeId: flockData.flockTypeId ?? null,
-              arrivalDate: flockData.arrivalDate ?? '',
-              gender: flockData.isHen ? 'Hen' : 'Rooster',
-              supplierId: flockData.supplierId ?? null,
-              averageWeight: flockData.weight?.toString() ?? '',
-              price: flockData.price?.toString() ?? '',
-              dateOfBirth: flockData.dateOfBirth ?? '',
+              quantity: dataState.flockDetail?.quantity?.toString() ?? '',
+              breed: dataState.flockDetail?.breed ?? '',
+              flockTypeId: dataState.flockDetail?.flockTypeId ?? null,
+              arrivalDate: dataState.flockDetail?.arrivalDate ?? '',
+              gender: dataState.flockDetail?.isHen ? 'Hen' : 'Rooster',
+              supplierId: dataState.flockDetail?.supplierId ?? null,
+              averageWeight: dataState.flockDetail?.weight?.toString() ?? '',
+              price: dataState.flockDetail?.price?.toString() ?? '',
+              dateOfBirth: dataState.flockDetail?.dateOfBirth ?? '',
             }}
             onSave={async formData => {
               try {
                 setLoading(true);
 
                 const payload = {
-                  businessUnitId: flockData?.businessUnitId,
+                  businessUnitId: dataState.flockDetail?.businessUnitId ?? null,
                   breed: formData.breed,
                   quantity: Number(formData.quantity),
                   price: Number(formData.price),
@@ -1267,13 +1375,15 @@ const handleAddEditFeedConsumption = async (data: any) => {
                 };
 
                 await updateFlockDetail(flockId, payload);
-                showSuccessToast('Flock Information Updated successfully');
-                console.log('flockData supplierId:', flockData?.supplierId);
-                // Refresh data after update
-                const updatedFlock = await getFlockDetail(flockId);
-                console.log('flockData:', flockData);
 
-                setFlockData(updatedFlock);
+                showSuccessToast('Flock Information Updated successfully');
+
+                const updatedFlock = await getFlockDetail(flockId);
+
+                setDataState(prev => ({
+                  ...prev,
+                  flockDetail: updatedFlock,
+                }));
               } catch (error) {
                 console.error(error);
               } finally {
@@ -1291,7 +1401,7 @@ const handleAddEditFeedConsumption = async (data: any) => {
             <TouchableOpacity
               key={tab}
               style={[styles.tabButton, activeTab === tab && styles.activeTab]}
-              onPress={() => onTabPress(tab)}
+              onPress={() => onTabPress(tab as TabType)} // cast string → TabType
             >
               <Text
                 style={[
@@ -1311,7 +1421,12 @@ const handleAddEditFeedConsumption = async (data: any) => {
               <Text style={styles.eggHeaderTitle}>Egg Production</Text>
               <TouchableOpacity
                 style={styles.newButton}
-                onPress={() => setModals(prev => ({ ...prev, egg: true }))}
+                onPress={async () => {
+                  if (dataState.master.units.length === 0) {
+                    await fetchUnits();
+                  }
+                  setActiveModal('egg');
+                }}
               >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
@@ -1319,16 +1434,22 @@ const handleAddEditFeedConsumption = async (data: any) => {
 
             <DataCard
               columns={eggProductionColumns}
-              data={dataState.eggProductionData}
+              data={dataState.tables.egg}
               showPagination={false}
               renderRowMenu={(row, closeMenu) => (
                 <View>
                   <TouchableOpacity
-                    onPress={() => {
-                      // Set edit mode and data
-                      setEditType('egg');
-                      setEditData(row.raw);
-                      setModals(prev => ({ ...prev, egg: true }));
+                    onPress={async () => {
+                      if (dataState.master.units.length === 0) {
+                        await fetchUnits();
+                      }
+
+                      setEditState({
+                        type: 'egg',
+                        data: row.raw,
+                      });
+
+                      setActiveModal('egg');
                       closeMenu();
                     }}
                     style={{ paddingVertical: 10 }}
@@ -1341,9 +1462,9 @@ const handleAddEditFeedConsumption = async (data: any) => {
                   <TouchableOpacity
                     onPress={() => {
                       closeMenu();
-                      setDeleteModal({
+                      setDeleteState({
                         visible: true,
-                        type: 'egg', // ya 'feed', 'vaccination', 'mortality'
+                        type: 'egg',
                         recordId: row.raw.eggProductionId,
                       });
                     }}
@@ -1370,7 +1491,14 @@ const handleAddEditFeedConsumption = async (data: any) => {
               <Text style={styles.eggHeaderTitle}>Feed Consumption</Text>
               <TouchableOpacity
                 style={styles.newButton}
-                onPress={openFeedModalHandler}
+                onPress={async () => {
+                  if (dataState.master.feeds.length === 0) {
+                    await fetchFeeds();
+                  }
+
+                  // Modal open karo
+                  setActiveModal('feed');
+                }}
               >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
@@ -1378,16 +1506,22 @@ const handleAddEditFeedConsumption = async (data: any) => {
 
             <DataCard
               columns={feedColumns}
-              data={dataState.feedConsumptionData}
+              data={dataState.tables.feed}
               showPagination={false}
               renderRowMenu={(row, closeMenu) => (
                 <View>
                   <TouchableOpacity
-                    onPress={() => {
-                      setEditType('feed');
-                      setEditData(row.raw);
-                      console.log('Edit feedData:', row.raw);
-                      setModals(prev => ({ ...prev, feed: true }));
+                    onPress={async () => {
+                      if (dataState.master.feeds.length === 0) {
+                        await fetchFeeds();
+                      }
+
+                      setEditState({
+                        type: 'feed',
+                        data: row.raw,
+                      });
+
+                      setActiveModal('feed');
                       closeMenu();
                     }}
                     style={{ paddingVertical: 10 }}
@@ -1401,7 +1535,8 @@ const handleAddEditFeedConsumption = async (data: any) => {
                   <TouchableOpacity
                     onPress={() => {
                       closeMenu();
-                      setDeleteModal({
+
+                      setDeleteState({
                         visible: true,
                         type: 'feed',
                         recordId: row.raw.feedRecordConsumptionId,
@@ -1430,9 +1565,12 @@ const handleAddEditFeedConsumption = async (data: any) => {
               <Text style={styles.eggHeaderTitle}>Vaccination Schedule</Text>
               <TouchableOpacity
                 style={styles.newButton}
-                onPress={() =>
-                  setModals(prev => ({ ...prev, vaccination: true }))
-                }
+                onPress={async () => {
+                  if (dataState.master.vaccines.length === 0) {
+                    await fetchVaccines(); // fetch and populate dataState.master.vaccines
+                  }
+                  setActiveModal('vaccination');
+                }}
               >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
@@ -1440,15 +1578,23 @@ const handleAddEditFeedConsumption = async (data: any) => {
 
             <DataCard
               columns={vaccinationColumns}
-              data={dataState.vaccinationData}
+              data={dataState.tables.vaccination} // use tables.vaccination
               showPagination={false}
               renderRowMenu={(row, closeMenu) => (
                 <View>
                   <TouchableOpacity
-                    onPress={() => {
-                      setEditType('vaccination');
-                      setEditData(row.raw);
-                      setModals(prev => ({ ...prev, vaccination: true }));
+                    onPress={async () => {
+                      // Ensure vaccines loaded
+                      if (dataState.master.vaccines.length === 0) {
+                        await fetchVaccines();
+                      }
+
+                      setEditState({
+                        type: 'vaccination',
+                        data: row.raw,
+                      });
+
+                      setActiveModal('vaccination');
                       closeMenu();
                     }}
                     style={{ paddingVertical: 10 }}
@@ -1457,15 +1603,16 @@ const handleAddEditFeedConsumption = async (data: any) => {
                       Edit
                     </Text>
                   </TouchableOpacity>
+
                   <View style={styles.menuSeparator} />
 
                   <TouchableOpacity
                     onPress={() => {
                       closeMenu();
-                      setDeleteModal({
+                      setDeleteState({
                         visible: true,
                         type: 'vaccination',
-                        recordId: row.raw.vaccinationScheduleId,
+                        recordId: row.vaccinationScheduleId, // use the correct field
                       });
                     }}
                   >
@@ -1491,9 +1638,10 @@ const handleAddEditFeedConsumption = async (data: any) => {
               <Text style={styles.eggHeaderTitle}>Mortality Records</Text>
               <TouchableOpacity
                 style={styles.newButton}
-                onPress={() =>
-                  setModals(prev => ({ ...prev, mortality: true }))
-                }
+                onPress={() => {
+                  setEditState({ type: null, data: null });
+                  setActiveModal('mortality');
+                }}
               >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
@@ -1501,17 +1649,18 @@ const handleAddEditFeedConsumption = async (data: any) => {
 
             <DataCard
               columns={mortalityColumns}
-              data={dataState.mortalityData}
+              data={dataState.tables.mortality}
               showPagination={false}
               renderRowMenu={(row, closeMenu) => (
                 <View>
                   <TouchableOpacity
                     onPress={() => {
-                      setEditType('mortality');
-                      setEditData(row.raw);
-                      console.log('Edit Mortality:', row.raw);
+                      setEditState({
+                        type: 'mortality',
+                        data: row.raw,
+                      });
 
-                      setModals(prev => ({ ...prev, mortality: true }));
+                      setActiveModal('mortality');
                       closeMenu();
                     }}
                     style={{ paddingVertical: 10 }}
@@ -1520,15 +1669,17 @@ const handleAddEditFeedConsumption = async (data: any) => {
                       Edit
                     </Text>
                   </TouchableOpacity>
+
                   <View style={styles.menuSeparator} />
 
                   <TouchableOpacity
                     onPress={() => {
                       closeMenu();
-                      setDeleteModal({
+
+                      setDeleteState({
                         visible: true,
                         type: 'mortality',
-                        recordId: row.raw.flockHealthId,
+                        recordId: row.flockHealthId,
                       });
                     }}
                   >
@@ -1552,11 +1703,10 @@ const handleAddEditFeedConsumption = async (data: any) => {
           <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Hospitality</Text>
+
               <TouchableOpacity
                 style={styles.newButton}
-                onPress={() =>
-                  setModals(prev => ({ ...prev, hospitality: true }))
-                }
+                onPress={() => setActiveModal('hospitality')}
               >
                 <Text style={styles.newButtonText}>+ New</Text>
               </TouchableOpacity>
@@ -1574,132 +1724,143 @@ const handleAddEditFeedConsumption = async (data: any) => {
                 { key: 'treatmentDays', title: 'Treatment Days', width: 120 },
                 { key: 'vetName', title: 'Vet Name', width: 120 },
               ]}
-              data={dataState.hospitalityData}
+              data={dataState.tables.hospitality}
               showPagination={false}
             />
           </View>
         )}
+
+        {/* ========================= EGG MODAL ========================= */}
         <AddModal
-          visible={modals.egg}
-          title={editData ? 'Edit Egg Production' : 'Add Egg Production'}
+          visible={activeModal === 'egg'}
+          title={editState.data ? 'Edit Egg Production' : 'Add Egg Production'}
           type="Egg production"
-          unitItems={masterData.units}
-          // flockItems={[]} // hide flock
+          unitItems={dataState.master.units}
           hideFlockField={true}
           initialData={
-            editData
+            editState.data
               ? {
-                  ...editData,
-                  date: new Date(editData.date), // ensure Date object for picker
-                  intactEggs: editData.intactEggs,
-                  brokenEggs: editData.brokenEggs,
+                  ...editState.data,
+                  date: new Date(editState.data.date),
                   flockId,
-                  unitId: editData.unitId,
                 }
               : { flockId }
           }
-          isEdit={!!editData}
+          isEdit={!!editState.data}
           onClose={() => {
-            setModals(prev => ({ ...prev, egg: false }));
-            setEditData(null);
-            setEditType(null);
+            setActiveModal(null);
+            setEditState({ type: null, data: null });
           }}
           onSave={async data => {
-            if (editData) {
-              // Update logic
-              await handleAddEditEggProduction({ ...data, id: editData.id });
+            if (editState.data) {
+              await handleAddEditEggProduction({
+                ...data,
+                id: editState.data.id,
+              });
             } else {
-              await handleAddEditEggProduction({ ...data, flockId });
+              await handleAddEditEggProduction({
+                ...data,
+                flockId,
+              });
             }
-            setModals(prev => ({ ...prev, egg: false }));
-            setEditData(null);
-            setEditType(null);
+
+            setActiveModal(null);
+            setEditState({ type: null, data: null });
           }}
         />
+
+        {/* ========================= FEED MODAL ========================= */}
         <AddModal
-          visible={modals.feed}
-          title={editData ? 'Edit Feed Consumption' : 'Add Feed Consumption'}
+          visible={activeModal === 'feed'}
+          title={
+            editState.data ? 'Edit Feed Consumption' : 'Add Feed Consumption'
+          }
           type="Feed Consumption"
           flockItems={[{ label: flock?.ref, value: flockId }]}
-          feedItems={dataState.feedMasterData.feeds}
+          feedItems={dataState.master.feeds}
           hideFlockField={true}
-          initialData={editData}
-          isEdit={!!editData}
+          initialData={editState.data}
+          isEdit={!!editState.data}
           onClose={() => {
-            setModals(prev => ({ ...prev, feed: false }));
-            setEditData(null);
-            setEditType(null);
+            setActiveModal(null);
+            setEditState({ type: null, data: null });
           }}
           onSave={handleAddEditFeedConsumption}
         />
+
+        {/* ========================= VACCINATION MODAL ========================= */}
         <AddModal
-          visible={modals.vaccination}
+          visible={activeModal === 'vaccination'}
           title={
-            editData ? 'Edit Vaccination Schedule' : 'Add Vaccination Schedule'
+            editState.data
+              ? 'Edit Vaccination Schedule'
+              : 'Add Vaccination Schedule'
           }
           type="vaccination Schedule"
-          vaccineItems={dataState.vaccineItems}
+          vaccineItems={dataState.master.vaccines}
           flockItems={[{ label: flock?.ref, value: flockId }]}
           hideFlockField={true}
           initialData={
-            editData
+            editState.data
               ? {
-                  ...editData,
-                  scheduledDate: new Date(editData.scheduledDate),
-                  vaccineId: editData.vaccineId,
+                  ...editState.data,
+                  scheduledDate: new Date(editState.data.scheduledDate),
                   flockId,
                 }
               : { flockId }
           }
-          isEdit={!!editData}
+          isEdit={!!editState.data}
           onClose={() => {
-            setModals(prev => ({ ...prev, vaccination: false }));
-            setEditData(null);
-            setEditType(null);
+            setActiveModal(null);
+            setEditState({ type: null, data: null });
           }}
           onSave={handleAddOrEditVaccination}
         />
 
+        {/* ========================= MORTALITY MODAL ========================= */}
         <ItemEntryModal
-          visible={modals.mortality}
-          onClose={() => setModals(prev => ({ ...prev, mortality: false }))}
+          visible={activeModal === 'mortality'}
+          maxQuantity={dataState.summary?.totalRemainingBirds ?? 0}
           type="mortality"
-          initialData={{
-            quantity: editData?.quantity,
-            expireDate: editData?.date,
-          }}
+          initialData={editState.data}
+          onClose={() => setActiveModal(null)}
           onSave={handleMortality}
         />
 
+        {/* ========================= HOSPITALITY MODAL ========================= */}
         <ItemEntryModal
-          visible={modals.hospitality}
-          onClose={() => setModals(prev => ({ ...prev, hospitality: false }))}
+          visible={activeModal === 'hospitality'}
           type="hospitality"
+          onClose={() => setActiveModal(null)}
           onSave={handleHospitality}
         />
-        
+
+        {/* ========================= DELETE CONFIRMATION ========================= */}
         <ConfirmationModal
           type="delete"
-          visible={deleteModal.visible}
-          onClose={() => setDeleteModal({ visible: false })}
+          visible={deleteState.visible}
+          onClose={() =>
+            setDeleteState({ visible: false, type: null, recordId: null })
+          }
           onConfirm={() => {
-            if (!deleteModal.recordId || !deleteModal.type) return;
+            if (!deleteState.recordId || !deleteState.type) return;
 
-            switch (deleteModal.type) {
+            switch (deleteState.type) {
               case 'egg':
-                handleDeleteEggProduction(deleteModal.recordId);
+                handleDeleteEggProduction(deleteState.recordId);
                 break;
               case 'feed':
-                handleDeleteFeedConsumption(deleteModal.recordId);
+                handleDeleteFeedConsumption(deleteState.recordId);
                 break;
               case 'vaccination':
-                handleDeleteVaccinationSchedule(deleteModal.recordId);
+                handleDeleteVaccinationSchedule(deleteState.recordId);
                 break;
               case 'mortality':
-                handleDeleteHealthRecord(deleteModal.recordId);
+                handleDeleteHealthRecord(deleteState.recordId);
                 break;
             }
-            setDeleteModal({ visible: false });
+
+            setDeleteState({ visible: false, type: null, recordId: null });
           }}
           title="Are you sure you want to delete this record?"
         />

@@ -1,19 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  Image,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  Pressable,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Theme from '../../theme/Theme';
 import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
+import BusinessUnitModal, {
+  SaleFilterModel,
+} from '../../components/customPopups/BusinessUnitModal';
 
 import {
   getSalesByFilter,
@@ -23,10 +16,9 @@ import {
   getParties,
   GetSaleFilters,
 } from '../../services/FlockService';
-
 import { useBusinessUnit } from '../../context/BusinessContext';
 import SearchBar from '../../components/common/SearchBar';
-import BusinessUnitModal from '../../components/customPopups/BusinessUnitModal';
+import { formatDisplayDate } from '../../utils/validation';
 
 interface FlockSaleScreenProps {
   openAddModal?: boolean;
@@ -42,28 +34,35 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
   const { businessUnitId } = useBusinessUnit();
 
   const [salesData, setSalesData] = useState<SaleRecord[]>([]);
-
   const [search, setSearch] = useState('');
+  const [activeFilters, setActiveFilters] = useState<GetSaleFilters>({});
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [isSaleModalVisible, setIsSaleModalVisible] = useState(false);
-
+  const [currentPage, setCurrentPage] = useState(1);
   const [customerItems, setCustomerItems] = useState<
     { label: string; value: string }[]
   >([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
 
-  // ================= FETCH =================
-  const fetchSales = async (filters?: GetSaleFilters) => {
+  // ================= FETCH SALES =================
+  const fetchSales = async (
+    page: number = 1,
+    filters: GetSaleFilters = activeFilters,
+  ) => {
     if (!businessUnitId) return;
 
     try {
       setGlobalLoading?.(true);
       const res = await getSalesByFilter({
         businessUnitId,
-        pageNumber: 1,
-        pageSize: 100,
+        pageNumber: page,
+        pageSize,
         ...filters,
       });
-      setSalesData(res ?? []);
+      setSalesData(res.list ?? []);
+      setTotalRecords(res.totalCount ?? 0);
+      setCurrentPage(page);
     } catch (err) {
       console.error('Fetch sale error:', err);
       setSalesData([]);
@@ -72,11 +71,15 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
     }
   };
 
+  // ================= INITIAL LOAD =================
   useEffect(() => {
-    fetchSales();
+    if (!businessUnitId) return;
+    setCurrentPage(1);
+    setActiveFilters({});
+    fetchSales(1, {});
   }, [businessUnitId]);
 
-  // ================= CUSTOMERS =================
+  // ================= LOAD CUSTOMERS =================
   useEffect(() => {
     const loadCustomers = async () => {
       if (!businessUnitId) return;
@@ -86,19 +89,13 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
     loadCustomers();
   }, [businessUnitId]);
 
-  const formatDate = (date?: Date | string) => {
-    if (!date) return '—';
-    const d = new Date(date);
-    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-  };
-
-  // ================= TABLE =================
+  // ================= TABLE DATA =================
   const tableData = salesData.map(item => ({
-    date: formatDate(item.date),
+    date: formatDisplayDate(item.date),
     customer: item.customer,
     flock: item.flock,
     quantity: item.quantity,
-    price: item.price,
+    price: Number(item.price).toFixed(2),
     raw: item,
   }));
 
@@ -110,19 +107,54 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
     { key: 'price', title: 'PRICE', width: 90 },
   ];
 
-  // ================= UI =================
+  // ================= SEARCH =================
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    const updatedFilters = { ...activeFilters, searchKey: value || undefined };
+    setActiveFilters(updatedFilters);
+    fetchSales(1, updatedFilters);
+  };
+
+  // ================= APPLY SALE FILTER =================
+  const handleApplyFilter = (filters: SaleFilterModel) => {
+    const apiFilters: GetSaleFilters = {};
+
+    if (filters.fromDate) {
+      const start = new Date(filters.fromDate);
+      start.setHours(0, 0, 0, 0);
+      apiFilters.startDate = start.toISOString();
+    }
+
+    if (filters.toDate) {
+      const end = new Date(filters.toDate);
+      end.setHours(23, 59, 59, 999);
+      apiFilters.endDate = end.toISOString();
+    }
+
+    if (filters.customerId) {
+      apiFilters.partyId = filters.customerId;
+    }
+
+    if (filters.searchKey) {
+      apiFilters.searchKey = filters.searchKey;
+    }
+
+    setActiveFilters(apiFilters);
+    fetchSales(1, apiFilters);
+    setIsFilterModalVisible(false);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ROW 1 : SEARCH + FILTER */}
+      {/* SEARCH + FILTER */}
       <View style={styles.topRow}>
         <View style={{ flex: 1 }}>
           <SearchBar
             placeholder="Search sales..."
             initialValue={search}
-            onSearch={value => setSearch(value)}
+            onSearch={handleSearch}
           />
         </View>
-
         <TouchableOpacity
           style={styles.filterBtn}
           onPress={() => setIsFilterModalVisible(true)}
@@ -131,19 +163,17 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* ROW 2 : NEW BUTTON
-      <View style={styles.newRow}>
-        <TouchableOpacity
-          style={styles.newBtn}
-          onPress={() => setIsSaleModalVisible(true)}
-        >
-          <Text style={styles.newText}>+ New</Text>
-        </TouchableOpacity>
-      </View> */}
-
+      {/* TABLE */}
       {tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>
-          <DataCard columns={columns} data={tableData} />
+        <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 8 }}>
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={pageSize}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => fetchSales(page)}
+          />
         </View>
       ) : (
         <View style={styles.noDataContainer}>
@@ -151,29 +181,25 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
         </View>
       )}
 
-      {/* ================= FILTER MODAL ================= */}
+      {/* FILTER MODAL */}
       <BusinessUnitModal
         visible={isFilterModalVisible}
         mode="saleFilter"
         customerItems={customerItems}
         onClose={() => setIsFilterModalVisible(false)}
-        onApplySaleFilter={filters => {
-          const apiFilters: GetSaleFilters = {};
-
-          if (filters.fromDate)
-            apiFilters.startDate = filters.fromDate.toISOString().split('T')[0];
-
-          if (filters.toDate)
-            apiFilters.endDate = filters.toDate.toISOString().split('T')[0];
-
-          if (filters.customerId) apiFilters.partyId = filters.customerId;
-
-          if (search) apiFilters.searchKey = search;
-
-          fetchSales(apiFilters);
+        onApplySaleFilter={handleApplyFilter}
+        initialSaleFilters={{
+          fromDate: activeFilters.startDate
+            ? new Date(activeFilters.startDate)
+            : null,
+          toDate: activeFilters.endDate
+            ? new Date(activeFilters.endDate)
+            : null,
+          customerId: activeFilters.partyId || null,
         }}
       />
-      {/* ================= ADD SALE ================= */}
+
+      {/* ADD SALE MODAL */}
       <ItemEntryModal
         visible={openAddModal || isSaleModalVisible}
         type="flockSale"
@@ -182,16 +208,19 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
           setGlobalLoading?.(true);
           try {
             const payload: AddSalePayload = {
-              customerId: data.customerName,
+              saleTypeId: 2,
+              customerId: data.customer,
               flockId: data.flockName,
               quantity: Number(data.quantity),
               price: Number(data.price),
-              date: data.saleDate?.toISOString() ?? new Date().toISOString(),
+              date: data.saleDate
+                ? data.saleDate.toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0],
               note: data.remarks || '',
               businessUnitId: businessUnitId!,
             };
             await addSale(payload);
-            fetchSales();
+            fetchSales(1, activeFilters);
           } catch (err) {
             console.error('Add sale error:', err);
           } finally {
@@ -206,163 +235,21 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
 export default FlockSaleScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Theme.colors.white,
-  },
-  tipCardContainer: {
-    marginTop: 36,
-    marginBottom: 8,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-    paddingLeft: 20,
-    marginTop: -20,
-  },
-  searchBox: { paddingHorizontal: 16, paddingVertical: 10 },
+  safeArea: { flex: 1, backgroundColor: Theme.colors.white },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     marginTop: 10,
   },
-
-  newRow: {
-    paddingHorizontal: 16,
-    marginTop: 10,
-    alignItems: 'flex-end',
-    marginBottom: 6,
-  },
-
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-  },
-  newBtn: {
-    backgroundColor: Theme.colors.primaryYellow,
-    height: 40,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
-  },
-  newText: { fontWeight: '600' },
-  searchBoxSmall: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: Theme.colors.white,
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    paddingHorizontal: 12,
-
-    height: 40,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Theme.colors.black,
-    marginBottom: 6,
-    marginTop: 7,
-  },
-  dateText: {
-    color: Theme.colors.black,
-  },
-
-  searchInput: { flex: 1, marginLeft: 6 },
-  icon: { width: 18, height: 18 },
   filterBtn: {
     marginLeft: 10,
-    marginRight: 7,
     padding: 8,
     borderWidth: 1,
     borderRadius: 10,
     borderColor: Theme.colors.success,
   },
   filterIcon: { width: 22, height: 22, tintColor: Theme.colors.success },
-  tableContent: {
-    paddingHorizontal: 16,
-    paddingTop: 9,
-    paddingBottom: 20,
-  },
-  noDataContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noDataImage: {
-    width: 290,
-    height: 290,
-    resizeMode: 'contain',
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '85%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-  },
-  modalHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  dateField: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-  },
-  dateIcon: {
-    width: 20,
-    height: 20,
-    tintColor: Theme.colors.borderYellow,
-  },
-  dropdown: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  resetBtn: {
-    backgroundColor: Theme.colors.white,
-    borderColor: Theme.colors.borderYellow,
-    borderWidth: 2,
-    padding: 12,
-    borderRadius: 8,
-    width: '45%',
-  },
-  applyBtn: {
-    backgroundColor: Theme.colors.buttonPrimary,
-    padding: 12,
-    borderRadius: 8,
-    width: '45%',
-  },
-  btnText: {
-    color: Theme.colors.black,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
+  noDataContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  noDataImage: { width: 290, height: 290, resizeMode: 'contain' },
 });
