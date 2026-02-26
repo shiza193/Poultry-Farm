@@ -75,7 +75,7 @@ const LoginScreen = ({ navigation }: any) => {
       if (token) {
         Toast.show({
           type: 'success',
-          text1: 'Welcome Back to PoultryCloud 🐔',
+          text1: 'Welcome Back to PoultryCloud ',
           text2: 'Your farm insights and operations are ready to manage.',
         });
 

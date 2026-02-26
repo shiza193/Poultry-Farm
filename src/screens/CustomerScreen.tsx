@@ -1,5 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Text,ScrollView } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Text,
+  ScrollView,
+} from 'react-native';
 import { useBusinessUnit } from '../context/BusinessContext';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import Header from '../components/common/LogoHeader';
@@ -23,6 +30,7 @@ import {
   deleteParty,
   updateParty,
 } from '../services/PartyService';
+import { normalizeDataFormat } from '../utils/NormalizeDataFormat';
 
 type Customer = {
   id: string;
@@ -76,16 +84,23 @@ const CustomerScreen = () => {
 
       const response = await getPartyBySearchAndFilter(payload);
 
-      if (!response?.list || !Array.isArray(response.list)) {
-        setCustomers([]);
-        setTotalRecords(0);
-        return;
-      }
+      // Normalize the list to an array
+      const customerList = normalizeDataFormat(
+        response?.list,
+        'array',
+        'Customers',
+      );
 
-      const formatted: Customer[] = response.list.map(formatCustomer);
+      const formatted: Customer[] = customerList.map((item: any) => {
+        const existing = customers.find(c => c.id === item.partyId);
+        return {
+          ...formatCustomer(item),
+          isActive: existing?.isActive ?? item.isActive,
+        };
+      });
 
       setCustomers(formatted);
-      setTotalRecords(response.totalCount || 0);
+      setTotalRecords(response?.totalCount || 0);
     } catch (error) {
       console.error('Error fetching customers:', error);
       setCustomers([]);
@@ -147,8 +162,9 @@ const CustomerScreen = () => {
         partyTypeId: 0,
         businessUnitId: filters.businessUnit || contextBU,
       };
-
+      console.log('Sending BU ID:', filters.businessUnit, contextBU);
       const response = await addParty(payload);
+      const customerData = normalizeDataFormat(response, 'object', 'Customer');
 
       if (!response) return;
 
@@ -165,39 +181,40 @@ const CustomerScreen = () => {
 
   // ================= TOGGLE STATUS =================
   const ToggleStatus = async (customer: Customer) => {
-    try {
-      // Loading spinner start
-      setLoading(true);
+    const newStatus = !customer.isActive;
 
-      // Backend call: naya status update kar rahe hain
-      const newStatus = !customer.isActive;
+    // Optimistic UI update
+    setCustomers(prev =>
+      prev.map(c => (c.id === customer.id ? { ...c, isActive: newStatus } : c)),
+    );
+
+    try {
       const response = await updatePartyIsActive(customer.id, newStatus);
 
-      if (response.success) {
+      if (response?.status !== 'Success') {
         setCustomers(prev =>
           prev.map(c =>
-            c.id === customer.id ? { ...c, isActive: newStatus } : c,
+            c.id === customer.id ? { ...c, isActive: customer.isActive } : c,
           ),
         );
-
+        showErrorToast('Error', response?.message || 'Failed to update status');
+      } else {
         showSuccessToast(
           'Success',
           `Customer status updated to ${newStatus ? 'Active' : 'Inactive'}`,
         );
-      } else {
-        showErrorToast(
-          'Error',
-          response.message || 'Failed to update customer status',
-        );
       }
     } catch (error) {
-      // showErrorToast('Error', 'Failed to update customer status');
-      console.log('ToggleStatus error:', error);
-    } finally {
-      setLoading(false); // Loading spinner stop
+      // revert on error
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === customer.id ? { ...c, isActive: customer.isActive } : c,
+        ),
+      );
+      console.error('ToggleStatus error:', error);
+      showErrorToast('Error', 'Failed to update status');
     }
   };
-
   // ================= DELETE CUSTOMER =================
   const DeletePress = (customerId: string) => {
     setModals(prev => ({
@@ -207,7 +224,6 @@ const CustomerScreen = () => {
     }));
   };
 
-  
   const ConfirmDelete = async () => {
     if (!modals.deleteCustomerId) return;
 
@@ -269,7 +285,7 @@ const CustomerScreen = () => {
     email: c.email ?? '—',
     phone: c.phone ?? '—',
     address: c.address ?? '—',
-    status: c.isActive ?? '—',
+    status: !!c.isActive,
     raw: c,
   }));
 
@@ -373,41 +389,41 @@ const CustomerScreen = () => {
       />
 
       {tableData.length > 0 ? (
-        <View style={{ flex: 1,}}>
-           <ScrollView
-                    style={{ flex: 1, paddingHorizontal: 16 }}
-                    contentContainerStyle={{ paddingBottom: 100 }}
-                  >
-          <DataCard
-            columns={columns}
-            data={tableData}
-            itemsPerPage={pageSize}
-            currentPage={currentPage}
-            totalRecords={totalRecords}
-            onPageChange={page => {
-              setCurrentPage(page);
-              fetchCustomers(page);
-            }}
-            renderRowMenu={(row, closeMenu) => (
-              <TouchableOpacity
-                onPress={() => {
-                  DeletePress(row.raw.id);
-                  closeMenu();
-                }}
-              >
-                <Text
-                  style={{
-                    color: 'red',
-                    fontWeight: '600',
-                    fontSize: 12,
-                    marginLeft: 12,
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            style={{ flex: 1, paddingHorizontal: 16 }}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          >
+            <DataCard
+              columns={columns}
+              data={tableData}
+              itemsPerPage={pageSize}
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              onPageChange={page => {
+                setCurrentPage(page);
+                fetchCustomers(page);
+              }}
+              renderRowMenu={(row, closeMenu) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    DeletePress(row.raw.id);
+                    closeMenu();
                   }}
                 >
-                  Delete Customer
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
+                  <Text
+                    style={{
+                      color: 'red',
+                      fontWeight: '600',
+                      fontSize: 12,
+                      marginLeft: 12,
+                    }}
+                  >
+                    Delete Customer
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
           </ScrollView>
         </View>
       ) : (

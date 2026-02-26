@@ -32,3 +32,16 @@ export const formatDisplayDate = (val?: string) => {
 
   return d.toLocaleDateString("en-GB");
 };
+
+
+/** 
+ * 1. Starts with 03
+ * 2. Next 2 digits can be any number (total first 4 digits = 03xx)
+ * 3. Then hyphen (-)
+ * 4. Then 7 digits (total length = 11 including hyphen)
+ * Example valid: 0324-8976543
+ */
+export const isValidPhoneNumber = (phone: string): boolean => {
+  const phoneRegex = /^03\d{2}-\d{7}$/;
+  return phoneRegex.test(phone.trim());
+};

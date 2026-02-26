@@ -53,7 +53,6 @@ const api = axios.create({
   },
 });
 
-
 api.interceptors.request.use(config => {
   if (token) {
     (config.headers as any).Authorization = `Bearer ${token}`;
@@ -83,11 +82,8 @@ api.interceptors.response.use(
       error.response?.data?.message || error.message || 'Something went wrong';
 
     switch (status) {
-      case 400:
-        showErrorToast(
-          'Error',
-          message || 'Your request could not be processed.',
-        );
+      case 404:
+        showErrorToast('Not Found', message);
         break;
 
       case 401:

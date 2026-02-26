@@ -69,12 +69,13 @@ export const updatePartyIsActive = async (partyId: string, isActive: boolean) =>
       `api/Party/update-party-is-active/${partyId}/${isActive}`
     );
 
-    if (response.data && response.data.status === 'Success') {
-      return response.data.data; 
+    if (!response.data) {
+      console.warn('Unexpected response:', response);
+      return null;
     }
 
-    console.warn('Unexpected response:', response.data);
-    return null;
+    // Return the full response with status
+    return response.data; 
   } catch (error) {
     console.error('Error updating party status:', error);
     throw error;

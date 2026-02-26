@@ -63,6 +63,64 @@ useEffect(() => {
   loadBusinessUnit();
 }, []);
 
+
+// useEffect(() => {
+//   const loadBusinessUnit = async () => {
+//     try {
+//       const savedId = await AsyncStorage.getItem('businessUnitId');
+//       const savedLocation = await AsyncStorage.getItem('farmLocation');
+
+//       // Always fetch fresh list from backend
+//       const businessUnits = await getBusinessUnits();
+
+//       if (!businessUnits || businessUnits.length === 0) {
+//         console.warn("No business units found");
+//         return;
+//       }
+
+//       // Check if savedId still exists in backend list
+//       const validSavedBU = businessUnits.find(
+//         (bu:any) => bu.businessUnitId === savedId
+//       );
+
+//       if (validSavedBU) {
+//         setBusinessUnitId(validSavedBU.businessUnitId);
+//         setFarmLocation(validSavedBU.location || '');
+
+//         await AsyncStorage.setItem(
+//           'businessUnitId',
+//           validSavedBU.businessUnitId
+//         );
+//         await AsyncStorage.setItem(
+//           'farmLocation',
+//           validSavedBU.location || ''
+//         );
+
+//       } else {
+//         // Saved ID invalid → use first valid BU
+//         const defaultBU = businessUnits[0];
+
+//         setBusinessUnitId(defaultBU.businessUnitId);
+//         setFarmLocation(defaultBU.location || '');
+
+//         await AsyncStorage.setItem(
+//           'businessUnitId',
+//           defaultBU.businessUnitId
+//         );
+//         await AsyncStorage.setItem(
+//           'farmLocation',
+//           defaultBU.location || ''
+//         );
+//       }
+
+//     } catch (error) {
+//       console.warn('Failed to load business unit ID', error);
+//     }
+//   };
+
+//   loadBusinessUnit();
+// }, []);
+
   return (
     <BusinessUnitContext.Provider
      value={{

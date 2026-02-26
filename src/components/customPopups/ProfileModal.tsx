@@ -17,6 +17,7 @@ import Theme from '../../theme/Theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 import { getBusinessUnits } from '../../services/BusinessUnit';
+import { Dropdown } from 'react-native-element-dropdown';
 
 export type ProfileData = {
   id: string;
@@ -199,9 +200,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     value?: string | null,
     setter?: (v: string) => void,
     editable?: boolean,
-    readOnly?: boolean, 
   ) => {
     const displayValue = value && value.trim().length > 0 ? value : 'N/A';
+
+    // 🚨 Make ALL email fields read-only
+    const isEmailField = label.toLowerCase().includes('email');
 
     return (
       <View style={[styles.field, { width: fieldWidth }]}>
@@ -210,11 +213,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
         {editable ? (
           <TextInput
             value={value ?? ''}
-            onChangeText={readOnly ? undefined : setter}
-            editable={!readOnly} 
+            onChangeText={isEmailField ? undefined : setter}
+            editable={!isEmailField}
             style={[
               styles.input,
-              readOnly && { backgroundColor: '#f1f1f1' },
+              isEmailField && { backgroundColor: '#f1f1f1' },
             ]}
             placeholder="N/A"
             placeholderTextColor="#999"
@@ -345,24 +348,25 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               {type === 'customer' && (
                 <>
                   {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
-                   <View style={{ zIndex: 3000, width: fieldWidth }}>
+                  <View style={{ zIndex: 3000, width: fieldWidth }}>
                     <Text style={styles.label}>Poultry Farm</Text>
                     {editMode ? (
-                      <DropDownPicker
-                        listMode="SCROLLVIEW"
-                        open={buOpen}
+                      <Dropdown
+                        style={styles.dropdownElement}
+                        containerStyle={styles.dropdownContainerElement}
+                        data={buItems}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Select Poultry Farm"
                         value={formData.businessUnitId ?? null}
-                        items={buItems}
-                        setOpen={setBUOpen}
-                        setValue={cb =>
+                        onChange={item => {
                           setFormData(prev => ({
                             ...prev,
-                            businessUnitId: cb(prev.businessUnitId),
-                          }))
-                        }
-                        setItems={setBUItems}
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownContainer}
+                            businessUnitId: item.value,
+                          }));
+                        }}
+                        selectedTextStyle={styles.selectedText}
+                        placeholderStyle={styles.placeholderText}
                       />
                     ) : (
                       <Text style={styles.value}>
@@ -378,8 +382,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                     setAddressDraft,
                     editMode,
                   )}
-
-                 
                 </>
               )}
 
@@ -390,22 +392,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                   <View style={{ zIndex: 4000, width: fieldWidth }}>
                     <Text style={styles.label}>Employee Type</Text>
                     {editMode ? (
-                      <DropDownPicker
-                        listMode="SCROLLVIEW"
-                        open={empTypeOpen}
-                        value={formData.employeeTypeId ?? null} // number
-                        items={empTypeItems} // value is number
-                        setOpen={setEmpTypeOpen}
-                        setValue={cb =>
+                      <Dropdown
+                        style={styles.dropdownElement}
+                        containerStyle={styles.dropdownContainerElement}
+                        data={empTypeItems} // [{label, value}, ...]
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Select Employee Type"
+                        value={formData.employeeTypeId ?? null}
+                        onChange={item => {
                           setFormData(prev => ({
                             ...prev,
-                            employeeTypeId: cb(prev.employeeTypeId), // number
-                          }))
-                        }
-                        setItems={setEmpTypeItems}
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownContainer}
-                        placeholder="Select Employee Type"
+                            employeeTypeId: item.value, // number
+                          }));
+                        }}
+                        selectedTextStyle={styles.selectedText}
+                        placeholderStyle={styles.placeholderText}
                       />
                     ) : (
                       <Text style={styles.value}>
@@ -428,21 +430,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                   <View style={{ zIndex: 3000, width: fieldWidth }}>
                     <Text style={styles.label}>Poultry Fram</Text>
                     {editMode ? (
-                      <DropDownPicker
-                        listMode="SCROLLVIEW"
-                        open={buOpen}
+                      <Dropdown
+                        style={styles.dropdownElement}
+                        containerStyle={styles.dropdownContainerElement}
+                        data={buItems}
+                        labelField="label"
+                        valueField="value"
+                        placeholder="Select Poultry Farm"
                         value={formData.businessUnitId ?? null}
-                        items={buItems}
-                        setOpen={setBUOpen}
-                        setValue={cb =>
+                        onChange={item => {
                           setFormData(prev => ({
                             ...prev,
-                            businessUnitId: cb(prev.businessUnitId),
-                          }))
-                        }
-                        setItems={setBUItems}
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownContainer}
+                            businessUnitId: item.value,
+                          }));
+                        }}
+                        selectedTextStyle={styles.selectedText}
+                        placeholderStyle={styles.placeholderText}
                       />
                     ) : (
                       <Text style={styles.value}>
@@ -489,7 +492,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                   emailDraft,
                   setEmailDraft,
                   editMode,
-                  true, // readOnly = true
                 )}
 
                 {renderField(
@@ -503,22 +505,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                 <View style={{ zIndex: 3000, width: fieldWidth }}>
                   <Text style={styles.label}>Poultry Farm</Text>
                   {editMode ? (
-                    <DropDownPicker
-                      listMode="SCROLLVIEW"
-                      open={buOpen}
+                    <Dropdown
+                      style={styles.dropdownElement}
+                      containerStyle={styles.dropdownContainerElement}
+                      data={buItems}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="Select Poultry Farm"
                       value={formData.businessUnitId ?? null}
-                      items={buItems}
-                      setOpen={setBUOpen}
-                      setValue={cb =>
+                      onChange={item => {
                         setFormData(prev => ({
                           ...prev,
-                          businessUnitId: cb(prev.businessUnitId),
-                        }))
-                      }
-                      setItems={setBUItems}
-                      style={styles.dropdown}
-                      dropDownContainerStyle={styles.dropdownContainer}
-                      placeholder="Select Poultry Farm"
+                          businessUnitId: item.value,
+                        }));
+                      }}
+                      selectedTextStyle={styles.selectedText}
+                      placeholderStyle={styles.placeholderText}
                     />
                   ) : (
                     <Text style={styles.value}>
@@ -576,6 +578,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+   dropdownElement: {
+    height: 37,
+    borderWidth: 1,
+    borderColor: Theme.colors.borderLight,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: Theme.colors.white,
+    marginBottom: 10,
+  },
+
+  dropdownContainerElement: {
+    backgroundColor: Theme.colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.borderLight,
+  },
+
+  selectedText: {
+    fontSize: 14,
+    color: Theme.colors.textPrimary,
+  },
+
+  placeholderText: {
+    fontSize: 14,
+    color: '#9E9E9E',
+  },
+
   avatarText: { fontWeight: 'bold', color: Theme.colors.black, fontSize: 18 },
   activeBadge: {
     borderRadius: 12,

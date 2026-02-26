@@ -15,7 +15,11 @@ import { getBusinessUnits } from '../../services/BusinessUnit';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { isValidEmail, isValidPassword } from '../../utils/validation';
+import {
+  isValidEmail,
+  isValidPassword,
+  isValidPhoneNumber,
+} from '../../utils/validation';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 import {
   getEggProducedUnits,
@@ -94,7 +98,7 @@ const AddModal: React.FC<AddModalProps> = ({
   const [businessUnit, setBusinessUnit] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-
+  const [phoneError, setPhoneError] = useState('');
   const [isSaveEnabled, setIsSaveEnabled] = useState(false);
 
   /* ===== DROPDOWNS ===== */
@@ -174,60 +178,50 @@ const AddModal: React.FC<AddModalProps> = ({
     }
   }, [type, initialData, visible]);
 
+  useEffect(() => {
+    if (type === 'Feed Consumption' && initialData && visible) {
+      setSelectedFlock(initialData.flockId ?? null);
+      setSelectedFeedId(initialData.feedId ?? null);
+      setbag(
+        initialData.bag !== undefined
+          ? String(initialData.bag)
+          : initialData.quantity !== undefined
+          ? String(initialData.quantity)
+          : '1',
+      );
+
+      setFeedDate(initialData.date ? new Date(initialData.date) : null);
+    }
+    if (type === 'Feed Consumption' && !initialData && visible) {
+      setSelectedFeedId(null);
+      setbag('1');
+      setFeedDate(null);
+    }
+  }, [type, initialData, visible]);
 
   useEffect(() => {
-  if (type === 'Feed Consumption' && initialData && visible) {
-    setSelectedFlock(initialData.flockId ?? null);
-    setSelectedFeedId(initialData.feedId ?? null);
-    setbag(
-      initialData.bag !== undefined
-        ? String(initialData.bag)
-        : initialData.quantity !== undefined
-        ? String(initialData.quantity)
-        : '1'
-    );
+    if (type === 'Feed Record' && initialData && visible) {
+      setSelectedFeedId(initialData.feedId ?? null);
+      setSelectedFeedTypeId(initialData.feedTypeId ?? null);
+      setQuantity(initialData.quantity ? String(initialData.quantity) : '');
+      setFeedDate(initialData.date ? new Date(initialData.date) : null);
+      setSupplier(initialData.supplierId ?? null);
+      setPrice(initialData.price ? String(initialData.price) : '');
+      setNote(initialData.note || '');
+      setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
+    }
 
-    setFeedDate(
-      initialData.date ? new Date(initialData.date) : null
-    );
-  }
-  if (type === 'Feed Consumption' && !initialData && visible) {
-    setSelectedFeedId(null);
-    setbag('1');
-    setFeedDate(null);
-  }
-}, [type, initialData, visible]);
-
-useEffect(() => {
-  if (type === 'Feed Record' && initialData && visible) {
-    setSelectedFeedId(initialData.feedId ?? null);
-    setSelectedFeedTypeId(initialData.feedTypeId ?? null);
-    setQuantity(
-      initialData.quantity ? String(initialData.quantity) : ''
-    );
-    setFeedDate(
-      initialData.date ? new Date(initialData.date) : null
-    );
-    setSupplier(initialData.supplierId ?? null);
-    setPrice(
-      initialData.price ? String(initialData.price) : ''
-    );
-    setNote(initialData.note || '');
-    setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
-  }
-
-  if (type === 'Feed Record' && !initialData && visible) {
-    setSelectedFeedId(null);
-    setSelectedFeedTypeId(null);
-    setQuantity('');
-    setFeedDate(null);
-    setSupplier(null);
-    setPrice('');
-    setNote('');
-    setPaymentStatus('Paid');
-  }
-}, [type, initialData, visible]);
-
+    if (type === 'Feed Record' && !initialData && visible) {
+      setSelectedFeedId(null);
+      setSelectedFeedTypeId(null);
+      setQuantity('');
+      setFeedDate(null);
+      setSupplier(null);
+      setPrice('');
+      setNote('');
+      setPaymentStatus('Paid');
+    }
+  }, [type, initialData, visible]);
 
   const [passwordError, setPasswordError] = useState('');
   /* ===== Eggs States ===== */
@@ -404,13 +398,19 @@ useEffect(() => {
       setIsSaveEnabled(isValid);
       return;
     }
-    // ===== CUSTOMER =====
-    if (type === 'customer') {
-      const isValid =
-        name.trim().length > 0 &&
-        (hideBusinessUnit ? true : businessUnit !== null);
-      setIsSaveEnabled(isValid);
-    }
+//     // ===== CUSTOMER =====
+//   if (type === 'customer') {
+//   const isNameValid = name.trim().length > 0;
+//   const isBUValid = hideBusinessUnit ? true : businessUnit !== null;
+
+//   // Phone: valid if empty OR valid format
+//   const isPhoneValid = phone ? isValidPhoneNumber(phone) : true;
+
+//   //  ALSO consider phoneError
+//   const isValid = isNameValid && isBUValid && isPhoneValid && phoneError === '';
+
+//   setIsSaveEnabled(isValid);
+// }
     // ADD THIS FOR VACCINATION SCHEDULE
     if (type === 'vaccination Schedule') {
       const isValid =
@@ -511,6 +511,22 @@ useEffect(() => {
     feedDate,
     bag,
   ]);
+
+  useEffect(() => {
+  if (type === 'customer') {
+    const isNameValid = name.trim().length > 0;
+    const isBUValid = hideBusinessUnit ? true : businessUnit !== null;
+
+    //  Directly check phone value here
+    const isPhoneValid = phone === '' || isValidPhoneNumber(phone); 
+    // if empty → ok, else must be valid
+
+    const isValid = isNameValid && isBUValid && isPhoneValid;
+
+    setIsSaveEnabled(isValid);
+  }
+}, [name, businessUnit, phone, hideBusinessUnit, type]);
+
   const reset = () => {
     // Common
     setName('');
@@ -524,6 +540,7 @@ useEffect(() => {
     setBusinessUnit(null);
     setPhone('');
     setAddress('');
+     setPhoneError('');
 
     // Employee
     setSelectedEmployeeTypeId(null);
@@ -687,6 +704,7 @@ useEffect(() => {
                   />
                 </>
               )}
+              
             {/* USER */}
             {type === 'user' && (
               <>
@@ -774,7 +792,6 @@ useEffect(() => {
               </>
             )}
 
-            {/* CUSTOMER */}
             {type === 'customer' && (
               <>
                 {!hideBusinessUnit && (
@@ -782,21 +799,22 @@ useEffect(() => {
                     <Text style={styles.label}>
                       Business Units<Text style={styles.required}>*</Text>
                     </Text>
-                    <DropDownPicker
-                      listMode="SCROLLVIEW"
-                      open={buOpen}
-                      value={businessUnit}
-                      items={buItems}
-                      setOpen={setBuOpen}
-                      setValue={setBusinessUnit}
-                      setItems={setBuItems}
+                    <Dropdown
+                      style={styles.dropdownElement}
+                      containerStyle={styles.dropdownContainerElement}
+                      data={buItems} // [{label, value}, ...]
+                      labelField="label"
+                      valueField="value"
                       placeholder="Select business unit..."
-                      style={styles.dropdown}
-                      dropDownContainerStyle={styles.dropdownContainer}
+                      value={businessUnit ?? null}
+                      onChange={item => {
+                        setBusinessUnit(item.value);
+                      }}
+                      selectedTextStyle={styles.selectedText}
+                      placeholderStyle={styles.placeholderText}
                     />
                   </>
                 )}
-
                 {/* PHONE */}
                 <Text style={styles.label}>Phone No</Text>
                 <TextInput
@@ -804,9 +822,20 @@ useEffect(() => {
                   placeholder="03XX-XXXXXXX"
                   keyboardType="phone-pad"
                   value={phone}
-                  onChangeText={setPhone}
+                 onChangeText={text => {
+  setPhone(text);
+  if (text && !isValidPhoneNumber(text)) {
+    setPhoneError('Please enter valid phone number (03XX-XXXXXXX)');
+  } else {
+    setPhoneError('');
+  }
+}}
                 />
-
+                {phoneError ? (
+                  <Text style={{ color: 'red', fontSize: 12 }}>
+                    {phoneError}
+                  </Text>
+                ) : null}
                 {/* EMAIL */}
                 <Text style={styles.label}>Email</Text>
                 <TextInput
@@ -1681,8 +1710,8 @@ useEffect(() => {
                 styles.button,
                 isSaveEnabled ? styles.saveButton : styles.saveButtonDisabled,
               ]}
-              disabled={!isSaveEnabled}
-              onPress={handleSave}
+              disabled={!isSaveEnabled} //  disabled based on validation
+              onPress={handleSave} 
             >
               <Text style={styles.saveText}>Save</Text>
             </TouchableOpacity>
