@@ -20,7 +20,7 @@ type Props = {
     tableData: any[];
 };
 
-const ReusableDetailsModal = ({
+const VoucherDetailPopup = ({
     visible,
     title,
     onClose,
@@ -76,7 +76,7 @@ const ReusableDetailsModal = ({
     );
 };
 
-export default ReusableDetailsModal;
+export default VoucherDetailPopup;
  const styles = StyleSheet.create({
     overlay: {
         flex: 1,

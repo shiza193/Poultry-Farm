@@ -16,27 +16,34 @@ export interface GetEggSalesPayload {
   pageNumber: number;
   pageSize: number;
 }
-export const getEggSales = async (payload: GetEggSalesPayload): Promise<EggSale[]> => {
+export interface GetEggSalesResponse {
+  totalCount: number;
+  list: EggSale[];
+}
+
+export const getEggSales = async (payload: GetEggSalesPayload): Promise<GetEggSalesResponse> => {
   try {
     const response = await api.post('api/Sale/get-sale-by-search-and-filter-with-pagination', payload);
     if (response.data.status === 'Success') {
-      return response.data.data.list.map((item: any) => ({
-        saleId: item.saleId,
-        date: item.date,
-        customer: item.customer,
-        price: item.price,
-        quantity: item.quantity,
-        unit: item.unit
-      }));
+      return {
+        totalCount: response.data.data.totalCount,
+        list: response.data.data.list.map((item: any) => ({
+          saleId: item.saleId,
+          date: item.date,
+          customer: item.customer,
+          price: item.price,
+          quantity: item.quantity,
+          unit: item.unit
+        }))
+      };
     } else {
-      return [];
+      return { totalCount: 0, list: [] };
     }
   } catch (error) {
     console.error('Get Egg Sales Error:', error);
-    return [];
+    return { totalCount: 0, list: [] };
   }
 };
-
 export interface EggStock {
   unitId: number;
   unit: string;
@@ -100,10 +107,11 @@ export const getEggProduction = async (
       'api/EggProduction/get-eggProduction-by-search-and-filter-with-pagination',
       payload
     );
+
     if (response.data.status === 'Success') {
       return {
-        items: response.data.data.list,   // array of EggProduction
-        totalRecords: response.data.data.totalRecords, // backend se
+        items: response.data.data.list,
+        totalRecords: response.data.data.totalCount,
       };
     }
     return { items: [], totalRecords: 0 };
@@ -112,8 +120,6 @@ export const getEggProduction = async (
     return { items: [], totalRecords: 0 };
   }
 };
-
-
 export const getCustomers = async (businessUnitId: string) => {
   try {
     const response = await api.get(

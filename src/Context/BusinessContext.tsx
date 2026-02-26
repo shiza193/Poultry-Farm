@@ -17,7 +17,6 @@ type BusinessUnitContextType = {
   setFarmLocation: (location: string) => void;
 };
 
-
 const BusinessUnitContext = createContext<BusinessUnitContextType | undefined>(
   undefined,
 );

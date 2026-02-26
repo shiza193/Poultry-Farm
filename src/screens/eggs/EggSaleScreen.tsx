@@ -5,11 +5,14 @@ import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import { getEggSales, EggSale, getCustomers, addEggSale, } from '../../services/EggsService';
 import { useBusinessUnit } from "../../context/BusinessContext"
 import { useFocusEffect } from '@react-navigation/native';
-import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AddModal from '../../components/customPopups/AddModal';
 import { showErrorToast, showSuccessToast } from '../../utils/AppToast';
 import { getFlocks } from '../../services/FlockService';
+import { Dropdown } from 'react-native-element-dropdown';
+import SearchBar from '../../components/common/SearchBar';
+import { normalizeDataFormat } from '../../utils/NormalizeDataFormat';
+import { formatDisplayDate } from '../../utils/validation';
 interface Flock {
   flockId: string;
   flockRef: string;
@@ -32,10 +35,9 @@ const EggSaleScreen: React.FC<Props> = ({
   const { businessUnitId } = useBusinessUnit();
   // States
   const [eggSales, setEggSales] = useState<EggSale[]>([]);
-  const [searchText, setSearchText] = useState<string>("");
-  const [customerOpen, setCustomerOpen] = useState(false);
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
-  const [masterData, setMasterData] = useState<{
+  const [filterData, setFilterData] = useState<{
+    searchKey: string;
     selectedCustomer: string | null;
     customerItems: { label: string; value: string }[];
     selectedFlock: string | null;
@@ -43,6 +45,7 @@ const EggSaleScreen: React.FC<Props> = ({
     fromDate: Date | null;
     toDate: Date | null;
   }>({
+    searchKey: "",
     selectedCustomer: null,
     customerItems: [],
     selectedFlock: null,
@@ -50,7 +53,9 @@ const EggSaleScreen: React.FC<Props> = ({
     fromDate: null,
     toDate: null,
   });
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const pageSize = 10;
   //TABLE COLUMNS
   const columns: TableColumn[] = [
     {
@@ -58,13 +63,7 @@ const EggSaleScreen: React.FC<Props> = ({
       title: 'DATE',
       width: 120,
       isTitle: true,
-      render: (value) => {
-        const date = new Date(value);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return <Text>{`${day}/${month}/${year}`}</Text>;
-      },
+      render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
     },
     {
       key: 'customer',
@@ -89,27 +88,34 @@ const EggSaleScreen: React.FC<Props> = ({
       width: 80,
     },
   ];
-  const fetchEggSales = async (overrideSearchKey?: string | null) => {
+  const fetchEggSales = async (page = currentPage) => {
     if (!businessUnitId) return;
     setGlobalLoading(true);
     const payload = {
       businessUnitId,
-      customerId: masterData.selectedCustomer,
-      flockId: masterData.selectedFlock,
-      from: masterData.fromDate?.toISOString() || null,
-      to: masterData.toDate?.toISOString() || null,
-      searchKey: searchText || null,
-      pageNumber: 1,
-      pageSize: 10,
+      customerId: filterData.selectedCustomer,
+      flockId: filterData.selectedFlock,
+      from: filterData.fromDate?.toISOString() || null,
+      to: filterData.toDate?.toISOString() || null,
+      searchKey: filterData.searchKey || null,
+      pageNumber: page,
+      pageSize: pageSize,
     };
-    const data = await getEggSales(payload);
-    setEggSales(data);
-    setGlobalLoading(false);
+    try {
+      const response = await getEggSales(payload);
+      const normalizedEggSales = normalizeDataFormat(response.list, 'array', 'EggSale');
+      setEggSales(normalizedEggSales);
+      setTotalRecords(response.totalCount);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setGlobalLoading(false);
+    }
   };
   useFocusEffect(
     useCallback(() => {
       fetchEggSales();
-      setMasterData(prev => ({
+      setFilterData(prev => ({
         ...prev,
         selectedCustomer: null,
         fromDate: null,
@@ -118,9 +124,12 @@ const EggSaleScreen: React.FC<Props> = ({
     }, [businessUnitId])
   );
   const fetchCustomers = async () => {
-    const suppliers = await getCustomers(businessUnitId);
-    const dropdownData = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
-    setMasterData(prev => ({
+    const customers = await getCustomers(businessUnitId);
+    const normalizedCustomers = normalizeDataFormat(customers, 'array', 'Customer');
+    const dropdownData = normalizedCustomers.map((s: any) => ({
+      label: s.name, value: s.partyId
+    }));
+    setFilterData(prev => ({
       ...prev,
       customerItems: dropdownData,
     }));
@@ -129,18 +138,18 @@ const EggSaleScreen: React.FC<Props> = ({
     if (businessUnitId) {
       fetchEggSales();
     }
-  }, [businessUnitId, masterData.selectedCustomer, masterData.fromDate, masterData.toDate]);
-
+  }, [businessUnitId, filterData.selectedCustomer, filterData.fromDate, filterData.toDate, filterData.searchKey]);
   // ===== FETCH FLOCKS =====
   const fetchFlocks = async () => {
     if (!businessUnitId) return;
     try {
       const flocks: Flock[] = await getFlocks(businessUnitId);
-      const dropdownData = flocks.map((f: Flock) => ({
+      const normalizedFlocks = normalizeDataFormat(flocks, 'array', 'Flock');
+      const dropdownData = normalizedFlocks.map((f: any) => ({
         label: f.flockRef,
         value: f.flockId,
       }));
-      setMasterData(prev => ({
+      setFilterData(prev => ({
         ...prev,
         flockItems: dropdownData,
       }));
@@ -171,9 +180,13 @@ const EggSaleScreen: React.FC<Props> = ({
       };
 
       console.log("Egg Sale Payload:", payload);
-      await addEggSale(payload);
-      showSuccessToast("Egg sale added successfully");
-      fetchEggSales();
+      const res = await addEggSale(payload);
+      if (res.status === "Success") {
+        setEggSales(prev => [...prev, res.data]);
+        setTotalRecords(prev => prev + 1);
+        setCurrentPage(1);
+        showSuccessToast("Egg sale added successfully");
+      }
     } catch (error: any) {
       const backendMessage =
         error?.response?.data?.message || "Failed to add Egg sale";
@@ -187,62 +200,33 @@ const EggSaleScreen: React.FC<Props> = ({
       {/* ===== SEARCH + FLOCK DROPDOWN ===== */}
       <View style={styles.filterRow}>
         {/* ===== SEARCH BAR ===== */}
-        <View style={styles.searchContainer}>
-          <TextInput
+        <View style={{ flex: 1 }}>
+          <SearchBar
             placeholder="Search Customer..."
-            placeholderTextColor={Theme.colors.textSecondary}
-            value={searchText}
-            onChangeText={setSearchText}
-            style={styles.searchInput}
+            onSearch={(val) =>
+              setFilterData(prev => ({
+                ...prev,
+                searchKey: val,
+              }))
+            }
           />
-          {/* CLEAR ICON */}
-          {searchText.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                setSearchText("");
-                fetchEggSales(null);
-              }}
-            >
-              <Image
-                source={Theme.icons.cross}
-                style={styles.clearIcon}
-              />
-            </TouchableOpacity>
-          )}
-
-          {/* SEARCH ICON */}
-          <TouchableOpacity onPress={() => fetchEggSales(searchText)}>
-            <Image
-              source={Theme.icons.search}
-              style={styles.searchIcon}
-            />
-          </TouchableOpacity>
         </View>
-
         <View style={styles.dropdownWrapper}>
-          <DropDownPicker
-            open={customerOpen}
-            value={masterData.selectedCustomer}
-            items={masterData.customerItems}
-            setOpen={setCustomerOpen}
-            setValue={(valOrFunc) =>
-              setMasterData(prev => ({
-                ...prev,
-                selectedCustomer:
-                  typeof valOrFunc === 'function' ? valOrFunc(prev.selectedCustomer) : valOrFunc,
-              }))
-            }
-            setItems={(itemsOrFunc) =>
-              setMasterData(prev => ({
-                ...prev,
-                customerItems:
-                  typeof itemsOrFunc === 'function' ? itemsOrFunc(prev.customerItems) : itemsOrFunc,
-              }))
-            }
+          <Dropdown
+            data={filterData.customerItems}
+            labelField="label"
+            valueField="value"
             placeholder="Customer"
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            textStyle={styles.dropdownText}
+            value={filterData.selectedCustomer}
+            onChange={item => {
+              setFilterData(prev => ({
+                ...prev,
+                selectedCustomer: item.value,
+              }));
+            }}
+            style={styles.inlineDropdown}
+            selectedTextStyle={styles.dropdownText}
+            containerStyle={styles.inlineDropdownContainer}
           />
         </View>
       </View>
@@ -255,7 +239,7 @@ const EggSaleScreen: React.FC<Props> = ({
             onPress={() => setActivePicker('from')} >
             <Text style={styles.dateLabel}>From</Text>
             <Text style={styles.dateValue}>
-              {masterData.fromDate ? masterData.fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+              {filterData.fromDate ? filterData.fromDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
             </Text>
           </TouchableOpacity>
           <Text style={styles.dateDash}>—</Text>
@@ -264,17 +248,17 @@ const EggSaleScreen: React.FC<Props> = ({
             onPress={() => setActivePicker('to')} >
             <Text style={styles.dateLabel}>To</Text>
             <Text style={styles.dateValue}>
-              {masterData.toDate ? masterData.toDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
+              {filterData.toDate ? filterData.toDate.toLocaleDateString('en-GB') : 'DD/MM/YY'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* RESET FILTERS */}
-        {(masterData.fromDate || masterData.toDate || masterData.selectedCustomer) && (
+        {(filterData.fromDate || filterData.toDate || filterData.selectedCustomer) && (
           <TouchableOpacity
             style={styles.resetInlineBtn}
             onPress={() => {
-              setMasterData(prev => ({
+              setFilterData(prev => ({
                 ...prev,
                 selectedCustomer: null,
                 fromDate: null,
@@ -290,8 +274,8 @@ const EggSaleScreen: React.FC<Props> = ({
         <DateTimePicker
           value={
             activePicker === 'from'
-              ? masterData.fromDate || new Date()
-              : masterData.toDate || new Date()
+              ? filterData.fromDate || new Date()
+              : filterData.toDate || new Date()
           }
           mode="date"
           display="default"
@@ -301,12 +285,12 @@ const EggSaleScreen: React.FC<Props> = ({
               return;
             }
             if (activePicker === 'from') {
-              setMasterData(prev => ({
+              setFilterData(prev => ({
                 ...prev,
                 fromDate: selectedDate!,
               }));
             } else {
-              setMasterData(prev => ({
+              setFilterData(prev => ({
                 ...prev,
                 toDate: selectedDate!,
               }));
@@ -323,15 +307,21 @@ const EggSaleScreen: React.FC<Props> = ({
         <DataCard
           columns={columns}
           data={eggSales}
-          itemsPerPage={10}
+          itemsPerPage={pageSize}
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          onPageChange={page => {
+            setCurrentPage(page);
+            fetchEggSales(page);
+          }}
         />
       </ScrollView>
       <AddModal
         visible={openAddModal}
         title="Add Egg Sale"
         type="Egg sale"
-        customerItems={masterData.customerItems}
-        flockItems={masterData.flockItems}
+        customerItems={filterData.customerItems}
+        flockItems={filterData.flockItems}
         onClose={onCloseAddModal}
         onSave={(data) => {
           handleAddEggSale(data);
@@ -356,33 +346,25 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 18,
     paddingVertical: 8,
+    gap: 8
   },
-  searchContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+  dropdownWrapper: {
+    width: 120,
+    zIndex: 1
+  },
+  inlineDropdown: {
+    width: 120,
     borderWidth: 1,
     borderColor: Theme.colors.success,
     borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 40,
-    marginRight: 10,
-    backgroundColor: Theme.colors.white,
+    minHeight: 42,
+    paddingHorizontal: 5,
+    paddingVertical: 3,
   },
-  searchIcon: { width: 18, height: 18, tintColor: Theme.colors.success, marginRight: 6 },
-  searchInput: { flex: 1, fontSize: 14, color: Theme.colors.black },
-  clearIcon: {
-    width: 18,
-    height: 18,
-    marginRight: 6,
-    tintColor: Theme.colors.success,
+  inlineDropdownContainer: {
+    borderColor: Theme.colors.success,
+    borderRadius: 8,
   },
-  dropdownWrapper: { width: 120, zIndex: 1 },
-  dropdown: {
-    borderColor: Theme.colors.success, height: 40,
-    minHeight: 40,
-  },
-  dropdownContainer: { borderColor: Theme.colors.success },
   dropdownText: { color: Theme.colors.black },
   dateRow: {
     flexDirection: 'row',

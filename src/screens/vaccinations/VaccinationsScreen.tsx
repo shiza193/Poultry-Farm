@@ -89,7 +89,6 @@ const VaccinationsScreen: React.FC<Props> = ({
         const formatted = suppliers.map((s: any) => ({ label: s.name, value: s.partyId }));
         setDropdownData(prev => ({ ...prev, suppliers: formatted }));
     };
-
     const fetchVaccines = async () => {
         const vaccines = await getVaccines();
         setDropdownData(prev => ({ ...prev, vaccines }));

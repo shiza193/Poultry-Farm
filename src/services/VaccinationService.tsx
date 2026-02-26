@@ -218,23 +218,18 @@ export const getVaccinationStock = async (
   try {
     const response = await api.get<VaccinationStockResponse>(
       'api/Vaccination/get-vaccination-stock',
-      {
-        params: { businessUnitId },
-      }
+      { params: { businessUnitId } }
     );
+
     console.log('🔹 Vaccination Stock API Response:', response.data);
 
     if (response.data.status === 'Success') {
       return response.data.data;
     } else {
-      console.warn('Vaccination Stock API returned:', response.data.message);
       return [];
     }
   } catch (error: any) {
-    console.error(
-      ' Error fetching vaccination stock:',
-      error.response?.data || error.message
-    );
+    console.error(error);
     return [];
   }
 };

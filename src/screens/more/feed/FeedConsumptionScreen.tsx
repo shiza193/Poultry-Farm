@@ -5,7 +5,7 @@ import DataCard, { TableColumn } from "../../../components/customCards/DataCard"
 import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import BackArrow from "../../../components/common/ScreenHeaderWithBack";
 import { useBusinessUnit } from "../../../context/BusinessContext";
-import { addFeedConsumption, deleteFeedConsumption, FeedConsumptionRecord, getFeedConsumptionRecords, getFeeds } from "../../../services/FeedService";
+import { addFeedConsumption, deleteFeedConsumption, FeedConsumptionRecord,getFeedConsumptionRecords, getFeeds, updateFeedConsumption } from "../../../services/FeedService";
 import { useFocusEffect } from "@react-navigation/native";
 import { Dropdown } from "react-native-element-dropdown";
 import SearchBar from "../../../components/common/SearchBar";
@@ -13,7 +13,8 @@ import { getFlocks } from "../../../services/FlockService";
 import AddModal from "../../../components/customPopups/AddModal";
 import { showErrorToast, showSuccessToast } from "../../../utils/AppToast";
 import ConfirmationModal from "../../../components/customPopups/ConfirmationModal";
-
+import { normalizeDataFormat } from "../../../utils/NormalizeDataFormat";
+import { formatDisplayDate } from "../../../utils/validation";
 interface Flock {
     flockId: string;
     flockRef: string;
@@ -26,49 +27,52 @@ const FeedConsumptionScreen: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState({
         searchKey: "",
-        flockId: null ,
-    }); const [feedMasterData, setFeedMasterData] = useState<{
+        flockId: null,
+    });
+    const [feedMasterData, setFeedMasterData] = useState<{
         feeds: { label: string; value: number }[];
-        flocks: { label: string; value: string;}[];
+        flocks: { label: string; value: string; }[];
     }>({
         feeds: [],
         flocks: [],
     });
     const [modalState, setModalState] = useState<{
-        showFeed: boolean;
-        delete: {
-            visible: boolean;
-            record?: FeedConsumptionRecord;
-        };
+        type: 'add' | 'edit' | 'delete' | null;
+        selectedRecord: FeedConsumptionRecord | null;
     }>({
-        showFeed: false,
-        delete: { visible: false },
+        type: null,
+        selectedRecord: null,
     });
-    const fetchFeedConsumption = async () => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const pageSize = 10;
+    const fetchFeedConsumption = async (page = currentPage) => {
+        if (!businessUnitId) return;
+        setLoading(true);
+        const payload = {
+            businessUnitId,
+            pageNumber: page,
+            pageSize: pageSize,
+            searchKey: filters.searchKey || null,
+            flockId: filters.flockId,
+            supplierId: null,
+        };
         try {
-            if (!businessUnitId) return;
-            setLoading(true);
-
-            const payload = {
-                businessUnitId,
-                pageNumber: 1,
-                pageSize: 10,
-                searchKey: filters.searchKey || null,
-                flockId: filters.flockId,
-                supplierId: null,
-            };
-
             const res = await getFeedConsumptionRecords(payload);
-            const mappedData = res.list.map((item: any) => ({
-                feedRecordConsumptionId: item.feedRecordConsumptionId,
-                ref: item.ref,
-                flock: item.flockRef,
-                feedName: item.feed,
-                date: item.date,
-                totalBag: item.totalQuantity,
-                bag: item.quantity,
+            const normalizedData = normalizeDataFormat(res.list, 'array', 'FeedConsumption');
+            const mappedData = normalizedData.map((item: any) => ({
+                feedRecordConsumptionId: item.feedRecordConsumptionId ?? null,
+                ref: item.ref ?? '',
+                flock: item.flockRef ?? '',
+                flockId: item.flockId ?? null,
+                feedName: item.feed ?? '',
+                feedId: item.feedId ?? null,
+                date: item.date ?? '',
+                totalBag: item.totalQuantity ?? 0,
+                bag: item.quantity ?? 0,
             }));
             setData(mappedData);
+            setTotalRecords(res.totalCount ?? 0);
         } catch (error) {
             console.log("Feed Consumption Screen Error:", error);
         } finally {
@@ -79,11 +83,9 @@ const FeedConsumptionScreen: React.FC = () => {
         useCallback(() => {
             fetchFeedConsumption();
             fetchFlocks();
-        }, [businessUnitId])
+        }, [businessUnitId, filters])
     );
-    useEffect(() => {
-        fetchFeedConsumption();
-    }, [filters, businessUnitId]);
+
     useEffect(() => {
         const fetchFeeds = async () => {
             const res = await getFeeds();
@@ -98,13 +100,12 @@ const FeedConsumptionScreen: React.FC = () => {
     const fetchFlocks = async () => {
         if (!businessUnitId) return;
         try {
-            const res: Flock[] = await getFlocks(businessUnitId);
-            const dropdownData = res.map(f => ({
+            const flocks: Flock[] = await getFlocks(businessUnitId);
+            const normalizedFlocks: Flock[] = normalizeDataFormat(flocks, 'array', 'Flocks');
+            const dropdownData = normalizedFlocks.map((f: Flock) => ({
                 label: f.flockRef,
                 value: f.flockId,
-                isSelected: false,
             }));
-
             setFeedMasterData(prev => ({
                 ...prev,
                 flocks: dropdownData,
@@ -113,7 +114,7 @@ const FeedConsumptionScreen: React.FC = () => {
             console.error("Failed to fetch flocks:", error);
         }
     };
-    const AddFeedConsumption = async (payload: {
+    const AddFeedConsumption = async (data: {
         flockId: string;
         feedId: number;
         bag: number;
@@ -125,30 +126,90 @@ const FeedConsumptionScreen: React.FC = () => {
         }
         try {
             setLoading(true);
-            await addFeedConsumption({
+            const res = await addFeedConsumption({
                 businessUnitId,
-                flockId: payload.flockId,
-                feedId: payload.feedId,
-                quantity: payload.bag,
-                price: payload.bag,
-                date: payload.date,
+                flockId: data.flockId,
+                feedId: data.feedId,
+                quantity: data.bag,
+                price: data.bag,
+                date: data.date,
             });
-            showSuccessToast("Feed consumption added successfully");
-            setModalState(prev => ({
-                ...prev,
-                showFeed: false
-            })); fetchFeedConsumption();
+            if (res.status === "Success") {
+                const newRow: FeedConsumptionRecord & { flock: string; feedName: string; totalBag: number; bag: number } = {
+                    feedRecordConsumptionId: res.data.feedRecordConsumptionId ?? '',
+                    ref: res.data.ref ?? '',
+                    date: res.data.date ?? '',
+                    flock: res.data.flockRef ?? '',
+                    feedName: res.data.feed ?? '',
+                    totalBag: res.data.totalQuantity ?? 0,
+                    bag: res.data.quantity ?? 0,
+                };
+                setData(prev => [...prev, newRow]);
+                setTotalRecords(prev => prev + 1);
+                showSuccessToast("Feed consumption added successfully");
+                setModalState({ type: null, selectedRecord: null });
+            }
         } catch (error: any) {
-            const msg =
-                error?.response?.data?.message ||
-                "Failed to add feed consumption";
-
+            const msg = error?.response?.data?.message || "Failed to add feed consumption";
             showErrorToast(msg);
         } finally {
             setLoading(false);
         }
     };
-
+    const EditFeedConsumption = async (payload: {
+        flockId: string;
+        feedId: number;
+        bag: number;
+        date: Date | string;
+    }) => {
+        if (!businessUnitId || !modalState.selectedRecord) {
+            showErrorToast("Required data missing");
+            return;
+        }
+        try {
+            setLoading(true);
+            const formattedDate =
+                payload.date instanceof Date
+                    ? payload.date.toISOString().split("T")[0]
+                    : payload.date;
+            const res = await updateFeedConsumption({
+                feedRecordConsumptionId:
+                    modalState.selectedRecord.feedRecordConsumptionId,
+                businessUnitId,
+                flockId: payload.flockId,
+                feedId: payload.feedId,
+                quantity: payload.bag,
+                date: formattedDate,
+            });
+            if (res && res.status === 'Success') {
+                const record = modalState.selectedRecord;
+                if (record) {
+                    setData(prev =>
+                        prev.map(fc =>
+                            fc.feedRecordConsumptionId === record.feedRecordConsumptionId
+                                ? {
+                                    ...res.data,
+                                    flock: res.data.flockRef,
+                                    feedName: res.data.feed,
+                                    totalBag: res.data.totalQuantity,
+                                    bag: res.data.quantity
+                                }
+                                : fc
+                        )
+                    );
+                }
+            }
+            showSuccessToast("Feed consumption updated successfully");
+            setModalState({ type: null, selectedRecord: null });
+        } catch (error: any) {
+            const msg =
+                error?.response?.data?.message ||
+                "Failed to update feed consumption";
+            showErrorToast(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
     const columns: TableColumn[] = [
         { key: "ref", title: "REF", width: 140, isTitle: true, showDots: true },
         { key: "flock", title: "FLOCK", width: 160 },
@@ -157,13 +218,7 @@ const FeedConsumptionScreen: React.FC = () => {
             key: "date",
             title: "DATE",
             width: 120,
-            render: (value) => {
-                const d = new Date(value);
-                const day = d.getDate().toString().padStart(2, "0");
-                const month = (d.getMonth() + 1).toString().padStart(2, "0");
-                const year = d.getFullYear();
-                return <Text>{`${day}/${month}/${year}`}</Text>;
-            },
+            render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
         },
         { key: "totalBag", title: "TOTAL BAG", width: 120 },
         { key: "bag", title: "BAG", width: 80 },
@@ -174,17 +229,17 @@ const FeedConsumptionScreen: React.FC = () => {
                 title="Feed Consumption"
                 showBack
                 onAddNewPress={() =>
-                    setModalState(prev => ({
-                        ...prev,
-                        showFeed: true
-                    }))
+                    setModalState({
+                        type: 'add',
+                        selectedRecord: null,
+                    })
                 } onReportPress={() => console.log("Generate Report")}
             />
             <View style={styles.filterRow}>
                 {/* SEARCH */}
                 <View style={{ flex: 1 }}>
                     <SearchBar
-                        placeholder="Search feed..."
+                        placeholder="Search Ref,Flock/Fe..."
                         onSearch={(val) => {
                             setFilters(prev => ({
                                 ...prev,
@@ -219,7 +274,7 @@ const FeedConsumptionScreen: React.FC = () => {
                 </View>
             </View>
             {/* RIGHT SIDE: RESET FILTER */}
-            {( filters.flockId) && (
+            {(filters.flockId) && (
                 <Text
                     style={styles.resetText}
                     onPress={() => {
@@ -236,12 +291,19 @@ const FeedConsumptionScreen: React.FC = () => {
                 <DataCard
                     columns={columns}
                     data={data}
-                    itemsPerPage={10}
+                    itemsPerPage={pageSize}
+                    currentPage={currentPage}
+                    totalRecords={totalRecords}
+                    onPageChange={page => {
+                        setCurrentPage(page);
+                        fetchFeedConsumption(page);
+                    }}
                     renderRowMenu={(row, closeMenu) => (
                         <View>
                             <TouchableOpacity
                                 onPress={() => {
-                                    // Edit logic (if needed)
+                                    setModalState({ type: 'edit', selectedRecord: row });
+                                    closeMenu();
                                 }}
                                 style={{ marginBottom: 8 }}
                             >
@@ -250,10 +312,8 @@ const FeedConsumptionScreen: React.FC = () => {
                             <View style={styles.menuSeparator} />
                             <TouchableOpacity
                                 onPress={() => {
-                                    setModalState(prev => ({
-                                        ...prev,
-                                        delete: { visible: true, record: row },
-                                    })); closeMenu();
+                                    setModalState({ type: 'delete', selectedRecord: row });
+                                    closeMenu();
                                 }}
                                 style={{ marginTop: 8 }}
                             >
@@ -265,41 +325,35 @@ const FeedConsumptionScreen: React.FC = () => {
             </View>
             <LoadingOverlay visible={loading} />
             <AddModal
-                visible={modalState.showFeed}
-                onClose={() => setModalState(prev => ({
-                    ...prev,
-                    showFeed: false
-                }))}
+                visible={modalState.type === 'add' || modalState.type === 'edit'}
+                onClose={() => setModalState({ type: null, selectedRecord: null })}
+                initialData={modalState.selectedRecord ?? undefined}
                 type="Feed Consumption"
-                title="Add Feed Consumption"
+                title={modalState.type === 'edit' ? "Edit Feed Consumption" : "Add Feed Consumption"}
                 flockItems={feedMasterData.flocks}
                 feedItems={feedMasterData.feeds}
-                onSave={AddFeedConsumption}
-            />
+                onSave={
+                    modalState.type === "edit"
+                        ? EditFeedConsumption
+                        : AddFeedConsumption
+                } />
             <ConfirmationModal
                 type="delete"
-                visible={modalState.delete.visible}
+                visible={modalState.type === 'delete' && modalState.selectedRecord !== null}
                 title={`Are you sure you want to delete this Feed Consumption Record?`}
-                onClose={() =>
-                    setModalState(prev => ({
-                        ...prev,
-                        delete: { visible: false, record: undefined }
-                    }))
-                } onConfirm={async () => {
-                    if (!modalState.delete.record) return;
+                onClose={() => setModalState({ type: null, selectedRecord: null })}
+                onConfirm={async () => {
+                    if (modalState.type !== 'delete' || !modalState.selectedRecord) return;
                     try {
                         setLoading(true);
-                        await deleteFeedConsumption(modalState.delete.record.feedRecordConsumptionId);
+                        await deleteFeedConsumption(modalState.selectedRecord!.feedRecordConsumptionId);
                         showSuccessToast("Feed consumption record deleted successfully");
                         fetchFeedConsumption();
                     } catch (error) {
                         showErrorToast("Failed to delete feed consumption record");
                     } finally {
                         setLoading(false);
-                        setModalState(prev => ({
-                            ...prev,
-                            delete: { visible: false, record: undefined }
-                        }));
+                        setModalState({ type: null, selectedRecord: null });
                     }
                 }}
             />
@@ -307,7 +361,6 @@ const FeedConsumptionScreen: React.FC = () => {
     );
 };
 export default FeedConsumptionScreen;
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -322,7 +375,7 @@ const styles = StyleSheet.create({
     },
 
     dropdown: {
-        height: 40,
+        height: 42,
         borderColor: Theme.colors.success,
         borderWidth: 1,
         borderRadius: 8,

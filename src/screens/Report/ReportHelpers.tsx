@@ -4,38 +4,38 @@ import ReactNativeBlobUtil from 'react-native-blob-util';
 import FileViewer from 'react-native-file-viewer';
 import { Platform } from 'react-native';
 
-// export const getEggProductionExcel = async (fileName = 'EggProductionReport', payload: any = {}) => {
-//   try {
-//     console.log(' Sending Production Excel Request Payload:', payload);
+export const getEggProductionExcel = async (fileName = 'EggProductionReport', payload: any = {}) => {
+  try {
+    console.log(' Sending Production Excel Request Payload:', payload);
 
-//     const response = await api.post(
-//       'api/Export/egg-productions-excel',
-//       payload,
-//       { responseType: 'blob' }
-//     );
+    const response = await api.post(
+      'api/Export/egg-productions-excel',
+      payload,
+      { responseType: 'arraybuffer' }
+    );
 
-//     const blob = response.data;
-//     await saveAndOpenExcel(blob, fileName);
-//   } catch (error) {
-//     console.error(' Error fetching Production Excel:', error);
-//   }
-// };
+    const blob = response.data;
+    await saveAndOpenExcelFromArrayBuffer(blob, fileName);
+  } catch (error) {
+    console.error(' Error fetching Production Excel:', error);
+  }
+};
 
-// export const getEggStockExcel = async (fileName = 'EggStockReport', businessUnitId: string) => {
-//   try {
-//     console.log(' Sending Stock Excel Request for BU:', businessUnitId);
+export const getEggStockExcel = async (fileName = 'EggStockReport', businessUnitId: string) => {
+  try {
+    console.log(' Sending Stock Excel Request for BU:', businessUnitId);
 
-//     const response = await api.get(
-//       `api/Export/egg-stock-excel/${businessUnitId}`,
-//       { responseType: 'blob' }
-//     );
+    const response = await api.get(
+      `api/Export/egg-stock-excel/${businessUnitId}`,
+      { responseType: 'arraybuffer' }
+    );
 
-//     const blob = response.data;
-//     await saveAndOpenExcel(blob, fileName);
-//   } catch (error) {
-//     console.error(' Error fetching Stock Excel:', error);
-//   }
-// };
+    const blob = response.data;
+    await saveAndOpenExcelFromArrayBuffer(blob, fileName);
+  } catch (error) {
+    console.error(' Error fetching Stock Excel:', error);
+  }
+};
 
 // ===== Flocks Excel =====
 // ===== Flocks Excel =====
@@ -158,34 +158,80 @@ export const getVaccinesExcel = async (
     console.log('Sending Vaccines Excel Request Payload:', payload);
 
     const response = await api.post('api/Export/vaccines-excel', payload, {
-      responseType: 'arraybuffer', // <-- yahan blob ki jagah arraybuffer
+      responseType: 'arraybuffer',
     });
 
     await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
 
-    console.log('✅ Vaccines Excel generated successfully');
+    console.log(' Vaccines Excel generated successfully');
   } catch (error) {
-    console.error('❌ Error fetching Vaccines Excel:', error);
+    console.error(' Error fetching Vaccines Excel:', error);
   }
 };
 
 
 // ===== Vaccine Stock Excel =====
 export const getVaccineStockExcel = async (
+  businessUnitId: string,
   fileName = 'VaccineStockReport',
-  businessUnitId: string
 ) => {
   try {
     console.log(' Sending Vaccine Stock Excel Request for BU:', businessUnitId);
-
     const response = await api.get(
       `api/Export/vaccine-stock-excel/${businessUnitId}`,
-      { responseType: 'blob' }
+      {
+        responseType: 'arraybuffer',
+      }
+    );
+    await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
+  } catch (error) {
+    console.error(' Error fetching Vaccine Stock Excel:', error);
+  }
+};
+
+interface FeedReportPayload {
+  businessUnitId: string;
+  pageNumber?: number;
+  pageSize?: number;
+  searchKey?: string | null;
+  supplierId?: string | null;
+}
+export const getFeedRecordsExcel = async (
+  fileName = 'FeedRecordsReport',
+  payload: FeedReportPayload
+) => {
+  try {
+    console.log('Sending Feed Records Excel Request Payload:', payload);
+
+    const response = await api.post(
+      'api/Export/feeds-excel',
+      payload,
+      { responseType: 'arraybuffer' }
     );
 
     const blob = response.data;
-    await saveAndOpenExcelFromArrayBuffer(response.data, fileName);
+    await saveAndOpenExcelFromArrayBuffer(blob, fileName);
+    console.log('Feed Records Excel downloaded successfully');
   } catch (error) {
-    console.error('❌ Error fetching Vaccine Stock Excel:', error);
+    console.error('Error fetching Feed Records Excel:', error);
+  }
+};
+
+export const getFeedStockExcel = async (businessUnitId: string, fileName = 'FeedStockReport') => {
+  try {
+    if (!businessUnitId) throw new Error('Business Unit ID is required');
+
+    console.log('Generating Feed Stock Excel for BU:', businessUnitId);
+
+    const response = await api.get(
+      `api/Export/feed-stock-excel/${businessUnitId}`,
+      { responseType: 'arraybuffer' }
+    );
+
+    const blob = response.data;
+    await saveAndOpenExcelFromArrayBuffer(blob, fileName);
+    console.log('Feed Stock Excel downloaded successfully');
+  } catch (error) {
+    console.error('Error generating Feed Stock Excel:', error);
   }
 };
