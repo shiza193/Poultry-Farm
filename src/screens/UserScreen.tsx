@@ -121,10 +121,12 @@ const UserScreen = () => {
       setLoading(false);
     }
   };
-  useEffect(() => {
-    setCurrentPage(1);
-    fetchUsers(1);
-  }, [groupState.search, groupState.status, groupState.selectedBU]);
+  useFocusEffect(
+    useCallback(() => {
+      setCurrentPage(1);
+      fetchUsers(1);
+    }, [groupState.search, groupState.status, groupState.selectedBU])
+  );
   // ================= FILTER =================
   const filteredUsers = users.filter(user => {
     // Destructure for cleaner code
@@ -156,6 +158,7 @@ const UserScreen = () => {
   // ================= HANDLERS =================
   const AddUser = async (data: any) => {
     try {
+      setLoading(true)
       const roleObj = roleItems.find(r => r.id === data.role);
       if (!roleObj) return;
 
@@ -165,14 +168,13 @@ const UserScreen = () => {
         password: data.password,
         userRoleId: Number(roleObj.id),
       });
-
       // 🔹 Normalize response to always be object
       const newUser = normalizeDataFormat(response, 'object', 'New User');
       showSuccessToast('User added successfully');
       setUsers(prev => [
         ...prev,
         {
-          id: newUser.userId,
+          id: newUser.data.userId,
           name: data.name,
           email: data.email,
           isActive: true,
@@ -182,11 +184,14 @@ const UserScreen = () => {
           businessUnit: '—',
         },
       ]);
+      console.log("Add User Full Response:", response);
+      console.log("Normalized User:", newUser);
       setCurrentPage(1);
     } catch (error) {
       console.error('Add User Error:', error);
       showErrorToast('Failed to add user');
     } finally {
+      setLoading(false);
       setGroupState(prev => ({
         ...prev,
         showAddModal: false,
@@ -211,7 +216,6 @@ const UserScreen = () => {
       // showErrorToast('Failed to update user status');
     }
   };
-
   const UserConfirmDelete = async () => {
     if (!groupState.selectedUserId) return;
     try {
@@ -244,7 +248,6 @@ const UserScreen = () => {
       const existingFarms = user.businessUnit
         ? user.businessUnit.split(', ').filter(Boolean)
         : [];
-
       setFarms(
         farmList.map((f: any) => ({
           id: f.id,

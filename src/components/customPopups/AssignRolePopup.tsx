@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
-
 interface Farm {
     id: number;
     name: string;
@@ -39,7 +38,6 @@ const AssignFarmRoleModal: React.FC<Props> = ({
 }) => {
     const [selected, setSelected] = useState<any>({});
     const [openDropdowns, setOpenDropdowns] = useState<{ [key: number]: boolean }>({});
-
     useEffect(() => {
         if (!visible || !farms) return;
 
@@ -93,7 +91,6 @@ const AssignFarmRoleModal: React.FC<Props> = ({
                     <View style={styles.header}>
                         <Text style={styles.title}>Assign poultry farm and role</Text>
                     </View>
-
                     {/* TABLE HEADER */}
                     <View style={styles.tableHeader}>
                         <Text style={styles.colFarm}>POULTRY FARM</Text>

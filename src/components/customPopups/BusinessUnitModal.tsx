@@ -516,9 +516,8 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                     value={confirmPassword}
                     onChangeText={(text) => {
                       setConfirmPassword(text);
-                      if (newPassword && text && newPassword !== text) {
-                        setPasswordMismatch(true);
-                      } else {
+
+                      if (newPassword === text) {
                         setPasswordMismatch(false);
                       }
                     }}
@@ -567,18 +566,24 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                     styles.saveButton,
                     (newPassword.trim() === '' ||
                       confirmPassword.trim() === '' ||
-                      passwordMismatch) &&
-                    styles.saveButtonDisabled,
+                      newPassword !== confirmPassword) &&
+                    styles.saveButtonDisabled
                   ]}
                   disabled={
                     !newPassword ||
                     !confirmPassword ||
-                    passwordMismatch
+                    newPassword !== confirmPassword
                   }
                   onPress={() => {
+                    if (newPassword !== confirmPassword) {
+                      setPasswordMismatch(true);
+                      return;
+                    }
+
                     if (onResetPassword) {
                       onResetPassword({ newPassword, confirmPassword });
                     }
+
                     onClose();
                   }}
                 >

@@ -70,8 +70,8 @@ const EmployeeScreen = () => {
         salary: Number(emp.salary) || 0,
         poultryFarmId: emp.businessUnitId,
         poultryFarm: emp.businessUnit,
-        joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
-        endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
+        joiningDate: emp.joiningDate,
+        endDate: emp.endDate ?? '',
         status: emp.isActive ? 'Active' : 'Inactive',
       }));
       setEmployees(mapped);
@@ -141,7 +141,18 @@ const EmployeeScreen = () => {
     { key: 'type', title: 'TYPE', width: 120 },
     { key: 'salary', title: 'SALARY', width: 120 },
     { key: 'poultryFarm', title: 'FARM', width: 140 },
-    { key: 'joiningDate', title: 'JOINING DATE', width: 120 },
+    {
+      key: 'joiningDate',
+      title: 'JOINING DATE',
+      width: 120,
+      render: (_, row) => (
+        <Text>
+          {row.joiningDate
+            ? new Date(row.joiningDate).toLocaleDateString()
+            : ''}
+        </Text>
+      ),
+    },
     { key: 'endDate', title: 'END DATE', width: 120 },
     {
       key: 'status',
@@ -178,6 +189,7 @@ const EmployeeScreen = () => {
   };
   const handleAddEmployee = async (data: any) => {
     try {
+      setLoading(true)
       const payload = {
         name: data.name,
         employeeTypeId: data.type,
@@ -206,7 +218,8 @@ const EmployeeScreen = () => {
       showSuccessToast('Employee added successfully');
       setModalState(prev => ({ ...prev, AddModal: false }));
     } catch {
-      showErrorToast('Failed to add employee');
+    } finally {
+      setLoading(false)
     }
   };
   const handleDelete = async () => {
@@ -329,7 +342,9 @@ const EmployeeScreen = () => {
                       employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
                       type: updatedData.employeeType || emp.type,
                       salary: updatedData.salary ?? emp.salary,
-                      joiningDate: updatedData.joiningDate ?? emp.joiningDate,
+                      joiningDate: updatedData.joiningDate
+                        ? new Date(updatedData.joiningDate).toISOString()
+                        : emp.joiningDate,
                       endDate: updatedData.endDate ?? emp.endDate,
                     }
                     : emp,
