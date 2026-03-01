@@ -35,7 +35,8 @@ type ModalType =
   | 'Egg production'
   | 'Egg sale'
   | 'Feed Record'
-  | 'Feed Consumption';
+  | 'Feed Consumption'
+  | 'Voucher';
 interface AddModalProps {
   visible: boolean;
   type: ModalType;
@@ -50,6 +51,8 @@ interface AddModalProps {
   unitItems?: { label: string; value: number }[];
   feedItems?: { label: string; value: number }[];
   feedTypeItems?: { label: string; value: number }[];
+  voucherTypeItems?: { label: string; value: number }[];
+  accountItems?: { label: string; value: string }[];
   hideFlockField?: boolean;
   defaultFlockId?: string | null;
   setUnitItems?: React.Dispatch<
@@ -74,6 +77,8 @@ const AddModal: React.FC<AddModalProps> = ({
   unitItems,
   feedItems,
   feedTypeItems,
+  voucherTypeItems,
+  accountItems,
   hideFlockField = false,
   defaultFlockId = null,
   customerItems,
@@ -202,7 +207,7 @@ const AddModal: React.FC<AddModalProps> = ({
 
   useEffect(() => {
     if (type === 'Feed Record' && initialData && visible) {
-      setSelectedFeedId(Number(initialData.feedId)); 
+      setSelectedFeedId(Number(initialData.feedId));
       setQuantity(
         initialData.quantity ? String(initialData.quantity) : ''
       );
@@ -234,7 +239,12 @@ const AddModal: React.FC<AddModalProps> = ({
     }
   }, [type, initialData, visible]);
 
-
+  // Voucher Form States
+  const [selectedVoucherType, setSelectedVoucherType] = useState<string | null>(null);
+  const [amount, setAmount] = useState<string>(''); // numeric input as string
+  const [selectedCreditAccount, setSelectedCreditAccount] = useState<string | null>(null);
+  const [selectedDebitAccount, setSelectedDebitAccount] = useState<string | null>(null);
+  const [description, setDescription] = useState<string>('');
   const [passwordError, setPasswordError] = useState('');
   /* ===== Eggs States ===== */
   const [intactEggs, setIntactEggs] = useState<number>(0);
@@ -407,19 +417,19 @@ const AddModal: React.FC<AddModalProps> = ({
       setIsSaveEnabled(isValid);
       return;
     }
-//     // ===== CUSTOMER =====
-//   if (type === 'customer') {
-//   const isNameValid = name.trim().length > 0;
-//   const isBUValid = hideBusinessUnit ? true : businessUnit !== null;
+    //     // ===== CUSTOMER =====
+    //   if (type === 'customer') {
+    //   const isNameValid = name.trim().length > 0;
+    //   const isBUValid = hideBusinessUnit ? true : businessUnit !== null;
 
-//   // Phone: valid if empty OR valid format
-//   const isPhoneValid = phone ? isValidPhoneNumber(phone) : true;
+    //   // Phone: valid if empty OR valid format
+    //   const isPhoneValid = phone ? isValidPhoneNumber(phone) : true;
 
-//   //  ALSO consider phoneError
-//   const isValid = isNameValid && isBUValid && isPhoneValid && phoneError === '';
+    //   //  ALSO consider phoneError
+    //   const isValid = isNameValid && isBUValid && isPhoneValid && phoneError === '';
 
-//   setIsSaveEnabled(isValid);
-// }
+    //   setIsSaveEnabled(isValid);
+    // }
     // ADD THIS FOR VACCINATION SCHEDULE
     if (type === 'vaccination Schedule') {
       const isValid =
@@ -435,6 +445,7 @@ const AddModal: React.FC<AddModalProps> = ({
       const isValid =
         (hideFlockField ? true : selectedFlock !== null) &&
         selectedUnit !== null &&
+        selectedUnit !== undefined &&
         endDate !== null;
 
       setIsSaveEnabled(isValid);
@@ -495,6 +506,14 @@ const AddModal: React.FC<AddModalProps> = ({
         bag.trim().length > 0;
 
       setIsSaveEnabled(isValid);
+    } else if (type === 'Voucher') {
+      const isValid =
+        selectedVoucherType !== null &&
+        selectedCreditAccount !== null &&
+        selectedDebitAccount !== null &&
+        amount.trim().length > 0;
+
+      setIsSaveEnabled(isValid);
       return;
     }
   }, [
@@ -519,22 +538,27 @@ const AddModal: React.FC<AddModalProps> = ({
     selectedFeedId,
     feedDate,
     bag,
+    // Voucher dependencies
+    selectedVoucherType,
+    selectedCreditAccount,
+    selectedDebitAccount,
+    amount,
   ]);
 
   useEffect(() => {
-  if (type === 'customer') {
-    const isNameValid = name.trim().length > 0;
-    const isBUValid = hideBusinessUnit ? true : businessUnit !== null;
+    if (type === 'customer') {
+      const isNameValid = name.trim().length > 0;
+      const isBUValid = hideBusinessUnit ? true : businessUnit !== null;
 
-    //  Directly check phone value here
-    const isPhoneValid = phone === '' || isValidPhoneNumber(phone); 
-    // if empty → ok, else must be valid
+      //  Directly check phone value here
+      const isPhoneValid = phone === '' || isValidPhoneNumber(phone);
+      // if empty → ok, else must be valid
 
-    const isValid = isNameValid && isBUValid && isPhoneValid;
+      const isValid = isNameValid && isBUValid && isPhoneValid;
 
-    setIsSaveEnabled(isValid);
-  }
-}, [name, businessUnit, phone, hideBusinessUnit, type]);
+      setIsSaveEnabled(isValid);
+    }
+  }, [name, businessUnit, phone, hideBusinessUnit, type]);
 
   const reset = () => {
     // Common
@@ -549,7 +573,7 @@ const AddModal: React.FC<AddModalProps> = ({
     setBusinessUnit(null);
     setPhone('');
     setAddress('');
-     setPhoneError('');
+    setPhoneError('');
 
     // Employee
     setSelectedEmployeeTypeId(null);
@@ -580,6 +604,13 @@ const AddModal: React.FC<AddModalProps> = ({
     setSelectedFeedTypeId(null);
     setFeedDate(null);
     setbag('1');
+
+    // Voucher
+    setSelectedVoucherType(null);
+    setSelectedCreditAccount(null);
+    setSelectedDebitAccount(null);
+    setAmount('');
+    setDescription('');
 
     setIsSaveEnabled(false);
   };
@@ -678,6 +709,13 @@ const AddModal: React.FC<AddModalProps> = ({
         bag: Number(bag),
         date: feedDate,
       });
+    } else if (type === 'Voucher') {
+      onSave({
+        selectedVoucherType: selectedVoucherType,
+        amount: amount,
+        selectedCreditAccount: selectedCreditAccount,
+        selectedDebitAccount: selectedDebitAccount,
+      });
     }
     reset();
     onClose();
@@ -700,7 +738,8 @@ const AddModal: React.FC<AddModalProps> = ({
               type !== 'Egg production' &&
               type !== 'Egg sale' &&
               type !== 'Feed Record' &&
-              type !== 'Feed Consumption' && (
+              type !== 'Feed Consumption' &&
+              type !== 'Voucher' && (
                 <>
                   <Text style={styles.label}>
                     Name<Text style={styles.required}>*</Text>
@@ -713,7 +752,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   />
                 </>
               )}
-              
+
             {/* USER */}
             {type === 'user' && (
               <>
@@ -831,14 +870,14 @@ const AddModal: React.FC<AddModalProps> = ({
                   placeholder="03XX-XXXXXXX"
                   keyboardType="phone-pad"
                   value={phone}
-                 onChangeText={text => {
-  setPhone(text);
-  if (text && !isValidPhoneNumber(text)) {
-    setPhoneError('Please enter valid phone number (03XX-XXXXXXX)');
-  } else {
-    setPhoneError('');
-  }
-}}
+                  onChangeText={text => {
+                    setPhone(text);
+                    if (text && !isValidPhoneNumber(text)) {
+                      setPhoneError('Please enter valid phone number (03XX-XXXXXXX)');
+                    } else {
+                      setPhoneError('');
+                    }
+                  }}
                 />
                 {phoneError ? (
                   <Text style={{ color: 'red', fontSize: 12 }}>
@@ -1185,16 +1224,17 @@ const AddModal: React.FC<AddModalProps> = ({
                     <Text style={styles.label}>
                       Flock<Text style={styles.required}>*</Text>
                     </Text>
-                    <DropDownPicker
-                      listMode="SCROLLVIEW"
-                      open={flockOpen}
-                      value={selectedFlock}
-                      items={flockItems || []}
-                      setOpen={setFlockOpen}
-                      setValue={setSelectedFlock}
+                    <Dropdown
+                      style={styles.dropdownElement}
+                      containerStyle={styles.dropdownContainerElement}
+                      data={flockItems || []}
+                      labelField="label"
+                      valueField="value"
                       placeholder="Select flock..."
-                      style={styles.dropdown}
-                      dropDownContainerStyle={styles.dropdownContainer}
+                      value={selectedFlock}
+                      onChange={item => setSelectedFlock(item.value)}
+                      selectedTextStyle={styles.selectedText}
+                      placeholderStyle={styles.placeholderText}
                     />
                   </>
                 )}
@@ -1311,16 +1351,17 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Text style={styles.label}>
                   Flock<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={flockOpen}
-                  value={selectedFlock}
-                  items={flockItems || []}
-                  setOpen={setFlockOpen}
-                  setValue={setSelectedFlock}
+                <Dropdown
+                  style={styles.dropdownElement}
+                  containerStyle={styles.dropdownContainerElement}
+                  data={flockItems || []}
+                  labelField="label"
+                  valueField="value"
                   placeholder="Select flock..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  value={selectedFlock}
+                  onChange={item => setSelectedFlock(item.value)}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
                 {/* PRICE */}
                 <Text style={styles.label}>Price</Text>
@@ -1652,16 +1693,17 @@ const AddModal: React.FC<AddModalProps> = ({
                     <Text style={styles.label}>
                       Flock<Text style={styles.required}>*</Text>
                     </Text>
-                    <DropDownPicker
-                      listMode="SCROLLVIEW"
-                      open={flockOpen}
-                      value={selectedFlock}
-                      items={flockItems || []}
-                      setOpen={setFlockOpen}
-                      setValue={setSelectedFlock}
+                    <Dropdown
+                      style={styles.dropdownElement}
+                      containerStyle={styles.dropdownContainerElement}
+                      data={flockItems || []}
+                      labelField="label"
+                      valueField="value"
                       placeholder="Select flock..."
-                      style={styles.dropdown}
-                      dropDownContainerStyle={styles.dropdownContainer}
+                      value={selectedFlock}
+                      onChange={item => setSelectedFlock(item.value)}
+                      selectedTextStyle={styles.selectedText}
+                      placeholderStyle={styles.placeholderText}
                     />
                   </>
                 )}
@@ -1729,6 +1771,79 @@ const AddModal: React.FC<AddModalProps> = ({
                 />
               </>
             )}
+            {type === 'Voucher' && (
+              <>
+                {/* VOUCHER TYPE */}
+                <Text style={styles.label}>
+                  Voucher Type<Text style={styles.required}>*</Text>
+                </Text>
+                <Dropdown
+                  value={selectedVoucherType}
+                  data={voucherTypeItems || []}
+                  placeholder="Select voucher type..."
+                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainer}
+                  onChange={item => setSelectedVoucherType(item.value)}
+                  labelField="label"
+                  valueField="value"
+                />
+
+                {/* AMOUNT */}
+                <Text style={styles.label}>
+                  Amount<Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter amount..."
+                  value={amount}
+                  keyboardType="numeric"
+                  onChangeText={setAmount}
+                />
+
+                {/* CREDIT ACCOUNT */}
+                <Text style={styles.label}>
+                  Credit Account<Text style={styles.required}>*</Text>
+                </Text>
+                <Dropdown
+                  value={selectedCreditAccount}
+                  data={accountItems || []}
+                  placeholder="Select credit account..."
+                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainer}
+                  onChange={item => setSelectedCreditAccount(item.value)}
+                  labelField="label"
+                  valueField="value"
+                />
+
+                {/* DEBIT ACCOUNT */}
+                <Text style={styles.label}>
+                  Debit Account<Text style={styles.required}>*</Text>
+                </Text>
+                <Dropdown
+                  value={selectedDebitAccount}
+                  data={accountItems || []}
+                  placeholder="Select debit account..."
+                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainer}
+                  onChange={item => setSelectedDebitAccount(item.value)}
+                  labelField="label"
+                  valueField="value"
+                />
+
+                {/* DESCRIPTION */}
+                <Text style={styles.label}>
+                  Description
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { height: 80, textAlignVertical: 'top' },
+                  ]} placeholder="Enter description..."
+                  value={description}
+                  onChangeText={setDescription}
+                />
+              </>
+            )}
           </ScrollView>
           {/* BUTTONS */}
           <View style={styles.buttonContainer}>
@@ -1748,14 +1863,14 @@ const AddModal: React.FC<AddModalProps> = ({
                 isSaveEnabled ? styles.saveButton : styles.saveButtonDisabled,
               ]}
               disabled={!isSaveEnabled} //  disabled based on validation
-              onPress={handleSave} 
+              onPress={handleSave}
             >
               <Text style={styles.saveText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-    </Modal>
+    </Modal >
   );
 };
 
@@ -1947,7 +2062,7 @@ const styles = StyleSheet.create({
 
   placeholderText: {
     fontSize: 14,
-    color: '#9E9E9E',
+    color: Theme.colors.black,
   },
   radioSelectedOuter: {
     backgroundColor: Theme.colors.primaryYellow,

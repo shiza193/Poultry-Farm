@@ -104,6 +104,7 @@ const VaccinationsScreen: React.FC<Props> = ({
     }, [filters, businessUnitId, ]);
     const handleAddVaccination = async (data: any) => {
         if (!businessUnitId) return;
+        setGlobalLoading(true)
         const payload = {
             vaccineId: data.vaccine,
             date: data.date.toISOString().split("T")[0],
@@ -127,10 +128,13 @@ const VaccinationsScreen: React.FC<Props> = ({
         } catch (error: any) {
             showErrorToast(error.message || "Something went wrong");
         } finally {
+            setGlobalLoading(false)
         }
     };
     const handleUpdateVaccination = async (data: any) => {
-        if (modalState.selectedVaccinationModal !== 'edit' || !modalState.vaccinerecord || !businessUnitId) return; const payload = {
+        if (modalState.selectedVaccinationModal !== 'edit' || !modalState.vaccinerecord || !businessUnitId) return;
+        setGlobalLoading(true)
+         const payload = {
             vaccinationId: modalState.vaccinerecord!.vaccinationId,
             vaccineId: Number(data.vaccine),
             date: data.date.toISOString().split('T')[0],
@@ -153,21 +157,18 @@ const VaccinationsScreen: React.FC<Props> = ({
             }
         } catch (error: any) {
             showErrorToast(error.message || 'Something went wrong');
+        } finally{
+            setGlobalLoading(false)
         }
     };
     // ===== DATA CARD COLUMNS =====
     const columns: TableColumn[] = [
         { key: "vaccine", title: "VACCINE NAME", isTitle: true, showDots: true },
         { key: "supplier", title: "SUPPLIER" },
-        {
-            key: "date",
-            title: "DATE",
-            render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
+        { key: "date",title: "DATE",render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
         },
         { key: "quantity", title: "QUANTITY" },
-        {
-            key: "price",
-            title: "PRICE",
+        { key: "price",title: "PRICE",
             width: 90,
             render: (val: number) => <Text>{`${val}`}</Text>
         },
@@ -328,13 +329,10 @@ const VaccinationsScreen: React.FC<Props> = ({
                     } catch (error: any) {
                         showErrorToast(error.message || "Something went wrong");
                     } finally {
-                        setModalState(prev => ({
-                            ...prev,
-                            delete: {
-                                visible: false,
-                                record: null,
-                            },
-                        }));
+                       setModalState({
+                        selectedVaccinationModal: null,
+                        vaccinerecord: null,
+                    });
                     }
                 }}
             />

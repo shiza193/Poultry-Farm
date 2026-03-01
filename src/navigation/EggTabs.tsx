@@ -24,6 +24,8 @@ const EggMainScreen = () => {
   const [activeTab, setActiveTab] = useState<TabType>('production');
   const [openAddModal, setOpenAddModal] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
+   const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
   // ================= RENDER SCREEN =================
   const renderScreen = () => {
     switch (activeTab) {
@@ -96,8 +98,8 @@ const EggMainScreen = () => {
                 businessUnitId,
                 flockId: null,
                 searchKey: null,
-                pageNumber: 1,
-                pageSize: 100,
+                pageNumber: currentPage,
+                pageSize: pageSize,
               });
               setGlobalLoading(false);
             }
@@ -138,7 +140,6 @@ const EggMainScreen = () => {
     </View>
   );
 };
-
 export default EggMainScreen;
 
 const styles = StyleSheet.create({

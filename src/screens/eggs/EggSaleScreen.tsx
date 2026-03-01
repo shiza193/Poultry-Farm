@@ -213,7 +213,11 @@ const EggSaleScreen: React.FC<Props> = ({
         </View>
         <View style={styles.dropdownWrapper}>
           <Dropdown
-            data={filterData.customerItems}
+            data={
+              filterData.customerItems.length > 0
+                ? filterData.customerItems
+                : [{ label: "No result found", value: null, disabled: true }]
+            }
             labelField="label"
             valueField="value"
             placeholder="Customer"

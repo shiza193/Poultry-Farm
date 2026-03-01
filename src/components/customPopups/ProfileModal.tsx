@@ -61,12 +61,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
   const [addressDraft, setAddressDraft] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
 
-  const [buOpen, setBUOpen] = useState(false);
   const [buItems, setBUItems] = useState<{ label: string; value: string }[]>(
     [],
   );
 
-  const [empTypeOpen, setEmpTypeOpen] = useState(false);
   const [empTypeItems, setEmpTypeItems] = useState<
     { label: string; value: number }[]
   >([]);
@@ -99,15 +97,17 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
   const [endDateDraft, setEndDateDraft] = useState<string>('');
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') setDatePickerVisible(false); // auto close on Android
+    if (Platform.OS === 'android') setDatePickerVisible(false);
+
     if (selectedDate && currentDateField) {
-      setFormData(prev => ({
-        ...prev,
-        [currentDateField]: selectedDate.toISOString().split('T')[0], // YYYY-MM-DD
-      }));
+      const isoDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      setFormData(prev => ({ ...prev, [currentDateField]: isoDate }));
+
+      // update draft state
+      if (currentDateField === 'joiningDate') setJoiningDateDraft(isoDate);
+      if (currentDateField === 'endDate') setEndDateDraft(isoDate);
     }
   };
-
   useEffect(() => {
     if (visible) {
       setFormData({ ...data });
@@ -165,31 +165,31 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
       type === 'user'
         ? { ...formData, name: nameDraft }
         : type === 'customer'
-        ? {
+          ? {
             ...formData,
             name: nameDraft,
             phone: phoneDraft,
             address: addressDraft,
             email: emailDraft,
           }
-        : type === 'supplier'
-        ? {
-            ...formData,
-            name: nameDraft,
-            phone: phoneDraft,
-            email: emailDraft,
-            address: addressDraft,
-          }
-        : {
-            ...formData,
-            name: nameDraft,
-            phone: phoneDraft,
-            email: emailDraft,
-            address: addressDraft,
-            salary: Number(salaryDraft),
-            joiningDate: joiningDateDraft,
-            endDate: endDateDraft,
-          };
+          : type === 'supplier'
+            ? {
+              ...formData,
+              name: nameDraft,
+              phone: phoneDraft,
+              email: emailDraft,
+              address: addressDraft,
+            }
+            : {
+              ...formData,
+              name: nameDraft,
+              phone: phoneDraft,
+              email: emailDraft,
+              address: addressDraft,
+              salary: Number(salaryDraft),
+              joiningDate: joiningDateDraft,
+              endDate: endDateDraft,
+            };
 
     onSave?.(updated);
     onClose();
@@ -388,7 +388,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               {type === 'employee' && (
                 <>
                   {/* Employee Type Dropdown */}
-                  {/* Employee Type Dropdown */}
                   <View style={{ zIndex: 4000, width: fieldWidth }}>
                     <Text style={styles.label}>Employee Type</Text>
                     {editMode ? (
@@ -578,7 +577,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-   dropdownElement: {
+  dropdownElement: {
     height: 37,
     borderWidth: 1,
     borderColor: Theme.colors.borderLight,
