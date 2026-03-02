@@ -19,15 +19,21 @@ import { useBusinessUnit } from "../../../context/BusinessContext";
 import { useFocusEffect } from "@react-navigation/native";
 import SearchBar from "../../../components/common/SearchBar";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { normalizeDataFormat } from "../../../utils/NormalizeDataFormat";
 
 const ReceivablesScreen = () => {
     const { businessUnitId } = useBusinessUnit();
-    const [payables, setPayables] = useState<PayablesReceivablesItem[]>([]);
+    const [receivables, setReceivables] = useState<PayablesReceivablesItem[]>([]);
     const [loading, setLoading] = useState(false);
     // Filters
-    const [searchKey, setSearchKey] = useState<string>("");
-    const [filterDate, setFilterDate] = useState<Date | null>(null);
-    const [showPicker, setShowPicker] = useState(false);
+    const [filters, setFilters] = useState({
+        searchKey: "",
+        filterDate: null as Date | null,
+        showPicker: false,
+    });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+    const pageSize = 10;
     // Table columns
     const columns: TableColumn[] = [
         { key: "accountHeadName", title: "ACCOUNT", isTitle: true, width: 150 },
@@ -47,22 +53,23 @@ const ReceivablesScreen = () => {
             ),
         },
     ];
-
     // Fetch API data
-    const fetchPayables = async () => {
+    const fetchReciveables = async (page = currentPage) => {
         if (!businessUnitId) return;
         setLoading(true);
         try {
             const payload: PayablesReceivablesPayload = {
-                searchKey: searchKey || null,
-                dateTime: filterDate ? filterDate.toISOString() : new Date().toISOString(),
+                searchKey: filters.searchKey || null,
+                dateTime: filters.filterDate ? filters.filterDate.toISOString() : new Date().toISOString(),
                 businessUnitId,
                 balanceTypeId: 2,
-                pageNumber: 1,
-                pageSize: 100,
+                pageNumber: page,
+                pageSize: pageSize,
             };
             const response = await getPayablesAndReceivables(payload);
-            setPayables(response.data.list);
+            const normalizeddata = normalizeDataFormat(response.data.list, 'array', 'Receivables');
+            setReceivables(normalizeddata);
+            setTotalRecords(response.data.totalCount ?? 0);
         } catch (error) {
             console.error("Failed to fetch payables:", error);
         } finally {
@@ -71,59 +78,62 @@ const ReceivablesScreen = () => {
     };
     useFocusEffect(
         useCallback(() => {
-            fetchPayables();
-        }, [businessUnitId, searchKey, filterDate])
+            fetchReciveables();
+        }, [businessUnitId, filters])
     );
     const resetFilters = () => {
-        setSearchKey("");
-        setFilterDate(null);
+        setFilters(prev => ({
+            ...prev,
+            searchKey: "",
+            filterDate: null,
+        }));
     };
     return (
         <View style={styles.container}>
             <BackArrow title="Receivables" showBack />
-
             {/* Filters row */}
             <View style={styles.filtersRow}>
                 {/* Search bar */}
                 <View style={{ flex: 1, marginRight: 8 }}>
                     <SearchBar
                         placeholder="Search account..."
-                        initialValue={searchKey}
-                        onSearch={(val) => setSearchKey(val)}
+                        initialValue={filters.searchKey}
+                        onSearch={(val) => setFilters(prev => ({ ...prev, searchKey: val }))}
                     />
                 </View>
 
                 {/* Date filter + Reset button column */}
-                <View style={{ width: 120, flexDirection: "column",marginRight:10 }}>
+                <View style={{ width: 120, flexDirection: "column", marginRight: 10 }}>
                     {/* Date filter */}
                     <TouchableOpacity
                         style={styles.dateFilterContainer}
-                        onPress={() => setShowPicker(true)}
-                    >
+                        onPress={() => setFilters(prev => ({ ...prev, showPicker: true }))}                    >
                         <Text style={styles.dateLabel}>Date: </Text>
                         <Text style={styles.dateFilterText}>
-                            {filterDate ? filterDate.toLocaleDateString("en-GB") : "DD/MM/YYYY"}
-                        </Text>
-                        {showPicker && (
+                            {filters.filterDate ? filters.filterDate.toLocaleDateString("en-GB") : "DD/MM/YYYY"}                        </Text>
+                        {filters.showPicker && (
                             <DateTimePicker
-                                value={filterDate || new Date()}
+                                value={filters.filterDate || new Date()}
                                 mode="date"
                                 display={Platform.OS === "ios" ? "spinner" : "default"}
                                 onChange={(event, selectedDate) => {
                                     if (Platform.OS === "android") {
-                                        setShowPicker(false);
-                                        if (event.type === "set" && selectedDate) {
-                                            setFilterDate(selectedDate);
-                                        }
+                                        setFilters(prev => ({
+                                            ...prev,
+                                            showPicker: false,
+                                            filterDate: event.type === "set" && selectedDate ? selectedDate : prev.filterDate,
+                                        }));
                                     } else {
-                                        if (selectedDate) setFilterDate(selectedDate);
+                                        if (selectedDate) {
+                                            setFilters(prev => ({ ...prev, filterDate: selectedDate }));
+                                        }
                                     }
                                 }}
                             />
                         )}
                     </TouchableOpacity>
                     {/* Reset filter */}
-                    {filterDate && (
+                    {filters.filterDate && (
                         <TouchableOpacity onPress={resetFilters} style={styles.resetBtn}>
                             <Text style={styles.resetText}>Reset Filters</Text>
                         </TouchableOpacity>
@@ -131,7 +141,15 @@ const ReceivablesScreen = () => {
                 </View>
             </View>
             <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                <DataCard columns={columns} data={payables} itemsPerPage={5} />
+                <DataCard columns={columns} data={receivables}
+                    itemsPerPage={pageSize}
+                    currentPage={currentPage}
+                    totalRecords={totalRecords}
+                    onPageChange={page => {
+                        setCurrentPage(page);
+                        fetchReciveables(page);
+                    }}
+                />
             </View>
             <LoadingOverlay visible={loading} />
         </View>
@@ -139,7 +157,6 @@ const ReceivablesScreen = () => {
 };
 
 export default ReceivablesScreen;
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,

@@ -162,3 +162,29 @@ export const getVoucherTypes = async (): Promise<VoucherTypeOption[]> => {
     throw error;
   }
 };
+
+
+export interface AddVoucherPayload {
+  businessUnitId: string;
+  voucherTypeId: number;
+  amount: number;
+  creditAccountId: string;
+  debitAccountId: string;
+  description?: string;
+  referenceId?: string | null;
+  referenceType?: string | null;
+}
+
+export const addVoucher = async (payload: AddVoucherPayload) => {
+  const response = await api.post(
+    'api/Voucher/add-voucher',
+    payload,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  return response.data; 
+};

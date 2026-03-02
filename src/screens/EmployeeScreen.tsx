@@ -18,6 +18,7 @@ import {
   updateEmployee,
 } from '../services/EmployeeService';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
+import { formatDisplayDate } from '../utils/validation';
 
 type EmployeeStatus = 'Active' | 'Inactive';
 
@@ -125,8 +126,8 @@ const EmployeeScreen = () => {
                 businessUnitId: row.poultryFarmId,
                 employeeType: row.type,
                 salary: row.salary,
-                joiningDate: row.joiningDate,
-                endDate: row.endDate,
+                joiningDate: formatDisplayDate(row.joiningDate),
+                endDate: formatDisplayDate(row.endDate),
               },
               profileModal: true,
             }))
@@ -141,19 +142,27 @@ const EmployeeScreen = () => {
     { key: 'type', title: 'TYPE', width: 120 },
     { key: 'salary', title: 'SALARY', width: 120 },
     { key: 'poultryFarm', title: 'FARM', width: 140 },
+    // ... other columns
     {
       key: 'joiningDate',
       title: 'JOINING DATE',
       width: 120,
       render: (_, row) => (
         <Text>
-          {row.joiningDate
-            ? new Date(row.joiningDate).toLocaleDateString()
-            : ''}
+          {formatDisplayDate(row.joiningDate)}
         </Text>
       ),
     },
-    { key: 'endDate', title: 'END DATE', width: 120 },
+    {
+      key: 'endDate',
+      title: 'END DATE',
+      width: 120,
+      render: (_, row) => (
+        <Text>
+          {formatDisplayDate(row.endDate)}
+        </Text>
+      ),
+    },
     {
       key: 'status',
       title: 'STATUS',
@@ -208,8 +217,8 @@ const EmployeeScreen = () => {
         salary: emp.salary,
         poultryFarmId: emp.businessUnitId,
         poultryFarm: emp.businessUnit,
-        joiningDate: new Date(emp.joiningDate).toLocaleDateString(),
-        endDate: emp.endDate ? new Date(emp.endDate).toLocaleDateString() : '',
+        joiningDate: emp.joiningDate,
+        endDate: emp.endDate ?? '',
         status: emp.isActive ? 'Active' : 'Inactive',
       };
       setEmployees(prev => [newEmp, ...prev]);
@@ -320,18 +329,27 @@ const EmployeeScreen = () => {
       {modalState.selectedEmployee && (
         <ProfileModal
           visible={modalState.profileModal}
-          onClose={() => setModalState(prev => ({ ...prev, profile: false, selectedEmployee: null }))}
+          onClose={() => setModalState(prev => ({ ...prev, profileModal: false, selectedEmployee: null }))}
           type="employee"
           data={modalState.selectedEmployee}
           onSave={async updatedData => {
             try {
+              console.log("🔵 Updated Data from Modal:", updatedData);
+
               const payload = {
                 name: updatedData.name,
                 businessUnitId: updatedData.businessUnitId,
                 employeeTypeId: updatedData.employeeTypeId,
                 salary: updatedData.salary,
+                joiningDate: updatedData.joiningDate || null,
+                endDate: updatedData.endDate
+                  ? new Date(updatedData.endDate).toISOString()
+                  : null,
               };
+              console.log("🟡 Payload BEFORE API Call:", payload);
+
               await updateEmployee(updatedData.id!, payload);
+
               setEmployees(prev =>
                 prev.map(emp =>
                   emp.employeeId === updatedData.id
@@ -345,14 +363,17 @@ const EmployeeScreen = () => {
                       joiningDate: updatedData.joiningDate
                         ? new Date(updatedData.joiningDate).toISOString()
                         : emp.joiningDate,
-                      endDate: updatedData.endDate ?? emp.endDate,
+                      endDate: updatedData.endDate
+                        ? new Date(updatedData.endDate).toISOString()
+                        : '',
                     }
                     : emp,
                 ),
               );
               showSuccessToast('Employee updated successfully');
               setModalState(prev => ({ ...prev, profileModal: false, selectedEmployee: null }));
-            } catch {
+            } catch (error: any) {
+              console.log("❌ Update Employee Error:", error.response ?? error);
               showErrorToast('Failed to update employee');
             }
           }}

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Image } from "react-native";
 import DataCard, { TableColumn } from "../../../components/customCards/DataCard";
 import Theme from "../../../theme/Theme";
-import { getAccounts, getVouchers, Voucher, VoucherPayload, getVoucherTypes } from "../../../services/VoucherService";
+import { getAccounts, getVouchers, Voucher, getVoucherTypes, addVoucher } from "../../../services/VoucherService";
 import { useBusinessUnit } from "../../../context/BusinessContext";
 import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import { useFocusEffect } from "@react-navigation/native";
@@ -10,6 +10,9 @@ import BackArrow from "../../../components/common/ScreenHeaderWithBack";
 import SearchBar from "../../../components/common/SearchBar";
 import BusinessUnitModal from "../../../components/customPopups/BusinessUnitModal";
 import VoucherDetailPopup from "../../../components/customPopups/VoucherDetailPopup";
+import AddModal from "../../../components/customPopups/AddModal";
+import { showErrorToast, showSuccessToast } from "../../../utils/AppToast";
+import { normalizeDataFormat } from "../../../utils/NormalizeDataFormat";
 interface VoucherEntry {
     accountHead: string;
     debit: number;
@@ -64,7 +67,8 @@ const VoucherScreen = () => {
         };
         try {
             const response = await getVouchers(payload);
-            setVouchers(response.data.list);
+            const normalizedVouchers = normalizeDataFormat(response.data.list, 'array', 'Vouchers');
+            setVouchers(normalizedVouchers);
             setTotalRecords(response.data.totalCount);
         } catch (err) {
             console.error("Failed to fetch vouchers:", err);
@@ -82,7 +86,8 @@ const VoucherScreen = () => {
         if (!businessUnitId) return;
         try {
             const res = await getAccounts(businessUnitId);
-            setFilterOptions(prev => ({ ...prev, accounts: res }));
+            const normalizedAccounts = normalizeDataFormat(res, 'array', 'Accounts');
+            setFilterOptions(prev => ({ ...prev, accounts: normalizedAccounts }));
         } catch (err) {
             console.error("Account fetch error:", err);
         }
@@ -91,7 +96,8 @@ const VoucherScreen = () => {
     const fetchVoucherTypes = async () => {
         try {
             const res = await getVoucherTypes();
-            setFilterOptions(prev => ({ ...prev, voucherTypes: res }));
+            const normalizedVoucherTypes = normalizeDataFormat(res, 'array', 'VoucherTypes');
+            setFilterOptions(prev => ({ ...prev, voucherTypes: normalizedVoucherTypes }));
         } catch (err) {
             console.error("Voucher type fetch error:", err);
         }
@@ -100,6 +106,40 @@ const VoucherScreen = () => {
         fetchAccounts();
         fetchVoucherTypes();
     }, [businessUnitId]);
+    const AddVoucher = async (data: any) => {
+        if (!businessUnitId) {
+            showErrorToast("Business Unit not found");
+            return;
+        }
+        setLoading(true);
+        const payload = {
+            businessUnitId: businessUnitId,
+            voucherTypeId: Number(data.selectedVoucherType),
+            amount: Number(data.amount),
+            creditAccountId: data.selectedCreditAccount,
+            debitAccountId: data.selectedDebitAccount,
+            description: data.description || '',
+            referenceId: null,
+            referenceType: null,
+        };
+        console.log('API payload before call:', payload);
+
+        try {
+            const res = await addVoucher(payload);
+            console.log('API Response:', res);
+            if (res.status === "Success") {
+                setVouchers(prev => [...prev, res.data]);
+                setTotalRecords(prev => prev + 1);
+                setCurrentPage(1);
+                showSuccessToast("Voucher added successfully");
+            }
+        } catch (err: any) {
+            showErrorToast(err.message || "Failed to add Voucher");
+        } finally {
+            setLoading(false);
+            setModalState({ type: null, selectedVoucher: null });
+        }
+    };
     // Define columns for DataCard
     const columns: TableColumn[] = [
         {
@@ -123,10 +163,12 @@ const VoucherScreen = () => {
             title: "DEBIT (RS)",
             width: 100,
             render: (_, row: Voucher) => {
-                const debitEntry = row.voucherEntries.find(e => e.debit > 0);
-                return <Text>
-                    {debitEntry ? debitEntry.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
-                </Text>;
+                const totalDebit = row.voucherEntries.reduce((sum, e) => sum + e.debit, 0);
+                return (
+                    <Text>
+                        {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                );
             },
         },
         {
@@ -134,10 +176,12 @@ const VoucherScreen = () => {
             title: "CREDIT (RS)",
             width: 100,
             render: (_, row: Voucher) => {
-                const creditEntry = row.voucherEntries.find(e => e.credit > 0);
-                return <Text>
-                    {creditEntry ? creditEntry.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
-                </Text>;
+                const totalCredit = row.voucherEntries.reduce((sum, e) => sum + e.credit, 0);
+                return (
+                    <Text>
+                        {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                );
             },
         },
         {
@@ -154,9 +198,7 @@ const VoucherScreen = () => {
             <BackArrow
                 title="Vouchers"
                 showBack
-                onAddNewPress={() => {
-                    console.log("Add New Voucher pressed");
-                }}
+                onAddNewPress={() => setModalState(prev => ({ ...prev, type: 'add' }))}
             />
             <View style={styles.topRow}>
                 {/* SEARCH BAR */}
@@ -212,6 +254,15 @@ const VoucherScreen = () => {
                     }));
                 }}
             />
+            <AddModal
+                visible={modalState.type === 'add'}
+                onClose={() => setModalState({ type: null, selectedVoucher: null })}
+                type="Voucher"
+                title={"Add Voucher"}
+                voucherTypeItems={filterOptions.voucherTypes}
+                accountItems={filterOptions.accounts}
+                onSave={AddVoucher}
+            />
             <VoucherDetailPopup
                 visible={modalState.type === 'detail' && !!modalState.selectedVoucher}
                 title="Voucher Details"
@@ -243,7 +294,8 @@ const VoucherScreen = () => {
                     { key: "description", label: "Description", width: 120 },
                     { key: "createdAt", label: "Created At", width: 120, render: (val: string) => new Date(val).toLocaleDateString("en-GB") },
                 ]}
-                tableData={modalState.selectedVoucher?.voucherEntries || []} />
+                tableData={modalState.selectedVoucher?.voucherEntries || []}
+            />
         </View>
     );
 };
@@ -261,7 +313,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     filterBtn: {
-        height: 40,
+        height: 42,
         width: 40,
         borderRadius: 8,
         borderWidth: 1,
@@ -271,8 +323,8 @@ const styles = StyleSheet.create({
         backgroundColor: Theme.colors.white,
     },
     filterIcon: {
-        width: 20,
-        height: 20,
+        width: 22,
+        height: 22,
         tintColor: Theme.colors.success,
     },
 });
