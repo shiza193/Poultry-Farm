@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { getEmployeeTypes } from '../../services/EmployeeService';
 import { getBusinessUnits } from '../../services/BusinessUnit';
 import { Dropdown } from 'react-native-element-dropdown';
+import { isValidPhoneNumber } from '../../utils/validation';
 
 export type ProfileData = {
   id: string;
@@ -55,7 +56,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState<ProfileData>({ ...data });
-
+  const [isPhoneValid, setIsPhoneValid] = useState(true);
   const [nameDraft, setNameDraft] = useState('');
   const [phoneDraft, setPhoneDraft] = useState('');
   const [addressDraft, setAddressDraft] = useState('');
@@ -130,7 +131,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
       );
     })();
   }, []);
-
+  const isSaveDisabled =
+    editMode && phoneDraft?.trim().length > 0 && !isPhoneValid;
   useEffect(() => {
     (async () => {
       try {
@@ -160,74 +162,96 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     }
   }, [visible, data]);
 
+  const handlePhoneChange = (value: string) => {
+    setPhoneDraft(value);
+    setIsPhoneValid(isValidPhoneNumber(value));
+  };
   const handleSave = () => {
     const updated =
       type === 'user'
         ? { ...formData, name: nameDraft }
         : type === 'customer'
-          ? {
+        ? {
             ...formData,
             name: nameDraft,
             phone: phoneDraft,
             address: addressDraft,
             email: emailDraft,
           }
-          : type === 'supplier'
-            ? {
-              ...formData,
-              name: nameDraft,
-              phone: phoneDraft,
-              email: emailDraft,
-              address: addressDraft,
-            }
-            : {
-              ...formData,
-              name: nameDraft,
-              phone: phoneDraft,
-              email: emailDraft,
-              address: addressDraft,
-              salary: Number(salaryDraft),
-              joiningDate: joiningDateDraft,
-              endDate: endDateDraft,
-            };
+        : type === 'supplier'
+        ? {
+            ...formData,
+            name: nameDraft,
+            phone: phoneDraft,
+            email: emailDraft,
+            address: addressDraft,
+          }
+        : {
+            ...formData,
+            name: nameDraft,
+            phone: phoneDraft,
+            email: emailDraft,
+            address: addressDraft,
+            salary: Number(salaryDraft),
+            joiningDate: joiningDateDraft,
+            endDate: endDateDraft,
+          };
 
     onSave?.(updated);
     onClose();
   };
 
-  const renderField = (
-    label: string,
-    value?: string | null,
-    setter?: (v: string) => void,
-    editable?: boolean,
-  ) => {
-    const displayValue = value && value.trim().length > 0 ? value : 'N/A';
+const renderField = (
+  label: string,
+  value?: string | null,
+  setter?: (v: string) => void,
+  editable?: boolean,
+) => {
+  const displayValue = (value ?? '').trim().length > 0 ? value : 'N/A';
 
-    // 🚨 Make ALL email fields read-only
-    const isEmailField = label.toLowerCase().includes('email');
+  const isEmailField = label.toLowerCase().includes('email');
+  const isPhoneField = label.toLowerCase().includes('phone');
+  const isAddressField = label.toLowerCase().includes('address');
 
-    return (
-      <View style={[styles.field, { width: fieldWidth }]}>
-        <Text style={styles.label}>{label}</Text>
+  // Custom placeholder
+  let placeholder = 'N/A';
+  if (editable) {
+    if (isPhoneField) placeholder = '03XX-XXXXXXX';
+    else if (isAddressField) placeholder = 'Enter Address';
+    else if (isEmailField) placeholder = 'example@gmail.com';
+  }
 
-        {editable ? (
+  return (
+    <View style={[styles.field, { width: fieldWidth }]}>
+      <Text style={styles.label}>{label}</Text>
+      {editable ? (
+        <>
           <TextInput
             value={value ?? ''}
             onChangeText={isEmailField ? undefined : setter}
             editable={!isEmailField}
+            placeholder={placeholder}
+            placeholderTextColor="#999"
             style={[
               styles.input,
               isEmailField && { backgroundColor: '#f1f1f1' },
+              isPhoneField && (value ?? '').trim().length > 0 && !isPhoneValid && {
+                borderColor: 'red',
+              },
             ]}
-            placeholder="N/A"
-            placeholderTextColor="#999"
           />
-        ) : (
-          <Text style={styles.value}>{displayValue}</Text>
-        )}
-      </View>
-    );
-  };
+          {isPhoneField && (value ?? '').trim().length > 0 && !isPhoneValid && (
+            <Text style={{ color: 'red', fontSize: 12 }}>
+              Invalid phone number: 03XX-XXXXXXX
+            </Text>
+          )}
+        </>
+      ) : (
+        <Text style={styles.value}>{displayValue}</Text>
+      )}
+    </View>
+  );
+};
 
   const showDatePicker = (field: 'joiningDate' | 'endDate') => {
     if (!editMode) return; // Only open in edit mode
@@ -347,7 +371,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               {/* CUSTOMER SCREEN */}
               {type === 'customer' && (
                 <>
-                  {renderField('Phone', phoneDraft, setPhoneDraft, editMode)}
+                  {renderField(
+                    'Phone',
+                    phoneDraft,
+                    handlePhoneChange,
+                    editMode,
+                  )}
                   <View style={{ zIndex: 3000, width: fieldWidth }}>
                     <Text style={styles.label}>Poultry Farm</Text>
                     {editMode ? (
@@ -538,8 +567,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.saveBtn}
+                style={[
+                  styles.saveBtn,
+                  isSaveDisabled && { backgroundColor: '#ccc' }, // greyed out if disabled
+                ]}
                 onPress={editMode ? handleSave : () => setEditMode(true)}
+                disabled={isSaveDisabled} // disables the button
               >
                 <Text style={styles.saveText}>
                   {editMode ? 'Save Changes' : 'Edit Profile'}
@@ -624,7 +657,7 @@ const styles = StyleSheet.create({
   value: { fontWeight: '600', fontSize: 14 },
   input: {
     borderWidth: 1,
-    borderColor:Theme.colors.borderLight,
+    borderColor: Theme.colors.borderLight,
     borderRadius: 6,
     padding: 8,
   },
@@ -648,7 +681,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-  saveText: { color: Theme.colors.black },
+  saveText: { color: Theme.colors.white },
   dropdown: {
     borderColor: '#a5a4a4',
     borderRadius: 6,

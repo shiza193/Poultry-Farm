@@ -112,29 +112,23 @@ const FlockStockScreen = () => {
   // ================= UI =================
   return (
     <SafeAreaView style={styles.safeArea}>
-      {tableData.length > 0 ? (
-        <View style={{ flex: 1 }}>
-          <ScrollView
-            style={{ flex: 1, paddingHorizontal: 16, marginTop: 15 }}
-            contentContainerStyle={{ paddingBottom: 100 }}
-          >
-            <DataCard
-              columns={columns}
-              data={tableData}
-              showPagination={false}
-              itemsPerPage={pageSize}
-               loading={loading} 
-              currentPage={currentPage}
-              totalRecords={totalRecords}
-              onPageChange={page => setCurrentPage(page)}
-            />
-          </ScrollView>
-        </View>
-      ) : (
-        <View style={styles.noDataContainer}>
-          <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-        </View>
-      )}
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1, paddingHorizontal: 16, marginTop: 15 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          <DataCard
+            columns={columns}
+            data={tableData}
+            showPagination={false}
+            itemsPerPage={pageSize}
+            loading={loading}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => setCurrentPage(page)}
+          />
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };

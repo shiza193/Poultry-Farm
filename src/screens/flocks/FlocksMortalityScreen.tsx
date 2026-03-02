@@ -161,71 +161,63 @@ const FlocksMortalityScreen = () => {
         )}
       </View>
 
-      {tableData.length > 0 ? (
-        <View style={styles.tableContainer}>
-          <DataCard
-            columns={columns}
-            data={tableData}
- loading={loading}
-             showPagination={false}
-            renderRowMenu={(row, closeMenu) => (
-              <View>
-                <TouchableOpacity
-                  onPress={() => {
-                    setEditMortality(row.raw); // jo record edit karna hai
-                    setMortalityModalVisible(true); // modal open karo
-                    closeMenu();
-                  }}
-                  style={{ marginBottom: 3 }}
-                >
-                  <Text
-                    style={{
-                      color: Theme.colors.textPrimary,
-                      fontWeight: '600',
-                      fontSize: 16,
-                      marginLeft: 20,
-                    }}
-                  >
-                    Edit
-                  </Text>
-                </TouchableOpacity>
-                <View style={styles.menuSeparator} />
-
-                <View
+      <View style={styles.tableContainer}>
+        <DataCard
+          columns={columns}
+          data={tableData}
+          loading={loading}
+          showPagination={false}
+          renderRowMenu={(row, closeMenu) => (
+            <View>
+              <TouchableOpacity
+                onPress={() => {
+                  setEditMortality(row.raw); // jo record edit karna hai
+                  setMortalityModalVisible(true); // modal open karo
+                  closeMenu();
+                }}
+                style={{ marginBottom: 3 }}
+              >
+                <Text
                   style={{
-                    height: 1,
-                    backgroundColor: Theme.colors.white,
-                    marginVertical: 4,
-                  }}
-                />
-                <TouchableOpacity
-                  onPress={() => {
-                    setModalState({ selectedModal: 'delete', record: row.raw });
-                    closeMenu();
+                    color: Theme.colors.textPrimary,
+                    fontWeight: '600',
+                    fontSize: 16,
+                    marginLeft: 20,
                   }}
                 >
-                  <Text
-                    style={{
-                      color: 'red',
-                      fontWeight: '600',
-                      fontSize: 16,
-                      marginLeft: 20,
-                    }}
-                  >
-                    Delete
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-        </View>
-      ) : (
-        !loading && (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-          </View>
-        )
-      )}
+                  Edit
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: Theme.colors.white,
+                  marginVertical: 4,
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  setModalState({ selectedModal: 'delete', record: row.raw });
+                  closeMenu();
+                }}
+              >
+                <Text
+                  style={{
+                    color: 'red',
+                    fontWeight: '600',
+                    fontSize: 16,
+                    marginLeft: 20,
+                  }}
+                >
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      </View>
 
       <ConfirmationModal
         type="delete"

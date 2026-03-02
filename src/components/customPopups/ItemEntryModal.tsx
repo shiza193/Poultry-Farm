@@ -25,7 +25,7 @@ import { useBusinessUnit } from '../../context/BusinessContext';
 import { Dropdown } from 'react-native-element-dropdown';
 
 interface ItemEntryModalProps {
-   record?: any;
+  record?: any;
   visible?: boolean;
   type?: 'feed' | 'fcr' | 'mortality' | 'hospitality' | 'flockSale';
   onClose: () => void;
@@ -55,7 +55,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   onSave,
   maxQuantity,
   hideFlockDropdown = false,
-   record,
+  record,
 }) => {
   const { businessUnitId } = useBusinessUnit();
   // ---------- Common States ----------
@@ -101,7 +101,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   const [diagnosis, setDiagnosis] = useState('');
   const [medication, setMedication] = useState('');
   const [flockId, setFlockId] = useState<string>('');
-const [date, setDate] = useState<Date | null>(null);
+  const [date, setDate] = useState<Date | null>(null);
   const [dosage, setDosage] = useState('');
   const [treatmentDays, setTreatmentDays] = useState('');
   const [vetName, setVetName] = useState('');
@@ -209,21 +209,27 @@ const [date, setDate] = useState<Date | null>(null);
     fetchFlocks();
   }, [visible, type, businessUnitId]);
 
-
- useEffect(() => {
-  if (record) {
-    setSelectedFlock(record.flockId);        // flock dropdown
-    setHospitalityDate(new Date(record.date)); // date picker
-    setQuantity(String(record.quantity));
-    setDiagnosis(record.diagnosis ?? '');
-    setMedication(record.medication ?? '');
-    setTreatmentDays(String(record.treatmentDays ?? ''));
-    setVetName(record.vetName ?? '');
-    setRemarks(record.remarks ?? '');
-  } else {
-    resetFields();
-  }
-}, [record]);
+  useEffect(() => {
+    if (record) {
+      setSelectedFlock(record.flockId ?? '');
+      setHospitalityDate(record.date ? new Date(record.date) : null);
+      setQuantity(record.quantity !== undefined ? String(record.quantity) : '');
+      setAverageWeight(
+        record.averageWeight !== undefined ? String(record.averageWeight) : '',
+      );
+      setSymptoms(record.symptoms ?? '');
+      setDiagnosis(record.diagnosis ?? '');
+      setMedication(record.medication ?? '');
+      setDosage(record.dosage ?? '');
+      setTreatmentDays(
+        record.treatmentDays !== undefined ? String(record.treatmentDays) : '',
+      );
+      setVetName(record.vetName ?? '');
+      setRemarks(record.remarks ?? '');
+    } else {
+      resetFields();
+    }
+  }, [record]);
   // ---------- Enable/Disable Save ----------
   const isButtonEnabled =
     (type === 'feed' && feed && quantity) ||
@@ -467,8 +473,9 @@ const [date, setDate] = useState<Date | null>(null);
                 {/* Hospitality */}
                 {type === 'hospitality' && (
                   <>
-                    <Text style={styles.title}>Add Hospitality</Text>
-
+                    <Text style={styles.title}>
+                      {record ? 'Edit Hospitality' : 'Add Hospitality'}
+                    </Text>
                     {/* Flock Selection */}
                     {!hideFlockDropdown && (
                       <>
