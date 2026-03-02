@@ -524,131 +524,126 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
           </View>
 
           {/* ===== FLOCK LIST ===== */}
-          {flocks.length === 0 ? (
-            <View style={styles.noDataContainer}>
-              <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-            </View>
-          ) : (
-            <View style={{ flex: 1, paddingHorizontal: 16 }}>
-              <DataCard
-                columns={columns}
-                data={tableData}
-                itemsPerPage={pageSize}
-                 loading={loading} 
-                currentPage={currentPage}
-                totalRecords={totalRecords}
-                onPageChange={page => {
-                  setCurrentPage(page);
-                  fetchFlocks(page);
-                }}
-                renderExpandedRow={row => {
-                  const f = row.raw;
 
-                  const actions = [
-                    {
-                      label: 'Feed',
-                      icon: Theme.icons.feedGreen,
-                      color: Theme.colors.warning,
-                      show: !f.isEnded,
-                      onPress: () => {
-                        setSelectedFlock(f);
-                        setModals(prev => ({ ...prev, feed: true }));
-                      },
-                    },
-                    {
-                      label: 'FCR',
-                      icon: Theme.icons.trend,
-                      color: Theme.colors.green,
-                      show: !f.isEnded && f.remainingQuantity > 0,
-                      onPress: () => {
-                        setSelectedFlock(f);
-                        setModals(prev => ({ ...prev, fcr: true }));
-                      },
-                    },
-                    {
-                      label: 'Mortality',
-                      icon: Theme.icons.motality,
-                      color: Theme.colors.motalitycolor,
-                      show: !f.isEnded && f.remainingQuantity > 0,
-                      onPress: () => {
-                        setSelectedFlock(f);
-                        setModals(prev => ({ ...prev, mortality: true }));
-                      },
-                    },
-                    {
-                      label: 'Hospitality',
-                      icon: Theme.icons.hospital,
-                      color: Theme.colors.expand,
-                      show: !f.isEnded && f.remainingQuantity > 0,
-                      onPress: () => {
-                        setSelectedFlock(f);
-                        setModals(prev => ({ ...prev, hospitality: true }));
-                      },
-                    },
-                    {
-                      label: 'Complete',
-                      icon: Theme.icons.tick,
-                      color: Theme.colors.complete,
-                      show: !f.isEnded,
-                      onPress: async () => {
-                        await updateFlockIsEnded(f.flockId, true);
-                        showSuccessToast('Ended', 'Flock ended successfully');
-                        fetchFlocks(currentPage);
-                      },
-                    },
-                    {
-                      label: 'Delete',
-                      icon: Theme.icons.delete,
-                      color: Theme.colors.pink,
-                      show: true,
-                      onPress: () => {
-                        setFlockToDelete(f);
-                        setModals(prev => ({ ...prev, confirmDelete: true }));
-                      },
-                    },
-                  ];
+          <View style={{ flex: 1, paddingHorizontal: 16 }}>
+            <DataCard
+              columns={columns}
+              data={tableData}
+              itemsPerPage={pageSize}
+              loading={loading}
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              onPageChange={page => {
+                setCurrentPage(page);
+                fetchFlocks(page);
+              }}
+              renderExpandedRow={row => {
+                const f = row.raw;
 
-                  return (
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        width: '100%',
-                        justifyContent: 'flex-start',
-                        marginLeft: 24,
-                      }}
+                const actions = [
+                  {
+                    label: 'Feed',
+                    icon: Theme.icons.feedGreen,
+                    color: Theme.colors.warning,
+                    show: !f.isEnded,
+                    onPress: () => {
+                      setSelectedFlock(f);
+                      setModals(prev => ({ ...prev, feed: true }));
+                    },
+                  },
+                  {
+                    label: 'FCR',
+                    icon: Theme.icons.trend,
+                    color: Theme.colors.green,
+                    show: !f.isEnded && f.remainingQuantity > 0,
+                    onPress: () => {
+                      setSelectedFlock(f);
+                      setModals(prev => ({ ...prev, fcr: true }));
+                    },
+                  },
+                  {
+                    label: 'Mortality',
+                    icon: Theme.icons.motality,
+                    color: Theme.colors.motalitycolor,
+                    show: !f.isEnded && f.remainingQuantity > 0,
+                    onPress: () => {
+                      setSelectedFlock(f);
+                      setModals(prev => ({ ...prev, mortality: true }));
+                    },
+                  },
+                  {
+                    label: 'Hospitality',
+                    icon: Theme.icons.hospital,
+                    color: Theme.colors.expand,
+                    show: !f.isEnded && f.remainingQuantity > 0,
+                    onPress: () => {
+                      setSelectedFlock(f);
+                      setModals(prev => ({ ...prev, hospitality: true }));
+                    },
+                  },
+                  {
+                    label: 'Complete',
+                    icon: Theme.icons.tick,
+                    color: Theme.colors.complete,
+                    show: !f.isEnded,
+                    onPress: async () => {
+                      await updateFlockIsEnded(f.flockId, true);
+                      showSuccessToast('Ended', 'Flock ended successfully');
+                      fetchFlocks(currentPage);
+                    },
+                  },
+                  {
+                    label: 'Delete',
+                    icon: Theme.icons.delete,
+                    color: Theme.colors.pink,
+                    show: true,
+                    onPress: () => {
+                      setFlockToDelete(f);
+                      setModals(prev => ({ ...prev, confirmDelete: true }));
+                    },
+                  },
+                ];
+
+                return (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      width: '100%',
+                      justifyContent: 'flex-start',
+                      marginLeft: 24,
+                    }}
+                  >
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 14 }}
                     >
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ gap: 14 }}
-                      >
-                        {actions
-                          .filter(a => a.show)
-                          .map((action, index) => (
-                            <TouchableOpacity
-                              key={index}
-                              onPress={action.onPress}
-                              style={[
-                                styles.actionButton,
-                                { backgroundColor: action.color },
-                              ]}
-                            >
-                              <Image
-                                source={action.icon}
-                                style={styles.actionIcon}
-                              />
-                              <Text style={styles.actionText}>
-                                {action.label}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                      </ScrollView>
-                    </View>
-                  );
-                }}
-              />
-            </View>
-          )}
+                      {actions
+                        .filter(a => a.show)
+                        .map((action, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            onPress={action.onPress}
+                            style={[
+                              styles.actionButton,
+                              { backgroundColor: action.color },
+                            ]}
+                          >
+                            <Image
+                              source={action.icon}
+                              style={styles.actionIcon}
+                            />
+                            <Text style={styles.actionText}>
+                              {action.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                  </View>
+                );
+              }}
+            />
+          </View>
         </View>
 
         <AddFlockModal

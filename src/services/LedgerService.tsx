@@ -1,13 +1,12 @@
 import api from '../api/Api';
 
 export interface GetLedgersPayload {
-   businessUnitId: string;
+  businessUnitId: string;
   searchKey: string | null;
-  fromDate: string | null;
-  toDate: string | null;
+  dateTime: string | null;
   pageNumber: number;
   pageSize: number;
-  accountHeadId?: string | null; // optional filter
+  partyId?: string | null; // optional filter
 }
 
 export interface LedgerItem {
@@ -16,8 +15,8 @@ export interface LedgerItem {
   voucherType: string;
   voucherNumber: string;
   voucherDate: string;
-  referenceId: string;
-  referenceType: string;
+  referenceId: string | null;
+  referenceType: string | null;
   createdAt: string;
   voucherEntryId: string;
   accountHeadId: string;
@@ -27,6 +26,7 @@ export interface LedgerItem {
   balance: number;
 }
 
+// Inner data
 export interface GetLedgersResponse {
   totalCount: number;
   totalCredit: number;
@@ -34,35 +34,42 @@ export interface GetLedgersResponse {
   list: LedgerItem[];
 }
 
+// Generic API response wrapper
+export interface ApiResponse<T> {
+  status: string;
+  message: string;
+  data: T;
+}
+
 export const getLedgersWithBalance = async (
   payload: GetLedgersPayload
 ): Promise<GetLedgersResponse> => {
   try {
-    const response = await api.post(
+    const response = await api.post<ApiResponse<GetLedgersResponse>>(
       'api/Voucher/get-ledgers-with-balance-by-search-and-filter-with-pagination',
       payload
     );
 
     console.log('Fetched Ledgers:', response.data);
 
-    return response.data.data;
+    if (response.data.status === 'Success') {
+      return response.data.data; // ✅ now TypeScript knows `data` exists
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch ledgers');
+    }
   } catch (error: any) {
     console.error('Fetch Ledgers Error:', error.response || error.message);
     throw error;
   }
 };
 
+// --- Parties API (already correct) ---
 
-
-
-
-// Request parameters
 export interface GetPartiesPayload {
-  businessUnitId: string; 
-  partyTypeId?: number;   // 0 = Customer, 1 = Supplier
+  businessUnitId: string;
+  partyTypeId?: number; // 0 = Customer, 1 = Supplier
 }
 
-// Response data for each party
 export interface PartyItem {
   partyId: string;
   name: string;
@@ -70,19 +77,17 @@ export interface PartyItem {
   partyType: string;
 }
 
-// Full API response
 export interface GetPartiesResponse {
   status: string;
   message: string;
   data: PartyItem[];
 }
 
-// Function to fetch parties
 export const getParties = async (
   payload: GetPartiesPayload
 ): Promise<PartyItem[]> => {
   try {
-    const response = await api.get('api/Master/get-parties', {
+    const response = await api.get<ApiResponse<PartyItem[]>>('api/Master/get-parties', {
       params: payload,
     });
 

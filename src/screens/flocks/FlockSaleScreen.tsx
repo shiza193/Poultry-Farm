@@ -164,7 +164,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
       </View>
 
       {/* TABLE */}
-      {tableData.length > 0 ? (
+   
         <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 8 }}>
           <DataCard
             columns={columns}
@@ -176,11 +176,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
             onPageChange={page => fetchSales(page)}
           />
         </View>
-      ) : (
-        <View style={styles.noDataContainer}>
-          <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-        </View>
-      )}
+     
 
       {/* FILTER MODAL */}
       <BusinessUnitModal

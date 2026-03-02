@@ -78,7 +78,7 @@ const HospitalityScreen: React.FC<HospitalityScreenProps> = ({
         setLoading(false);
       }
     },
-    [businessUnitId, ],
+    [businessUnitId],
   );
 
   useEffect(() => {
@@ -156,57 +156,50 @@ const HospitalityScreen: React.FC<HospitalityScreenProps> = ({
       </View>
 
       {/* DATA TABLE */}
-      {tableData.length > 0 ? (
-        <View style={{ flex: 1, paddingHorizontal: 16 }}>
-          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-            <DataCard
-              columns={columns}
-              data={tableData}
-              itemsPerPage={pageSize}
-               loading={loading} 
-              currentPage={currentPage}
-              totalRecords={totalRecords}
-              onPageChange={page => {
-                setCurrentPage(page);
-                fetchHospitality(page);
-              }}
-              renderRowMenu={(row, closeMenu) => (
-                <View>
-                  <TouchableOpacity
-                    style={{ paddingVertical: 3, paddingHorizontal: 1}}
-                    onPress={() => {
-                      setEditingRecord(row.raw);
-                      onCloseAddModal?.(); // make sure modal opens
-                      closeMenu();
-                    }}
-                  >
-                    <Text style={styles.menuText}>Edit Record</Text>
-                  </TouchableOpacity>
-                  <View style={styles.menuSeparator} />
 
-                  <TouchableOpacity
-                    style={{ paddingVertical: 3, paddingHorizontal: 1 }}
-                    onPress={() => {
-                      openDeleteModal(row.raw.hospitalityId);
-                      closeMenu();
-                    }}
-                  >
-                    <Text style={[styles.menuText, { color: 'red' }]}>
-                      Delete Record
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
-          </ScrollView>
-        </View>
-      ) : (
-        !loading && (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-          </View>
-        )
-      )}
+      <View style={{ flex: 1, paddingHorizontal: 16 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={pageSize}
+            loading={loading}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchHospitality(page);
+            }}
+            renderRowMenu={(row, closeMenu) => (
+              <View>
+                <TouchableOpacity
+                  style={{ paddingVertical: 3, paddingHorizontal: 1 }}
+                  onPress={() => {
+                    setEditingRecord(row.raw);
+                    onCloseAddModal?.(); // make sure modal opens
+                    closeMenu();
+                  }}
+                >
+                  <Text style={styles.menuText}>Edit Record</Text>
+                </TouchableOpacity>
+                <View style={styles.menuSeparator} />
+
+                <TouchableOpacity
+                  style={{ paddingVertical: 3, paddingHorizontal: 1 }}
+                  onPress={() => {
+                    openDeleteModal(row.raw.hospitalityId);
+                    closeMenu();
+                  }}
+                >
+                  <Text style={[styles.menuText, { color: 'red' }]}>
+                    Delete Record
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        </ScrollView>
+      </View>
 
       {/* ADD HOSPITALITY MODAL */}
       <ItemEntryModal
@@ -287,7 +280,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   menuText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     marginLeft: 12,
     color: Theme.colors.black,

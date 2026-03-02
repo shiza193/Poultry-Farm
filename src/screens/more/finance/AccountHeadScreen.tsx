@@ -1,8 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-
 import Theme from '../../../theme/Theme';
 import BackArrow from '../../../components/common/ScreenHeaderWithBack';
 import SearchBar from '../../../components/common/SearchBar';
@@ -19,7 +17,9 @@ import {
 } from '../../../services/AccountHeadService';
 import { useBusinessUnit } from '../../../context/BusinessContext';
 import BusinessUnitModal from '../../../components/customPopups/BusinessUnitModal';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { normalizeDataFormat } from '../../../utils/NormalizeDataFormat';
+import { formatDisplayDate } from '../../../utils/validation';
 /* ================= TYPES ================= */
 type AccountHead = {
   id: string;
@@ -30,21 +30,21 @@ type AccountHead = {
   type: string | null;
   businessUnit: string;
 };
-
-/* ================= SCREEN ================= */
 const AccountHeadScreen = () => {
-  const insets = useSafeAreaInsets();
-
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [accountHeads, setAccountHeads] = useState<AccountHead[]>([]);
+  const [accountData, setAccountData] = useState<{
+    list: AccountHead[];
+    total: number;
+  }>({
+    list: [],
+    total: 0,
+  });
   const [showAccountHeadModal, setShowAccountHeadModal] = useState(false);
   const [accountTypeItems, setAccountTypeItems] = useState<
     { label: string; value: string }[]
   >([]);
-
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
   const pageSize = 10;
   const { businessUnitId } = useBusinessUnit();
 
@@ -64,24 +64,31 @@ const AccountHeadScreen = () => {
 
       const res = await getAccountHeads(payload);
 
-      const list = res?.list || [];
-      setAccountHeads(
-        list.map((item: any) => ({
-          id: item.accountHeadId,
-          code: item.code,
-          name: item.name,
-          createdBy: item.createdBy,
-          createdAt: item.createdAt,
-          type: item.type ?? item.parentName ?? '—',
-          businessUnit: item.businessUnit,
-        })),
+      const safeList = normalizeDataFormat(
+        res?.list,
+        'array',
+        'Account Heads List',
       );
 
-      setTotalRecords(res?.totalCount || list.length);
+      const mappedList = safeList.map((item: any) => ({
+        id: item.accountHeadId,
+        code: item.code,
+        name: item.name,
+        createdBy: item.createdBy,
+        createdAt: item.createdAt,
+        type: item.type ?? '—',
+        businessUnit: item.businessUnit,
+      }));
+      setAccountData({
+        list: mappedList,
+        total: res?.totalCount ?? mappedList.length,
+      });
     } catch {
       showErrorToast('Failed to fetch account heads');
-      setAccountHeads([]);
-      setTotalRecords(0);
+      setAccountData({
+        list: [],
+        total: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -112,7 +119,6 @@ const AccountHeadScreen = () => {
     }
   };
 
-  /* ================= HANDLE SAVE ACCOUNT HEAD ================= */
   const handleSaveAccountHead = async (data: {
     name: string;
     accountType: string;
@@ -121,7 +127,6 @@ const AccountHeadScreen = () => {
     if (!businessUnitId) return;
 
     try {
-      // payload for API
       const payload = {
         name: data.name,
         accountType: data.accountType,
@@ -130,30 +135,48 @@ const AccountHeadScreen = () => {
         businessUnitId,
       };
 
-      const res = await addAccountHead(payload);
+      const response = await addAccountHead(payload);
+
+      const normalized = normalizeDataFormat(
+        response?.data,
+        'object',
+        'Add Account Head',
+      );
+
+      const newItem = {
+        id: normalized.accountHeadId,
+        code: normalized.code,
+        name: normalized.name,
+        createdBy: normalized.createdBy,
+        createdAt: normalized.createdAt,
+        type: normalized.type ?? '—',
+        businessUnit: normalized.businessUnit,
+      };
+
+      setAccountData(prev => ({
+        list: [...prev.list, newItem],
+        total: prev.total + 1,
+      }));
 
       showSuccessToast('Account added successfully!');
-      console.log('API Response:', res.data);
-
-      fetchAccountHeads(); // refresh list
+      setShowAccountHeadModal(false);
     } catch (err: any) {
       console.error('Add Account Head Error:', err.response || err);
       showErrorToast('Failed to add account');
     }
   };
-
   /* ================= DATACARD DATA ================= */
   const tableData = useMemo(
     () =>
-      accountHeads.map(item => ({
+      accountData.list.map(item => ({
         code: item.code,
         name: item.name,
         createdBy: item.createdBy,
-        createdAt: item.createdAt.split('T')[0],
+        createdAt: formatDisplayDate(item.createdAt),
         type: item.type,
         raw: item,
       })),
-    [accountHeads],
+    [accountData],
   );
 
   /* ================= COLUMNS ================= */
@@ -167,7 +190,7 @@ const AccountHeadScreen = () => {
 
   /* ================= UI ================= */
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={styles.safeArea}>
       <BackArrow
         title="Account Heads"
         showBack
@@ -190,9 +213,10 @@ const AccountHeadScreen = () => {
           <DataCard
             columns={columns}
             data={tableData}
+            loading={loading}
             itemsPerPage={pageSize}
             currentPage={currentPage}
-            totalRecords={totalRecords}
+            totalRecords={accountData.total}
             onPageChange={page => {
               setCurrentPage(page);
               fetchAccountHeads(page);
@@ -200,9 +224,6 @@ const AccountHeadScreen = () => {
           />
         </View>
       </ScrollView>
-
-      <LoadingOverlay visible={loading} />
-
       {/* ===== BUSINESS UNIT MODAL ===== */}
       <BusinessUnitModal
         visible={showAccountHeadModal}
@@ -211,14 +232,14 @@ const AccountHeadScreen = () => {
         accountTypeItems={accountTypeItems}
         onSaveAccountHead={handleSaveAccountHead}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default AccountHeadScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.white },
+  safeArea: { flex: 1, backgroundColor: Theme.colors.white },
   searchContainer: { paddingHorizontal: 16, paddingVertical: 10 },
   listContainer: { flex: 1, paddingHorizontal: 16 },
 });
