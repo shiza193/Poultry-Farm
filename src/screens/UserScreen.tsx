@@ -5,7 +5,7 @@ import {
   Image,
   TouchableOpacity,
   Text,
-  ScrollView
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import Header from '../components/common/LogoHeader';
@@ -47,9 +47,9 @@ const UserScreen = () => {
   const route = useRoute<any>();
   const routeBusinessUnitId = route.params?.businessUnitId ?? null;
   const [users, setUsers] = useState<User[]>([]);
-  const [roleItems, setRoleItems] = useState<
-    { label: string; id: string }[]
-  >([]);
+  const [roleItems, setRoleItems] = useState<{ label: string; id: string }[]>(
+    [],
+  );
   const [groupState, setGroupState] = useState({
     search: '',
     status: 'all' as 'all' | 'active' | 'inactive',
@@ -94,29 +94,29 @@ const UserScreen = () => {
       const payload: any = {
         searchKey: groupState.search || null,
         isActive:
-          groupState.status === 'all'
-            ? null
-            : groupState.status === 'active',
+          groupState.status === 'all' ? null : groupState.status === 'active',
         pageNumber: page,
         pageSize,
       };
       if (groupState.selectedBU) payload.businessUnitId = groupState.selectedBU;
       const response = await getUsers(payload);
       const list = normalizeDataFormat(response?.list, 'array', 'Users');
-      setUsers(list.map((u: any) => ({
-        id: u.userId,
-        name: u.fullName,
-        email: u.email,
-        isActive: u.isActive,
-        role: u.userRole || '',
-        image: u.imageLink || '',
-        businessUnitId: u.businessUnitId || '',
-        businessUnit: u.businessUnit ?? '—',
-        createdAt: u.createdAt,
-      })));
+      setUsers(
+        list.map((u: any) => ({
+          id: u.userId,
+          name: u.fullName,
+          email: u.email,
+          isActive: u.isActive,
+          role: u.userRole || '',
+          image: u.imageLink || '',
+          businessUnitId: u.businessUnitId || '',
+          businessUnit: u.businessUnit ?? '—',
+          createdAt: u.createdAt,
+        })),
+      );
       setTotalRecords(response?.totalCount || list.length);
     } catch (error) {
-      console.error("Fetch Users Error:", error);
+      console.error('Fetch Users Error:', error);
     } finally {
       setLoading(false);
     }
@@ -125,7 +125,7 @@ const UserScreen = () => {
     useCallback(() => {
       setCurrentPage(1);
       fetchUsers(1);
-    }, [groupState.search, groupState.status, groupState.selectedBU])
+    }, [groupState.search, groupState.status, groupState.selectedBU]),
   );
   // ================= FILTER =================
   const filteredUsers = users.filter(user => {
@@ -158,7 +158,7 @@ const UserScreen = () => {
   // ================= HANDLERS =================
   const AddUser = async (data: any) => {
     try {
-      setLoading(true)
+      setLoading(true);
       const roleObj = roleItems.find(r => r.id === data.role);
       if (!roleObj) return;
 
@@ -184,8 +184,8 @@ const UserScreen = () => {
           businessUnit: '—',
         },
       ]);
-      console.log("Add User Full Response:", response);
-      console.log("Normalized User:", newUser);
+      console.log('Add User Full Response:', response);
+      console.log('Normalized User:', newUser);
       setCurrentPage(1);
     } catch (error) {
       console.error('Add User Error:', error);
@@ -220,9 +220,7 @@ const UserScreen = () => {
     if (!groupState.selectedUserId) return;
     try {
       await deleteUser(groupState.selectedUserId);
-      setUsers(prev =>
-        prev.filter(u => u.id !== groupState.selectedUserId),
-      );
+      setUsers(prev => prev.filter(u => u.id !== groupState.selectedUserId));
       setCurrentPage(1);
       showSuccessToast('User deleted successfully');
     } catch (error) {
@@ -254,7 +252,7 @@ const UserScreen = () => {
           name: f.name,
           isAdded: existingFarms.includes(f.name) ? true : f.isAdded,
           userRoleId: f.userRoleId,
-        }))
+        })),
       );
 
       setGroupState(prev => ({ ...prev, showAssignFarmModal: true }));
@@ -353,82 +351,83 @@ const UserScreen = () => {
           }))
         }
       />
-      {tableData.length > 0 ? (
-        <ScrollView
-          style={{ flex: 1, paddingHorizontal: 16 }}
-          contentContainerStyle={{ paddingBottom: 100 }}
-        >
-          <DataCard
-            columns={columns}
-            data={tableData}
-            itemsPerPage={pageSize}
-            currentPage={currentPage}
-            totalRecords={totalRecords}
-            onPageChange={page => {
-              setCurrentPage(page);
-              fetchUsers(page);
-            }}
-            renderRowMenu={(row, closeMenu) => (
-              <View>
-                {/* DELETE */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setGroupState(prev => ({
-                      ...prev,
-                      selectedUserId: row.raw.id,
-                      deleteModalVisible: true,
-                    }));
-                    closeMenu();
-                  }}
-                  style={{ paddingVertical: 5, width: 100 }}
-                >
-                  <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>
-                    Delete
-                  </Text>
-                </TouchableOpacity>
-                <View style={styles.menuSeparator} />
 
-                {/* RESET PASSWORD */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setGroupState(prev => ({
-                      ...prev,
-                      selectedUserForReset: row.raw,
-                      showResetModal: true,
-                    }));
-                    closeMenu();
-                  }}
-                  style={{ paddingVertical: 10, width: 110 }}
+      <ScrollView
+        style={{ flex: 1, paddingHorizontal: 16 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <DataCard
+          columns={columns}
+          data={tableData}
+          itemsPerPage={pageSize}
+          loading={loading}
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          onPageChange={page => {
+            setCurrentPage(page);
+            fetchUsers(page);
+          }}
+          renderRowMenu={(row, closeMenu) => (
+            <View>
+              {/* DELETE */}
+              <TouchableOpacity
+                onPress={() => {
+                  setGroupState(prev => ({
+                    ...prev,
+                    selectedUserId: row.raw.id,
+                    deleteModalVisible: true,
+                  }));
+                  closeMenu();
+                }}
+                style={{ paddingVertical: 5, width: 100 }}
+              >
+                <Text
+                  style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}
                 >
-                  <Text style={{ fontWeight: '500', fontSize: 13, marginLeft: 8 }}>
-                    Reset Password
-                  </Text>
-                </TouchableOpacity>
-                <View style={styles.menuSeparator} />
+                  Delete
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
 
-                {/* ASSIGN TO POULTRY */}
-                <TouchableOpacity
-                  onPress={() => {
-                    AssignPoultryToUser(row.raw);
-                    closeMenu();
-                  }}
-                  style={{ paddingVertical: 10, width: 110 }}
+              {/* RESET PASSWORD */}
+              <TouchableOpacity
+                onPress={() => {
+                  setGroupState(prev => ({
+                    ...prev,
+                    selectedUserForReset: row.raw,
+                    showResetModal: true,
+                  }));
+                  closeMenu();
+                }}
+                style={{ paddingVertical: 10, width: 110 }}
+              >
+                <Text
+                  style={{ fontWeight: '500', fontSize: 13, marginLeft: 8 }}
                 >
-                  <Text style={{ fontWeight: '500', fontSize: 13, marginLeft: 8 }}>
-                    Assign to Poultry
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-        </ScrollView>
-      ) : (
-        !loading && (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-          </View>
-        )
-      )}
+                  Reset Password
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+
+              {/* ASSIGN TO POULTRY */}
+              <TouchableOpacity
+                onPress={() => {
+                  AssignPoultryToUser(row.raw);
+                  closeMenu();
+                }}
+                style={{ paddingVertical: 10, width: 110 }}
+              >
+                <Text
+                  style={{ fontWeight: '500', fontSize: 13, marginLeft: 8 }}
+                >
+                  Assign to Poultry
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      </ScrollView>
+
       {/* ===== MODALS ===== */}
       <AddModal
         visible={groupState.showAddModal}
@@ -502,24 +501,29 @@ const UserScreen = () => {
             // Call API
             const response = await updateUserBusinessUnits(
               groupState.selectedRowUser.id,
-              payload
+              payload,
             );
             // 🔹 Normalize API response
-            normalizeDataFormat(response, 'object', 'Update User Business Units');
+            normalizeDataFormat(
+              response,
+              'object',
+              'Update User Business Units',
+            );
             showSuccessToast('Farms & roles updated successfully');
             // 🔹 Update local state
             setUsers(prev =>
               prev.map(u =>
                 u.id === groupState.selectedRowUser!.id
                   ? {
-                    ...u,
-                    businessUnit: farms
-                      .filter(f => data[f.id]?.checked)
-                      .map(f => f.name)
-                      .join(', ') || '—',
-                  }
-                  : u
-              )
+                      ...u,
+                      businessUnit:
+                        farms
+                          .filter(f => data[f.id]?.checked)
+                          .map(f => f.name)
+                          .join(', ') || '—',
+                    }
+                  : u,
+              ),
             );
             setGroupState(prev => ({
               ...prev,
@@ -552,7 +556,9 @@ const UserScreen = () => {
               // Normalize API response
               normalizeDataFormat(response, 'object', 'Update User');
               setUsers(prev =>
-                prev.map(u => (u.id === updated.id ? { ...u, name: updated.name } : u)),
+                prev.map(u =>
+                  u.id === updated.id ? { ...u, name: updated.name } : u,
+                ),
               );
               showSuccessToast('User Updated successfully');
             } catch {
@@ -566,7 +572,6 @@ const UserScreen = () => {
           }}
         />
       )}
-      <LoadingOverlay visible={loading} />
     </View>
   );
 };

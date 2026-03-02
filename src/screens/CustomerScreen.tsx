@@ -388,53 +388,44 @@ const CustomerScreen = () => {
         hideBUDropdown={fromMenu}
       />
 
-      {tableData.length > 0 ? (
-        <View style={{ flex: 1 }}>
-          <ScrollView
-            style={{ flex: 1, paddingHorizontal: 16 }}
-            contentContainerStyle={{ paddingBottom: 100 }}
-          >
-            <DataCard
-              columns={columns}
-              data={tableData}
-              itemsPerPage={pageSize}
-                loading={loading}
-
-              currentPage={currentPage}
-              totalRecords={totalRecords}
-              onPageChange={page => {
-                setCurrentPage(page);
-                fetchCustomers(page);
-              }}
-              renderRowMenu={(row, closeMenu) => (
-                <TouchableOpacity
-                  onPress={() => {
-                    DeletePress(row.raw.id);
-                    closeMenu();
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={{ flex: 1, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          <DataCard
+            columns={columns}
+            data={tableData}
+            itemsPerPage={pageSize}
+            loading={loading}
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={page => {
+              setCurrentPage(page);
+              fetchCustomers(page);
+            }}
+            renderRowMenu={(row, closeMenu) => (
+              <TouchableOpacity
+                onPress={() => {
+                  DeletePress(row.raw.id);
+                  closeMenu();
+                }}
+              >
+                <Text
+                  style={{
+                    color: 'red',
+                    fontWeight: '600',
+                    fontSize: 12,
+                    marginLeft: 12,
                   }}
                 >
-                  <Text
-                    style={{
-                      color: 'red',
-                      fontWeight: '600',
-                      fontSize: 12,
-                      marginLeft: 12,
-                    }}
-                  >
-                    Delete Customer
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-          </ScrollView>
-        </View>
-      ) : (
-        !loading && (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-          </View>
-        )
-      )}
+                  Delete Customer
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </ScrollView>
+      </View>
 
       <AddModal
         visible={modals.showAdd}
@@ -458,7 +449,6 @@ const CustomerScreen = () => {
         onConfirm={ConfirmDelete}
         title="Are you sure you want to delete this customer?"
       />
-
     </SafeAreaView>
   );
 };

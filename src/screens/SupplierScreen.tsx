@@ -396,6 +396,7 @@ const SupplierScreen = () => {
             data={tableData}
             itemsPerPage={pageSize}
             currentPage={currentPage}
+              loading={loading}
             totalRecords={totalRecords}
             onPageChange={page => {
               setCurrentPage(page);
@@ -460,7 +461,6 @@ const SupplierScreen = () => {
           />
         )}
       </View>
-      <LoadingOverlay visible={loading} />
     </SafeAreaView>
   );
 };
