@@ -83,19 +83,18 @@ import { useFocusEffect } from "@react-navigation/native";
 interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
-    setGlobalLoading: (val: boolean) => void;
 }
 const VaccinationStockScreen: React.FC<Props> = ({
-    setGlobalLoading,
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [data, setData] = useState<VaccinationStock[]>([]);
+    const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const pageSize = 10;
     const fetchData = async () => {
         if (!businessUnitId) return;
-        setGlobalLoading(true);
+        setLoading(true);
         try {
             const result = await getVaccinationStock(businessUnitId);
             setData(result);
@@ -104,7 +103,7 @@ const VaccinationStockScreen: React.FC<Props> = ({
             console.log("Vaccination Stock Error:", error);
             setTotalCount(0);
         } finally {
-            setGlobalLoading(false);
+            setLoading(false);
         }
     };
     useFocusEffect(
@@ -114,7 +113,7 @@ const VaccinationStockScreen: React.FC<Props> = ({
     );
     // ===== DATA CARD COLUMNS =====
     const columns: TableColumn[] = [
-        { key: "vaccine", title: " NAME", isTitle: true },
+        { key: "vaccine", title: " NAME",},
         { key: "totalPurchased", title: " PURCHASED" },
         { key: "totalSchedule", title: " SCHEDULED" },
         { key: "availableStock", title: "AVAILABLE", width: 90 },
@@ -133,6 +132,7 @@ const VaccinationStockScreen: React.FC<Props> = ({
                 <DataCard
                     columns={columns}
                     data={tableData}
+                    loading={loading}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalCount}

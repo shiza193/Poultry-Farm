@@ -29,10 +29,8 @@ type Props = {
   openAddModal: boolean;
   onCloseAddModal: () => void;
   onOpenAddModal?: () => void;
-  setGlobalLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 const EggProductionScreen: React.FC<Props> = ({
-  setGlobalLoading,
   openAddModal,
   onCloseAddModal,
   onOpenAddModal,
@@ -41,6 +39,7 @@ const EggProductionScreen: React.FC<Props> = ({
   const { businessUnitId } = useBusinessUnit();
   // States
   const [eggProductionList, setEggProductionList] = useState<EggProduction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     searchKey: "",
     flockId: null as string | null,
@@ -81,7 +80,7 @@ const EggProductionScreen: React.FC<Props> = ({
   // FETCH DATA
   const fetchEggProduction = async (page = currentPage) => {
     if (!businessUnitId) return;
-    setGlobalLoading(true);
+    setLoading(true);
     const payload = {
       businessUnitId,
       flockId: filters.flockId,
@@ -97,7 +96,7 @@ const EggProductionScreen: React.FC<Props> = ({
     } catch (err) {
       console.error(err);
     } finally {
-      setGlobalLoading(false);
+      setLoading(false);
     }
   };
   useFocusEffect(
@@ -144,7 +143,7 @@ const EggProductionScreen: React.FC<Props> = ({
   // ===== HANDLERS =====
   const handleAddEggProduction = async (data: any) => {
     if (!businessUnitId) return;
-    setGlobalLoading(true);
+    setLoading(true);
     try {
       const intact = Number(data?.intactEggs || 0);
       const broken = Number(data?.brokenEggs || 0);
@@ -170,13 +169,13 @@ const EggProductionScreen: React.FC<Props> = ({
     } catch (err: any) {
       showErrorToast(err.message || "Failed to add egg production");
     } finally {
-      setGlobalLoading(false);
+      setLoading(false);
       setModalState({ type: null, selectedRecord: null });
     }
   };
   const handleEditEggProduction = async (data: any, selectedRecord: EggProduction) => {
     if (!businessUnitId) return;
-    setGlobalLoading(true);
+    setLoading(true);
     try {
       const intact = Number(data?.intactEggs || 0);
       const broken = Number(data?.brokenEggs || 0);
@@ -202,13 +201,13 @@ const EggProductionScreen: React.FC<Props> = ({
     } catch (err: any) {
       showErrorToast(err.message || "Failed to update egg production");
     } finally {
-      setGlobalLoading(false);
+      setLoading(false);
       setModalState({ type: null, selectedRecord: null });
     }
   };
   const handleDelete = async () => {
     if (!modalState.selectedRecord) return;
-    setGlobalLoading(true);
+    setLoading(true);
     try {
       const res = await deleteEggProduction(modalState.selectedRecord.eggProductionId);
       if (res.status === "Success") {
@@ -230,7 +229,7 @@ const EggProductionScreen: React.FC<Props> = ({
         type: null,
         selectedRecord: null,
       });
-      setGlobalLoading(false);
+      setLoading(false);
     }
   };
   return (
@@ -258,7 +257,7 @@ const EggProductionScreen: React.FC<Props> = ({
                 : [{ label: "No result found", value: null, disabled: true }]
             } labelField="label"
             valueField="value"
-            placeholder="Select Flock"
+            placeholder={loading ? 'Loading...' : 'Select Flock...'}
             value={filters.flockId}
             selectedTextStyle={styles.selectedTextStyle}
             placeholderStyle={styles.placeholderStyle}
@@ -293,6 +292,7 @@ const EggProductionScreen: React.FC<Props> = ({
           columns={columns}
           data={eggProductionList}
           itemsPerPage={pageSize}
+          loading={loading}
           currentPage={currentPage}
           totalRecords={totalRecords}
           onPageChange={page => {
@@ -311,7 +311,7 @@ const EggProductionScreen: React.FC<Props> = ({
               }}
                 style={{ marginBottom: 8 }}
               >
-                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
+                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Edit</Text>
               </TouchableOpacity>
               <View style={styles.menuSeparator} />
               <TouchableOpacity
@@ -324,7 +324,7 @@ const EggProductionScreen: React.FC<Props> = ({
                 }}
                 style={{ marginTop: 8 }}
               >
-                <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
+                <Text style={{ color: 'red', fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Delete</Text>
               </TouchableOpacity>
             </View>
           )}

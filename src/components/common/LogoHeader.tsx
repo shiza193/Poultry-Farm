@@ -68,13 +68,16 @@ const Header: React.FC<HeaderProps> = ({
         </TouchableOpacity>
         {/* ===== OVERLAY + MENU ===== */}
         {showMenu && (
-          <TouchableOpacity
-            style={styles.overlay}
-            activeOpacity={1}
-            onPress={() => setShowMenu(false)}
-          >
+          <>
+            {/* FULL SCREEN TRANSPARENT OVERLAY */}
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill} // full screen cover
+              activeOpacity={1}
+              onPress={() => setShowMenu(false)}
+            />
+
+            {/* MENU */}
             <View style={styles.menu}>
-              {/* ===== ADD NEW ===== */}
               {onAddNewPress && (
                 <>
                   <TouchableOpacity
@@ -91,7 +94,6 @@ const Header: React.FC<HeaderProps> = ({
                 </>
               )}
 
-              {/* ===== REPORT ===== */}
               {onReportPress && (
                 <>
                   <TouchableOpacity
@@ -101,17 +103,13 @@ const Header: React.FC<HeaderProps> = ({
                       onReportPress();
                     }}
                   >
-                    <Image
-                      source={Theme.icons.report}
-                      style={styles.menuIcon}
-                    />
+                    <Image source={Theme.icons.report} style={styles.menuIcon} />
                     <Text style={styles.menuText}>Report</Text>
                   </TouchableOpacity>
                   <View style={styles.menuSeparator} />
                 </>
               )}
 
-              {/* ===== ADMIN PORTAL ===== */}
               {showAdminPortal && (
                 <>
                   <TouchableOpacity
@@ -128,7 +126,6 @@ const Header: React.FC<HeaderProps> = ({
                 </>
               )}
 
-              {/* ===== LOGOUT ===== */}
               {showLogout && (
                 <TouchableOpacity
                   style={styles.menuItem}
@@ -142,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({
                 </TouchableOpacity>
               )}
             </View>
-          </TouchableOpacity>
+          </>
         )}
         {/* ===== LOGOUT MODAL ===== */}
         <ConfirmationModal
@@ -150,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({
           visible={showLogoutModal}
           title="Are you sure you want to logout?"
           onClose={() => setShowLogoutModal(false)}
-        onConfirm={Logout}
+          onConfirm={Logout}
         />
       </View>
     </>

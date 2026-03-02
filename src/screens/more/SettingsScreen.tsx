@@ -78,7 +78,7 @@ const SettingsScreen = () => {
     'Employee Types': [],
     Vaccines: [],
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [menuPosition, setMenuPosition] = useState<{
     x: number;
@@ -366,10 +366,10 @@ const SettingsScreen = () => {
               activeTab === 'Egg Units'
                 ? 'Add Egg Unit'
                 : activeTab === 'Feed Types'
-                ? 'Add Feed Type'
-                : activeTab === 'Employee Types'
-                ? 'Add Employee Type'
-                : 'Add Vaccine',
+                  ? 'Add Feed Type'
+                  : activeTab === 'Employee Types'
+                    ? 'Add Employee Type'
+                    : 'Add Vaccine',
             defaultValue: 0,
           });
           setShowBusinessUnitModal(true);
@@ -388,10 +388,10 @@ const SettingsScreen = () => {
               ? activeTab === 'Egg Units'
                 ? editItem?.value
                 : activeTab === 'Feed Types'
-                ? editItem?.name
-                : activeTab === 'Employee Types'
-                ? editItem?.empName
-                : editItem?.vaccineName
+                  ? editItem?.name
+                  : activeTab === 'Employee Types'
+                    ? editItem?.empName
+                    : editItem?.vaccineName
               : ''
           }
           onClose={() => {
@@ -581,10 +581,10 @@ const SettingsScreen = () => {
         <View style={styles.contentContainer}>
           <DataCard
             columns={getColumns()}
+            loading={loading}
             data={items[activeTab]}
             showPagination={false}
-            itemsPerPage={5}
-          />
+            />
         </View>
       </View>
 
@@ -601,8 +601,6 @@ const SettingsScreen = () => {
         }}
         onConfirm={confirmDeleteItem}
       />
-
-      <LoadingOverlay visible={loading} />
     </SafeAreaView>
   );
 };
@@ -635,7 +633,7 @@ const styles = StyleSheet.create({
   activeTabText: { color: Theme.colors.white, fontWeight: '700' },
   overlay: {
     position: 'absolute',
-    top: 40,
+    top: 1,
     bottom: 0,
     left: 0,
     right: 0,

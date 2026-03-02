@@ -73,7 +73,6 @@ const icons = {
   showPassword: require('../resources/images/showPassword.png'),
   poultrycloud: require('../resources/images/poultrycloud.png'),
   poultrycloud1: require('../resources/images/poultrycloud1.png'),
-  nofarm: require('../resources/images/nofarm.png'),
 
   /* ===== Poultry dashboard ===== */
   dashboard: require('../resources/images/dashboard.png'),
@@ -101,7 +100,6 @@ const icons = {
   hospital: require('../resources/images/hospital.png'),
 
   injection: require('../resources/images/injection.png'),
-  pdf: require('../resources/images/pdf.png'),
   more: require('../resources/images/more.png'),
   greater: require('../resources/images/greater.png'),
   upload: require('../resources/images/upload.png'),
@@ -139,7 +137,6 @@ const icons = {
   tick: require('../resources/images/tick.png'),
   dropdowns: require('../resources/images/dropdowns.png'),
   feedc: require('../resources/images/feedc.png'),
-  animal: require('../resources/images/animal.png'),
   setting: require('../resources/images/setting.png'),
   receivables: require('../resources/images/receivables.png'),
   payable: require('../resources/images/payable.png'),
@@ -148,16 +145,6 @@ const icons = {
   ledger: require('../resources/images/ledger.png'),
 
   voucture: require('../resources/images/voucture.png'),
-
-  image1: require('../resources/images/image1.png'),
-  image2: require('../resources/images/image2.png'),
-  image3: require('../resources/images/image3.png'),
-  image4: require('../resources/images/image4.png'),
-  image5: require('../resources/images/image5.png'),
-  image6: require('../resources/images/image6.png'),
-  image7: require('../resources/images/image7.png'),
-  image8: require('../resources/images/image8.png'),
-  image9: require('../resources/images/image9.png'),
   delete: require('../resources/images/delete.png'),
   report: require('../resources/images/report.png'),
   happy: require('../resources/images/happy.png'),

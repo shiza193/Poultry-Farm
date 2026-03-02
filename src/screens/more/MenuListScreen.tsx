@@ -7,12 +7,9 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import Theme from '../../theme/Theme';
 import Header from '../../components/common/LogoHeader';
-import ConfirmationModal from '../../components/customPopups/ConfirmationModal';
 import { CustomConstants } from '../../constants/CustomConstants';
 import { useBusinessUnit } from '../../context/BusinessContext';
 
@@ -54,87 +51,17 @@ const Section = ({ title, children }: SectionProps) => (
 
 const MenuListScreen = ({ navigation }: any) => {
   const { farmName, farmLocation, businessUnitId } = useBusinessUnit();
-
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [isDotsMenuVisible, setIsDotsMenuVisible] = useState(false);
-
-  /* ---------- Handlers ---------- */
-
-  const toggleDotsMenu = () => {
-    setIsDotsMenuVisible(prev => !prev);
-  };
-
-  const closeDotsMenu = () => {
-    setIsDotsMenuVisible(false);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.clear();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: CustomConstants.LOGIN_SCREEN }],
-      });
-    } catch (error) {
-      console.log('Logout failed', error);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safe}>
       <Header
         title={farmName || 'Poultry Farm'}
         subtitle={farmLocation || ''}
-        onPressDots={toggleDotsMenu}
+        showLogout={true}
+        showAdminPortal={true}
         containerStyle={styles.headerContainer}
         titleStyle={styles.headerTitle}
         alignWithLogo
       />
-
-      {/* -------- Dots Menu -------- */}
-      {isDotsMenuVisible && (
-        <View style={styles.dotsOverlayContainer}>
-          <TouchableOpacity
-            style={styles.dotsOverlay}
-            activeOpacity={1}
-            onPress={closeDotsMenu}
-          />
-
-          <View style={styles.dotsMenu}>
-            <TouchableOpacity
-              style={styles.dotsMenuItem}
-              onPress={() => {
-                closeDotsMenu();
-                setShowLogoutModal(true);
-              }}
-            >
-              <View style={styles.menuItemRow}>
-                <Image
-                  source={Theme.icons.logout}
-                  style={styles.menuItemIcon}
-                />
-                <Text style={styles.dotsMenuText}>Logout</Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity
-              style={styles.dotsMenuItem}
-              onPress={() => {
-                closeDotsMenu();
-                navigation.navigate(CustomConstants.DASHBOARD_TABS);
-              }}
-            >
-              <View style={styles.menuItemRow}>
-                <Image source={Theme.icons.back} style={styles.menuItemIcon} />
-                <Text style={styles.dotsMenuText}>Admin Portal</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
       {/* -------- Menu Sections -------- */}
       <ScrollView>
         <Section title="Feed">
@@ -229,15 +156,6 @@ const MenuListScreen = ({ navigation }: any) => {
           />
         </Section>
       </ScrollView>
-
-      {/* -------- Logout Modal -------- */}
-      <ConfirmationModal
-        type="logout"
-        visible={showLogoutModal}
-        title="Are you sure you want to logout?"
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleLogout}
-      />
     </SafeAreaView>
   );
 };
@@ -247,6 +165,7 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: Theme.colors.white,
+    zIndex: 1,
   },
   section: {
     marginTop: 18,

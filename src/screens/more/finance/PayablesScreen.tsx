@@ -12,7 +12,7 @@ import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import {
     getPayablesAndReceivables,
     PayablesReceivablesItem,
-    PayablesReceivablesPayload,
+    Payload,
 } from "../../../services/VoucherService";
 import { useBusinessUnit } from "../../../context/BusinessContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -39,7 +39,7 @@ const PayablesScreen = () => {
         if (!businessUnitId) return;
         setLoading(true);
         try {
-            const payload: PayablesReceivablesPayload = {
+            const payload: Payload = {
                 searchKey: filters.searchKey || null,
                 dateTime: filters.filterDate ? filters.filterDate.toISOString() : new Date().toISOString(),
                 businessUnitId,
@@ -69,7 +69,7 @@ const PayablesScreen = () => {
             filterDate: null,
         }));
     };
-     // Table columns
+    // Table columns
     const columns: TableColumn[] = [
         { key: "accountHeadName", title: "ACCOUNT", isTitle: true, width: 150 },
         { key: "status", title: "TYPE", width: 80 },
@@ -143,7 +143,9 @@ const PayablesScreen = () => {
             </View>
 
             <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                <DataCard columns={columns} data={payables}
+                <DataCard columns={columns}
+                    data={payables}
+                    loading={loading}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalRecords}
@@ -153,7 +155,6 @@ const PayablesScreen = () => {
                     }}
                 />
             </View>
-            <LoadingOverlay visible={loading} />
         </View>
     );
 };

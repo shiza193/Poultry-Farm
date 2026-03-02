@@ -64,24 +64,24 @@ import { getEggStock, EggStock } from '../../services/EggsService';
 type Props = {
   openAddModal: boolean;
   onCloseAddModal: () => void;
-  setGlobalLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-const EggStockScreen: React.FC<Props> = ({ setGlobalLoading }) => {
+const EggStockScreen: React.FC<Props> = ({  }) => {
   const [eggStockData, setEggStockData] = useState<EggStock[]>([]);
   const { businessUnitId } = useBusinessUnit();
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const pageSize = 10;
   const totalRecords = eggStockData.length;
   const columns: TableColumn[] = [
-    { key: 'unit', title: 'UNIT', width: 80, isTitle: true },
+    { key: 'unit', title: 'UNIT', width: 80, },
     { key: 'totalProduced', title: 'PRODUCED', width: 90 },
     { key: 'totalSold', title: 'SOLD', width: 90 },
     { key: 'availableStock', title: 'STOCK', width: 80 },
   ];
   const fetchEggStock = async () => {
     if (!businessUnitId) return;
-    setGlobalLoading(true);
+    setLoading(true);
     try {
       const data = await getEggStock(businessUnitId);
       setEggStockData(data ?? []);
@@ -90,7 +90,7 @@ const EggStockScreen: React.FC<Props> = ({ setGlobalLoading }) => {
       console.log("Egg Stock Error:", error);
       setEggStockData([]);
     } finally {
-      setGlobalLoading(false);
+      setLoading(false);
     }
   };
 
@@ -106,6 +106,7 @@ const EggStockScreen: React.FC<Props> = ({ setGlobalLoading }) => {
         <DataCard
           columns={columns}
           data={eggStockData}
+          loading={loading}
           itemsPerPage={pageSize}
           currentPage={currentPage}
           totalRecords={totalRecords}

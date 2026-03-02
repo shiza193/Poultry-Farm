@@ -5,7 +5,6 @@ import Header from "../components/common/LogoHeader";
 import VaccinationsScreen from "../screens/vaccinations/VaccinationsScreen";
 import VaccineScheduleScreen from "../screens/vaccinations/VaccineScheduleScreen";
 import VaccinationStockScreen from "../screens/vaccinations/VaccinationStockScreen";
-import LoadingOverlay from "../components/loading/LoadingOverlay";
 import { getVaccinesExcel, getVaccineStockExcel } from "../screens/Report/ReportHelpers";
 import { useBusinessUnit } from "../context/BusinessContext";
 
@@ -15,7 +14,6 @@ const VaccinationMainScreen = () => {
     const { businessUnitId } = useBusinessUnit();
     const [activeTab, setActiveTab] = useState<TabType>("vaccinations");
     const [openAddModal, setOpenAddModal] = useState(false);
-    const [globalLoading, setGlobalLoading] = useState(false);
     const pageSize = 10;
     const [filters, setFilters] = useState({
         searchKey: "",
@@ -30,7 +28,6 @@ const VaccinationMainScreen = () => {
                         openAddModal={openAddModal}
                         onCloseAddModal={() => setOpenAddModal(false)}
                         onOpenAddModal={() => setOpenAddModal(true)}
-                        setGlobalLoading={setGlobalLoading}
                     />
                 );
             case "stock":
@@ -38,7 +35,6 @@ const VaccinationMainScreen = () => {
                     <VaccinationStockScreen
                         openAddModal={openAddModal}
                         onCloseAddModal={() => setOpenAddModal(false)}
-                        setGlobalLoading={setGlobalLoading}
                     />
                 );
 
@@ -48,7 +44,6 @@ const VaccinationMainScreen = () => {
                         openAddModal={openAddModal}
                         onCloseAddModal={() => setOpenAddModal(false)}
                         onOpenAddModal={() => setOpenAddModal(true)}
-                        setGlobalLoading={setGlobalLoading}
                         filters={filters}
                         setFilters={setFilters}
                         currentPage={currentPage}
@@ -87,7 +82,6 @@ const VaccinationMainScreen = () => {
     };
     return (
         <View style={{ flex: 1, backgroundColor: Theme.colors.white }}>
-            <LoadingOverlay visible={globalLoading} text="Loading..." />
             {/* 🔹 TOP HEADER */}
             <Header
                 title="Vaccinations"
@@ -101,8 +95,6 @@ const VaccinationMainScreen = () => {
                         ? async () => {
                             if (!businessUnitId) return;
                             try {
-                                setGlobalLoading(true);
-
                                 if (activeTab === "vaccinations") {
                                     // Prepare payload based on current filters
                                     const payload = {
@@ -117,14 +109,11 @@ const VaccinationMainScreen = () => {
                                     console.log("Excel response:", response);
                                 }
                                 if (activeTab === "stock") {
-                                    setGlobalLoading(true);
                                     await getVaccineStockExcel(businessUnitId, "VaccineStockReport");
-                                    setGlobalLoading(false);
                                 }
                             } catch (error) {
                                 console.error("Error exporting Vaccinations Excel:", error);
                             } finally {
-                                setGlobalLoading(false);
                             }
                         }
                         : undefined
@@ -190,63 +179,8 @@ const styles = StyleSheet.create({
         color: Theme.colors.white,
     },
     separator: {
-        width: 1,
-        backgroundColor: Theme.colors.sky,
+        width: 2,
+        backgroundColor: Theme.colors.settinglines,
         marginVertical: 4,
-    },
-    dotsOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 99999,
-    },
-    dotsMenu: {
-        position: 'absolute',
-        top: 50,
-        right: 30,
-        backgroundColor: Theme.colors.white,
-        borderRadius: 10,
-        padding: 5,
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-    },
-    dotsMenuItemCustom: {
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-    },
-    menuItemRowCustom: { flexDirection: "row", alignItems: "center" },
-    circleIcon: {
-        width: 35,
-        height: 35,
-        borderRadius: 18,
-        justifyContent: "center",
-        alignItems: "center",
-        marginRight: 10,
-    },
-    dotsMenuText: {
-        fontSize: 14,
-        color: Theme.colors.textPrimary,
-    },
-    menuIcon: {
-        width: 16,
-        height: 16,
-        marginRight: 10,
-        tintColor: Theme.colors.textPrimary,
-    },
-    menuSeparator: {
-        height: 1,
-        backgroundColor: Theme.colors.SeparatorColor,
-        marginHorizontal: 8,
-    },
-    logoutIcon: {
-        width: 16,
-        height: 16,
-        marginRight: 10,
-
     },
 });

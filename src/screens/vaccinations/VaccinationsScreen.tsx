@@ -22,7 +22,6 @@ interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
     onOpenAddModal: () => void;
-    setGlobalLoading: (val: boolean) => void;
     filters: { searchKey: string; supplierId: string | null };
     setFilters: React.Dispatch<React.SetStateAction<{ searchKey: string; supplierId: string | null }>>;
     currentPage: number;
@@ -32,7 +31,6 @@ const VaccinationsScreen: React.FC<Props> = ({
     openAddModal,
     onCloseAddModal,
     onOpenAddModal,
-    setGlobalLoading,
     filters,
     setFilters,
     currentPage,
@@ -40,6 +38,7 @@ const VaccinationsScreen: React.FC<Props> = ({
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
+    const [loading, setLoading] = useState(true);
     const [dropdownData, setDropdownData] = useState<{
         suppliers: { label: string; value: string }[];
         vaccines: { label: string; value: number }[];
@@ -58,7 +57,7 @@ const VaccinationsScreen: React.FC<Props> = ({
     const pageSize = 10;
     const fetchVaccinationsData = async (page: number = 1) => {
         if (!businessUnitId) return;
-        setGlobalLoading(true);
+        setLoading(true);
         try {
             const res = await getVaccinations(
                 businessUnitId,
@@ -71,7 +70,7 @@ const VaccinationsScreen: React.FC<Props> = ({
             setVaccinations(normalizedVaccinations);
             setTotalRecords(res.data.totalCount);
         } finally {
-            setGlobalLoading(false);
+            setLoading(false);
         }
     };
     useFocusEffect(
@@ -101,10 +100,10 @@ const VaccinationsScreen: React.FC<Props> = ({
         if (businessUnitId) {
             fetchVaccinationsData(1);
         }
-    }, [filters, businessUnitId, ]);
+    }, [filters, businessUnitId,]);
     const handleAddVaccination = async (data: any) => {
         if (!businessUnitId) return;
-        setGlobalLoading(true)
+        setLoading(true)
         const payload = {
             vaccineId: data.vaccine,
             date: data.date.toISOString().split("T")[0],
@@ -128,13 +127,13 @@ const VaccinationsScreen: React.FC<Props> = ({
         } catch (error: any) {
             showErrorToast(error.message || "Something went wrong");
         } finally {
-            setGlobalLoading(false)
+            setLoading(false)
         }
     };
     const handleUpdateVaccination = async (data: any) => {
         if (modalState.selectedVaccinationModal !== 'edit' || !modalState.vaccinerecord || !businessUnitId) return;
-        setGlobalLoading(true)
-         const payload = {
+        setLoading(true)
+        const payload = {
             vaccinationId: modalState.vaccinerecord!.vaccinationId,
             vaccineId: Number(data.vaccine),
             date: data.date.toISOString().split('T')[0],
@@ -157,18 +156,20 @@ const VaccinationsScreen: React.FC<Props> = ({
             }
         } catch (error: any) {
             showErrorToast(error.message || 'Something went wrong');
-        } finally{
-            setGlobalLoading(false)
+        } finally {
+            setLoading(false)
         }
     };
     // ===== DATA CARD COLUMNS =====
     const columns: TableColumn[] = [
         { key: "vaccine", title: "VACCINE NAME", isTitle: true, showDots: true },
         { key: "supplier", title: "SUPPLIER" },
-        { key: "date",title: "DATE",render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
+        {
+            key: "date", title: "DATE", render: (val: string) => <Text>{formatDisplayDate(val)}</Text>
         },
         { key: "quantity", title: "QUANTITY" },
-        { key: "price",title: "PRICE",
+        {
+            key: "price", title: "PRICE",
             width: 90,
             render: (val: number) => <Text>{`${val}`}</Text>
         },
@@ -224,6 +225,7 @@ const VaccinationsScreen: React.FC<Props> = ({
                 <DataCard
                     columns={columns}
                     data={vaccinations}
+                    loading={loading}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalRecords}
@@ -329,10 +331,10 @@ const VaccinationsScreen: React.FC<Props> = ({
                     } catch (error: any) {
                         showErrorToast(error.message || "Something went wrong");
                     } finally {
-                       setModalState({
-                        selectedVaccinationModal: null,
-                        vaccinerecord: null,
-                    });
+                        setModalState({
+                            selectedVaccinationModal: null,
+                            vaccinerecord: null,
+                        });
                     }
                 }}
             />

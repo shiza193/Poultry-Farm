@@ -291,6 +291,7 @@ const FeedConsumptionScreen: React.FC = () => {
                 <DataCard
                     columns={columns}
                     data={data}
+                    loading={loading}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalRecords}
@@ -307,7 +308,7 @@ const FeedConsumptionScreen: React.FC = () => {
                                 }}
                                 style={{ marginBottom: 8 }}
                             >
-                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
+                                <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Edit</Text>
                             </TouchableOpacity>
                             <View style={styles.menuSeparator} />
                             <TouchableOpacity
@@ -317,13 +318,12 @@ const FeedConsumptionScreen: React.FC = () => {
                                 }}
                                 style={{ marginTop: 8 }}
                             >
-                                <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
+                                <Text style={{ color: 'red', fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Delete</Text>
                             </TouchableOpacity>
                         </View>
                     )}
                 />
             </View>
-            <LoadingOverlay visible={loading} />
             <AddModal
                 visible={modalState.type === 'add' || modalState.type === 'edit'}
                 onClose={() => setModalState({ type: null, selectedRecord: null })}

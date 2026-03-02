@@ -9,11 +9,10 @@ import {
 import DataCard, { TableColumn } from "../../../components/customCards/DataCard";
 import Theme from "../../../theme/Theme";
 import BackArrow from "../../../components/common/ScreenHeaderWithBack";
-import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import {
     getPayablesAndReceivables,
     PayablesReceivablesItem,
-    PayablesReceivablesPayload,
+    Payload,
 } from "../../../services/VoucherService";
 import { useBusinessUnit } from "../../../context/BusinessContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -58,7 +57,7 @@ const ReceivablesScreen = () => {
         if (!businessUnitId) return;
         setLoading(true);
         try {
-            const payload: PayablesReceivablesPayload = {
+            const payload: Payload = {
                 searchKey: filters.searchKey || null,
                 dateTime: filters.filterDate ? filters.filterDate.toISOString() : new Date().toISOString(),
                 businessUnitId,
@@ -118,11 +117,12 @@ const ReceivablesScreen = () => {
                                 display={Platform.OS === "ios" ? "spinner" : "default"}
                                 onChange={(event, selectedDate) => {
                                     if (Platform.OS === "android") {
-                                        setFilters(prev => ({
-                                            ...prev,
-                                            showPicker: false,
-                                            filterDate: event.type === "set" && selectedDate ? selectedDate : prev.filterDate,
-                                        }));
+                                        setFilters(prev => {
+                                            if (event.type === "dismissed") {
+                                                return { ...prev, showPicker: false };
+                                            }
+                                            return { ...prev, showPicker: false, filterDate: selectedDate! };
+                                        });
                                     } else {
                                         if (selectedDate) {
                                             setFilters(prev => ({ ...prev, filterDate: selectedDate }));
@@ -141,7 +141,9 @@ const ReceivablesScreen = () => {
                 </View>
             </View>
             <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                <DataCard columns={columns} data={receivables}
+                <DataCard columns={columns}
+                    data={receivables}
+                    loading={loading}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalRecords}
@@ -151,7 +153,6 @@ const ReceivablesScreen = () => {
                     }}
                 />
             </View>
-            <LoadingOverlay visible={loading} />
         </View>
     );
 };

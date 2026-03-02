@@ -3,7 +3,7 @@
 import api from "../api/Api";
 
 // ✅ Request payload type
-export interface PayablesReceivablesPayload {
+export interface Payload {
   searchKey: string | null;
   dateTime: string;
   businessUnitId: string;
@@ -33,7 +33,7 @@ export interface PayablesReceivablesResponse {
 }
 // ✅ API function
 export const getPayablesAndReceivables = async (
-  payload: PayablesReceivablesPayload
+  payload: Payload
 ): Promise<PayablesReceivablesResponse> => {
   try {
     const response = await api.post<PayablesReceivablesResponse>(

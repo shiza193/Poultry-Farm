@@ -33,18 +33,17 @@ interface Flock {
 interface Props {
     openAddModal: boolean;
     onCloseAddModal: () => void;
-    setGlobalLoading: (val: boolean) => void;
     onOpenAddModal: () => void;
 }
 
 const VaccineScheduleScreen: React.FC<Props> = ({
     openAddModal,
     onCloseAddModal,
-    setGlobalLoading,
     onOpenAddModal,
 }) => {
     const { businessUnitId } = useBusinessUnit();
     const [schedules, setSchedules] = useState<VaccinationSchedule[]>([]);
+    const [loading, setLoading] = useState(true);
     const [filterdataState, setFilterDataState] = useState({
         searchKey: "",
         flockId: null as string | null,
@@ -61,7 +60,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     // ===== FETCH SCHEDULES =====
     const fetchSchedules = async (page = currentPage) => {
         if (!businessUnitId) return;
-        setGlobalLoading(true);
+        setLoading(true);
         try {
             const payload: VaccinationSchedulePayload = {
                 businessUnitId,
@@ -81,7 +80,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
         } catch (error: any) {
             console.log(error);
         } finally {
-            setGlobalLoading(false);
+            setLoading(false);
         }
     };
     useFocusEffect(
@@ -293,10 +292,14 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                             style={vsstyles.inlineDropdown}
                             containerStyle={vsstyles.inlineDropdownContainer}
                             selectedTextStyle={vsstyles.dropdownText}
-                            data={filterdataState.flockItems}
+                            data={
+                                filterdataState.flockItems.length > 0
+                                    ? filterdataState.flockItems
+                                    : [{ label: "No result found", value: null, disabled: true }]
+                            }
                             labelField="label"
                             valueField="value"
-                            placeholder="Flock"
+                            placeholder={loading ? 'Loading...' : ' Flock'}
                             value={filterdataState.flockId}
                             onChange={(item) =>
                                 setFilterDataState(prev => ({
@@ -325,6 +328,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                     <DataCard
                         columns={columns}
                         data={tableData}
+                        loading={loading}
                         itemsPerPage={pageSize}
                         currentPage={currentPage}
                         totalRecords={totalCount}
@@ -344,7 +348,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                                     }}
                                     style={{ marginBottom: 8 }}
                                 >
-                                    <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', marginLeft: 10 }}>Edit</Text>
+                                    <Text style={{ color: Theme.colors.textPrimary, fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Edit</Text>
                                 </TouchableOpacity>
                                 <View style={vsstyles.menuSeparator} />
                                 <TouchableOpacity
@@ -358,7 +362,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                                     }}
                                     style={{ marginTop: 8 }}
                                 >
-                                    <Text style={{ color: 'red', fontWeight: '600', marginLeft: 10 }}>Delete</Text>
+                                    <Text style={{ color: 'red', fontWeight: '600', fontSize: 16, marginLeft: 20 }}>Delete</Text>
                                 </TouchableOpacity>
                             </View>
                         )}

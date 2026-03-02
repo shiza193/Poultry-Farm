@@ -121,7 +121,7 @@ const DataCard: React.FC<DataCardProps> = ({
                 width: columns.reduce((sum, c) => sum + (c.width || 120), 0),
               }}
             >
-              <CardLoading visible={true} lines={6} />
+              <CardLoading visible={true} lines={10} />
             </View>
           ) : data.length === 0 ? (
             <View
@@ -260,7 +260,7 @@ const DataCard: React.FC<DataCardProps> = ({
         </View>
       </ScrollView>
       {floatingMenu && renderRowMenu && (
-        <TouchableOpacity
+        <View
           style={{
             position: 'absolute',
             top: 0,
@@ -269,9 +269,20 @@ const DataCard: React.FC<DataCardProps> = ({
             bottom: 0,
             zIndex: 999,
           }}
-          activeOpacity={1}
-          onPress={() => setFloatingMenu(null)}
+          pointerEvents="box-none"
         >
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'transparent', 
+            }}
+            activeOpacity={1}
+            onPress={() => setFloatingMenu(null)}
+          />
           <View
             style={{
               position: 'absolute',
@@ -287,7 +298,7 @@ const DataCard: React.FC<DataCardProps> = ({
           >
             {renderRowMenu(floatingMenu.row, () => setFloatingMenu(null))}
           </View>
-        </TouchableOpacity>
+        </View>
       )}
 
       {/* CUSTOM SCROLLBAR */}

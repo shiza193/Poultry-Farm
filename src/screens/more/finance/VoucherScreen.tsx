@@ -228,6 +228,7 @@ const VoucherScreen = () => {
                 <DataCard
                     columns={columns}
                     data={vouchers}
+                    loading={loading}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalRecords}
@@ -237,7 +238,6 @@ const VoucherScreen = () => {
                     }}
                 />
             </View>
-            <LoadingOverlay visible={loading} />
             <BusinessUnitModal
                 visible={modalState.type === 'filter'}
                 mode="voucher"

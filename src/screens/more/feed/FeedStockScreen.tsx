@@ -80,7 +80,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import Theme from "../../../theme/Theme";
 import DataCard, { TableColumn } from "../../../components/customCards/DataCard";
-import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import BackArrow from "../../../components/common/ScreenHeaderWithBack";
 import { useBusinessUnit } from "../../../context/BusinessContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -123,7 +122,7 @@ const FeedStockScreen: React.FC = () => {
         }, [businessUnitId])
     );
     const columns: TableColumn[] = [
-        { key: "feedRecord", title: "FEED RECORD", width: 100, isTitle: true },
+        { key: "feedRecord", title: "FEED RECORD", width: 100, },
         { key: "totalPurchased", title: " PURCHASED", width: 100 },
         { key: "totalConsumed", title: " CONSUMED", width: 90 },
         { key: "availableStock", title: "AVAILABLE ", width: 90 },
@@ -133,7 +132,7 @@ const FeedStockScreen: React.FC = () => {
         <View style={styles.container}>
             <BackArrow
                 title="Feed Stock"
-                showBack
+                showBack={true}
                 onReportPress={async () => {
                     if (!businessUnitId) return;
                     setLoading(true)
@@ -145,13 +144,12 @@ const FeedStockScreen: React.FC = () => {
                 <DataCard
                     columns={columns}
                     data={data}
+                    loading={loading}
                     itemsPerPage={pageSize}
                     currentPage={currentPage}
                     totalRecords={totalRecords}
                     onPageChange={(page) => setCurrentPage(page)} />
             </View>
-
-            <LoadingOverlay visible={loading} />
         </View>
     );
 };

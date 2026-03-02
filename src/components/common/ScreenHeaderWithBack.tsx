@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: Theme.colors.buttonPrimary,
+    backgroundColor: Theme.colors.SeparatorColor,
     marginVertical: 6,
     marginHorizontal: 10,
   },

@@ -222,8 +222,8 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, fontWeight: '600', color: Theme.colors.black },
   activeTabText: { color: Theme.colors.white },
   separator: {
-    width: 1,
-    backgroundColor: Theme.colors.sky,
+    width: 2,
+    backgroundColor: Theme.colors.settinglines,
     alignSelf: 'stretch',
     marginHorizontal: 2,
   },

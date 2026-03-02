@@ -19,6 +19,7 @@ import {
 } from '../services/EmployeeService';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
 import { formatDisplayDate } from '../utils/validation';
+import BackArrow from '../components/common/ScreenHeaderWithBack';
 
 type EmployeeStatus = 'Active' | 'Inactive';
 
@@ -85,8 +86,7 @@ const EmployeeScreen = () => {
   };
   useFocusEffect(
     useCallback(() => {
-      setCurrentPage(1);
-      fetchEmployees(1);
+      fetchEmployees();
     }, [filters.businessUnit]),
   );
   // ================= FILTER =================
@@ -115,26 +115,28 @@ const EmployeeScreen = () => {
       showDots: true,
       render: (_, row) => (
         <TouchableOpacity
-          onPress={() =>
+          onPress={() => {
+            const profileData: ProfileData = {
+              id: row.employeeId!,
+              name: row.name,
+              isActive: row.status === 'Active',
+              businessUnitId: row.poultryFarmId,
+              employeeType: row.type,
+              employeeTypeId: row.employeeTypeId,
+              salary: row.salary,
+              joiningDate: row.joiningDate?.split('T')[0],
+              endDate: row.endDate ? row.endDate.split('T')[0] : '',
+            };
+
             setModalState(prev => ({
               ...prev,
-              selectedEmployee: {
-                id: row.employeeId!,
-                name: row.name,
-                employeeTypeId: row.employeeTypeId,
-                isActive: row.status === 'Active',
-                businessUnitId: row.poultryFarmId,
-                employeeType: row.type,
-                salary: row.salary,
-                joiningDate: formatDisplayDate(row.joiningDate),
-                endDate: formatDisplayDate(row.endDate),
-              },
               profileModal: true,
-            }))
-          }
+              selectedEmployee: profileData,
+            }));
+          }}
         >
           <Text style={{ color: Theme.colors.black, fontWeight: '600' }}>
-            {row.name || 'N/A'}
+            {row.name}
           </Text>
         </TouchableOpacity>
       ),
@@ -251,13 +253,45 @@ const EmployeeScreen = () => {
       }));
     }
   };
+  const handleEditEmployee = async (updatedData: ProfileData) => {
+    try {
+      const payload = {
+        name: updatedData.name,
+        employeeTypeId: updatedData.employeeTypeId,
+        salary: updatedData.salary,
+        joiningDate: updatedData.joiningDate,
+        endDate: updatedData.endDate,
+        businessUnitId: updatedData.businessUnitId,
+      };
+
+      await updateEmployee(updatedData.id, payload);
+      setEmployees(prev =>
+        prev.map(emp =>
+          emp.employeeId === updatedData.id
+            ? {
+              ...emp,
+              name: updatedData.name,
+              employeeTypeId: updatedData.employeeTypeId!,
+              salary: updatedData.salary ?? 0,
+              joiningDate: updatedData.joiningDate ?? '',
+              endDate: updatedData.endDate ?? '',
+              poultryFarmId: updatedData.businessUnitId ?? '',
+            }
+            : emp,
+        ),
+      );
+      showSuccessToast('Employee updated successfully');
+    } catch {
+      showErrorToast('Failed to update employee');
+    }
+  };
   const resetFilters = () => {
     setFilters({ search: '', status: 'all', businessUnit: null });
   };
   return (
     <View style={styles.container}>
       {fromMenu ? (
-        <Header title="Employees" onAddNewPress={() => setModalState(prev => ({ ...prev, AddModal: true }))} />
+        <BackArrow title="Employees"  showBack onAddNewPress={() => setModalState(prev => ({ ...prev, AddModal: true }))} />
       ) : (
         <Header title="Employees" showLogout onAddNewPress={() => setModalState(prev => ({ ...prev, AddModal: true }))} />
       )}
@@ -271,43 +305,37 @@ const EmployeeScreen = () => {
         onReset={resetFilters}
         hideBUDropdown={fromMenu}
       />
-      {filteredEmployees.length > 0 ? (
-        <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
-          <DataCard
-            columns={columns}
-            data={filteredEmployees}
-            itemsPerPage={pageSize}
-            currentPage={currentPage}
-            totalRecords={totalRecords}
-            onPageChange={page => {
-              setCurrentPage(page);
-              fetchEmployees(page);
-            }}
-            renderRowMenu={(row, closeMenu) => (
-              <TouchableOpacity
-                onPress={() => {
-                  setModalState(prev => ({
-                    ...prev,
-                    deleteModal: true,
-                    selectedEmployeeId: row.employeeId,
-                  }));
-                  closeMenu();
-                }}
-              >
-                <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 7 }}>
-                  Delete Employee
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
-        </ScrollView>
-      ) : (
-        !loading && (
-          <View style={styles.noDataContainer}>
-            <Image source={Theme.icons.nodata} style={styles.noDataImage} />
-          </View>
-        )
-      )}
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
+        <DataCard
+          columns={columns}
+          data={filteredEmployees}
+          loading={loading}
+
+          itemsPerPage={pageSize}
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          onPageChange={page => {
+            setCurrentPage(page);
+            fetchEmployees(page);
+          }}
+          renderRowMenu={(row, closeMenu) => (
+            <TouchableOpacity
+              onPress={() => {
+                setModalState(prev => ({
+                  ...prev,
+                  deleteModal: true,
+                  selectedEmployeeId: row.employeeId,
+                }));
+                closeMenu();
+              }}
+            >
+              <Text style={{ color: 'red', fontWeight: '600', fontSize: 13, marginLeft: 7 }}>
+                Delete Employee
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      </ScrollView>
 
       {/* Modals */}
       <AddModal
@@ -326,60 +354,21 @@ const EmployeeScreen = () => {
         onConfirm={handleDelete}
         title="Are you sure you want to delete this employee?"
       />
-      {modalState.selectedEmployee && (
+      {modalState.profileModal && modalState.selectedEmployee && (
         <ProfileModal
           visible={modalState.profileModal}
-          onClose={() => setModalState(prev => ({ ...prev, profileModal: false, selectedEmployee: null }))}
           type="employee"
           data={modalState.selectedEmployee}
-          onSave={async updatedData => {
-            try {
-              console.log("🔵 Updated Data from Modal:", updatedData);
-
-              const payload = {
-                name: updatedData.name,
-                businessUnitId: updatedData.businessUnitId,
-                employeeTypeId: updatedData.employeeTypeId,
-                salary: updatedData.salary,
-                joiningDate: updatedData.joiningDate || null,
-                endDate: updatedData.endDate
-                  ? new Date(updatedData.endDate).toISOString()
-                  : null,
-              };
-              console.log("🟡 Payload BEFORE API Call:", payload);
-
-              await updateEmployee(updatedData.id!, payload);
-
-              setEmployees(prev =>
-                prev.map(emp =>
-                  emp.employeeId === updatedData.id
-                    ? {
-                      ...emp,
-                      name: updatedData.name!,
-                      poultryFarmId: updatedData.businessUnitId ?? emp.poultryFarmId,
-                      employeeTypeId: updatedData.employeeTypeId ?? emp.employeeTypeId,
-                      type: updatedData.employeeType || emp.type,
-                      salary: updatedData.salary ?? emp.salary,
-                      joiningDate: updatedData.joiningDate
-                        ? new Date(updatedData.joiningDate).toISOString()
-                        : emp.joiningDate,
-                      endDate: updatedData.endDate
-                        ? new Date(updatedData.endDate).toISOString()
-                        : '',
-                    }
-                    : emp,
-                ),
-              );
-              showSuccessToast('Employee updated successfully');
-              setModalState(prev => ({ ...prev, profileModal: false, selectedEmployee: null }));
-            } catch (error: any) {
-              console.log("❌ Update Employee Error:", error.response ?? error);
-              showErrorToast('Failed to update employee');
-            }
-          }}
+          onClose={() =>
+            setModalState(prev => ({
+              ...prev,
+              profileModal: false,
+              selectedEmployee: null,
+            }))
+          }
+          onSave={handleEditEmployee}
         />
       )}
-      <LoadingOverlay visible={loading} />
     </View>
   );
 };

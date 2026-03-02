@@ -23,11 +23,9 @@ type Props = {
   openAddModal: boolean;
   onCloseAddModal: () => void;
   onOpenAddModal?: () => void;
-  setGlobalLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const EggSaleScreen: React.FC<Props> = ({
-  setGlobalLoading,
   openAddModal,
   onCloseAddModal,
 }) => {
@@ -36,6 +34,7 @@ const EggSaleScreen: React.FC<Props> = ({
   // States
   const [eggSales, setEggSales] = useState<EggSale[]>([]);
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
+  const [loading, setLoading] = useState(true);
   const [filterData, setFilterData] = useState<{
     searchKey: string;
     selectedCustomer: string | null;
@@ -90,7 +89,7 @@ const EggSaleScreen: React.FC<Props> = ({
   ];
   const fetchEggSales = async (page = currentPage) => {
     if (!businessUnitId) return;
-    setGlobalLoading(true);
+    setLoading(true);
     const payload = {
       businessUnitId,
       customerId: filterData.selectedCustomer,
@@ -109,7 +108,7 @@ const EggSaleScreen: React.FC<Props> = ({
     } catch (error) {
       console.error(error);
     } finally {
-      setGlobalLoading(false);
+      setLoading(false);
     }
   };
   useFocusEffect(
@@ -163,7 +162,7 @@ const EggSaleScreen: React.FC<Props> = ({
   }, [businessUnitId]);
   const handleAddEggSale = async (data: any) => {
     try {
-      setGlobalLoading(true);
+      setLoading(true);
       const payload = {
         businessUnitId,
         customerId: data.customerId,
@@ -192,7 +191,7 @@ const EggSaleScreen: React.FC<Props> = ({
         error?.response?.data?.message || "Failed to add Egg sale";
       showErrorToast(backendMessage);
     } finally {
-      setGlobalLoading(false);
+      setLoading(false);
     }
   };
   return (
@@ -311,6 +310,7 @@ const EggSaleScreen: React.FC<Props> = ({
         <DataCard
           columns={columns}
           data={eggSales}
+          loading={loading}
           itemsPerPage={pageSize}
           currentPage={currentPage}
           totalRecords={totalRecords}
