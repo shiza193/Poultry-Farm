@@ -191,7 +191,7 @@ const LedgerScreen = () => {
             style={styles.resetBtn}
             onPress={() => setFilters({ search: '', party: null, date: null })}
           >
-            <Text style={styles.resetText}>Reset Filters</Text>
+            <Text style={styles.resetText}>Reset</Text>
           </TouchableOpacity>
         )}
       </View>

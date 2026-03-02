@@ -176,7 +176,7 @@ const SupplierScreen = () => {
       }
     } catch (error: any) {
       console.error('Add supplier error:', error);
-      showErrorToast("Error", "Failed to add supplier");
+      // showErrorToast("Error", "Failed to add supplier");
     }
   };
 
@@ -199,7 +199,7 @@ const SupplierScreen = () => {
       );
     } catch (error: any) {
       console.error('Error updating status:', error);
-      showErrorToast('Error', 'Failed to update supplier status');
+      // showErrorToast('Error', 'Failed to update supplier status');
     } finally {
       setLoading(false);
     }
@@ -236,7 +236,7 @@ const SupplierScreen = () => {
       setCurrentPage(prev => Math.min(prev, maxPage));
       showSuccessToast('Supplier deleted successfully');
     } catch {
-      showErrorToast('Failed to delete supplier');
+      // showErrorToast('Failed to delete supplier');
     } finally {
       setModalState(prev => ({
         ...prev,
@@ -286,10 +286,10 @@ const SupplierScreen = () => {
         }
       } catch (error: any) {
         console.log('UPDATE ERROR RESPONSE ', error?.response?.data);
-        showErrorToast(
-          'Error',
-          error?.response?.data?.message || 'Failed to update supplier',
-        );
+        // showErrorToast(
+        //   'Error',
+        //   error?.response?.data?.message || 'Failed to update supplier',
+        // );
       } finally {
         setLoading(false);
       }

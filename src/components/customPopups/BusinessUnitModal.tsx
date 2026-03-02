@@ -56,14 +56,14 @@ interface BusinessUnitModalProps {
   ) => void;
   // mode
   mode?:
-  | 'add'
-  | 'edit'
-  | 'filter'
-  | 'reset'
-  | 'singleField'
-  | 'accountHead'
-  | 'saleFilter'
-  | 'voucher';
+    | 'add'
+    | 'edit'
+    | 'filter'
+    | 'reset'
+    | 'singleField'
+    | 'accountHead'
+    | 'saleFilter'
+    | 'voucher';
 
   // Add/Edit mode
   onSave?: (data: {
@@ -140,7 +140,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   const handlePasswordBlur = () => {
     if (!isValidPassword(newPassword)) {
       setPasswordError(
-        'Password must be at least 8 characters long, include uppercase, lowercase, number, and special character.'
+        'Password must be at least 8 characters long, include uppercase, lowercase, number, and special character.',
       );
     } else {
       setPasswordError(null);
@@ -506,7 +506,9 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 </TouchableOpacity>
               </View>
               {passwordError && (
-                <Text style={{ color: 'red', marginTop: -4 }}>{passwordError}</Text>
+                <Text style={{ color: 'red', marginTop: -4 }}>
+                  {passwordError}
+                </Text>
               )}
               <Text style={styles.inputLabel}>Confirm Password</Text>
               <View style={{ flexDirection: 'column', marginBottom: 10 }}>
@@ -514,7 +516,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                   <InputField
                     placeholder="Confirm password"
                     value={confirmPassword}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                       setConfirmPassword(text);
 
                       if (newPassword === text) {
@@ -523,7 +525,11 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                     }}
                     secureTextEntry={!showConfirmPassword}
                     onBlur={() => {
-                      if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+                      if (
+                        newPassword &&
+                        confirmPassword &&
+                        newPassword !== confirmPassword
+                      ) {
                         setPasswordMismatch(true);
                       } else {
                         setPasswordMismatch(false);
@@ -536,7 +542,11 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                     onPress={() => setShowConfirmPassword(prev => !prev)}
                   >
                     <Image
-                      source={showConfirmPassword ? Theme.icons.showPassword : Theme.icons.hidePassword}
+                      source={
+                        showConfirmPassword
+                          ? Theme.icons.showPassword
+                          : Theme.icons.hidePassword
+                      }
                       style={{ width: 24, height: 24 }}
                     />
                   </TouchableOpacity>
@@ -567,7 +577,7 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                     (newPassword.trim() === '' ||
                       confirmPassword.trim() === '' ||
                       newPassword !== confirmPassword) &&
-                    styles.saveButtonDisabled
+                      styles.saveButtonDisabled,
                   ]}
                   disabled={
                     !newPassword ||
@@ -656,8 +666,9 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
 
               {/* INPUT FIELD */}
               <InputField
-                placeholder={`Enter ${singleFieldLabel?.toLowerCase() || 'value'
-                  }...`}
+                placeholder={`Enter ${
+                  singleFieldLabel?.toLowerCase() || 'value'
+                }...`}
                 value={name}
                 onChangeText={setName}
               />
@@ -701,15 +712,19 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               <Text style={styles.inputLabel}>
                 Parent Account<Text style={styles.required}>*</Text>
               </Text>
-              <DropDownPicker
-                open={accountTypeOpen}
-                value={accountType}
-                items={accountTypeItems || []}
-                setOpen={setAccountTypeOpen}
-                setValue={setAccountType}
+              <Dropdown
+                style={styles.dropdowns}
+                containerStyle={styles.dropdownContainers}
+                data={accountTypeItems}
+                labelField="label"
+                valueField="value"
                 placeholder="Select parent account..."
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
+                value={accountType}
+                onChange={item => {
+                  setAccountType(item.value);
+                }}
+                placeholderStyle={styles.dropdownPlaceholder}
+                selectedTextStyle={styles.dropdownText}
               />
 
               {/* STATUS */}
@@ -920,6 +935,19 @@ const styles = StyleSheet.create({
   dropdownContainer: {
     borderColor: Theme.colors.success,
     borderRadius: 8,
+  },
+   dropdownContainers: {
+    borderColor: Theme.colors.borderLight,
+    borderRadius: 8,
+  },
+   dropdowns: {
+    borderWidth: 1,
+    borderColor: Theme.colors.borderColor,
+    borderRadius: 8,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
   },
   dropdownPlaceholder: {
     color: Theme.colors.black,

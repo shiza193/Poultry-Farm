@@ -110,7 +110,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
 }) => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // ===== search aur filter functionality =====
   // const [filterState, setFilterState] = useState({

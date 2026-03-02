@@ -31,7 +31,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
   
 }) => {
   const { businessUnitId } = useBusinessUnit();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
 
   const [salesData, setSalesData] = useState<SaleRecord[]>([]);
   const [search, setSearch] = useState('');

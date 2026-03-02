@@ -23,6 +23,7 @@ import {
 } from '../services/UserScreen';
 import AddModal from '../components/customPopups/AddModal';
 import Theme from '../theme/Theme';
+import { useNavigation } from '@react-navigation/native';
 import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { showSuccessToast, showErrorToast } from '../utils/AppToast';
 import ConfirmationModal from '../components/customPopups/ConfirmationModal';
@@ -43,25 +44,40 @@ type User = {
   businessUnit?: string;
   businessUnitId: string;
 };
+
+type GroupState = {
+  search: string;
+  status: 'all' | 'active' | 'inactive';
+  selectedBU: string | null;
+  showAddModal: boolean;
+  deleteModalVisible: boolean;
+  selectedUserId: string | null;
+  profileVisible: boolean;
+  selectedProfile: ProfileData | null;
+  selectedUserForReset: User | null;
+  showAssignFarmModal: boolean;
+  selectedRowUser: User | null;
+};
 const UserScreen = () => {
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const routeBusinessUnitId = route.params?.businessUnitId ?? null;
   const [users, setUsers] = useState<User[]>([]);
   const [roleItems, setRoleItems] = useState<{ label: string; id: string }[]>(
     [],
   );
-  const [groupState, setGroupState] = useState({
+  const [groupState, setGroupState] = useState<GroupState>({
     search: '',
-    status: 'all' as 'all' | 'active' | 'inactive',
-    selectedBU: routeBusinessUnitId as string | null,
+    status: 'all',
+    selectedBU: null,
     showAddModal: false,
     deleteModalVisible: false,
-    selectedUserId: null as string | null,
+    selectedUserId: null,
     profileVisible: false,
-    selectedProfile: null as ProfileData | null,
-    selectedUserForReset: null as User | null,
+    selectedProfile: null,
+    selectedUserForReset: null,
     showAssignFarmModal: false,
-    selectedRowUser: null as User | null,
+    selectedRowUser: null,
   });
   const [farms, setFarms] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,9 +139,28 @@ const UserScreen = () => {
   };
   useFocusEffect(
     useCallback(() => {
+      // agar route se businessUnitId aaya hai
+      if (routeBusinessUnitId) {
+        setGroupState(prev => ({
+          ...prev,
+          selectedBU: routeBusinessUnitId,
+        }));
+
+        // param clear kar do
+        navigation.setParams({ businessUnitId: null });
+      }
+
       setCurrentPage(1);
       fetchUsers(1);
-    }, [groupState.search, groupState.status, groupState.selectedBU]),
+
+      return () => {
+        //  screen leave kare to reset filter
+        setGroupState(prev => ({
+          ...prev,
+          selectedBU: null,
+        }));
+      };
+    }, [routeBusinessUnitId, groupState.search, groupState.status]),
   );
   // ================= FILTER =================
   const filteredUsers = users.filter(user => {

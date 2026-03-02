@@ -38,7 +38,7 @@ const HospitalityScreen: React.FC<HospitalityScreenProps> = ({
 
   const [data, setData] = useState<HospitalityRecord[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<HospitalityRecord | null>(
     null,
   );

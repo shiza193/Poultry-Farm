@@ -7,7 +7,6 @@ import SearchBar from '../../../components/common/SearchBar';
 import DataCard, {
   TableColumn,
 } from '../../../components/customCards/DataCard';
-import LoadingOverlay from '../../../components/loading/LoadingOverlay';
 import { showErrorToast, showSuccessToast } from '../../../utils/AppToast';
 
 import {
@@ -108,7 +107,14 @@ const AccountHeadScreen = () => {
     try {
       const res = await getParentAccountHeads(businessUnitId);
 
-      const mapped = res.map((item: any) => ({
+      // ===== Normalize data =====
+      const safeList = normalizeDataFormat(
+        res,
+        'array',
+        'Parent Account Heads',
+      );
+
+      const mapped = safeList.map((item: any) => ({
         label: item.name,
         value: item.parentAccountHeadId,
       }));
@@ -116,6 +122,7 @@ const AccountHeadScreen = () => {
       setAccountTypeItems(mapped);
     } catch {
       showErrorToast('Failed to load account types');
+      setAccountTypeItems([]);
     }
   };
 

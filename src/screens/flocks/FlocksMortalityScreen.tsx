@@ -14,25 +14,24 @@ import {
   FlockHealthRecord,
   updateFlockHealth,
 } from '../../services/FlockService';
-
+import { useNavigation } from '@react-navigation/native';
 import { useBusinessUnit } from '../../context/BusinessContext';
 import { Dropdown } from 'react-native-element-dropdown';
 import { showSuccessToast } from '../../utils/AppToast';
 import ItemEntryModal from '../../components/customPopups/ItemEntryModal';
 
 const FlocksMortalityScreen = () => {
+  const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
   const route = useRoute<any>();
   const flockIdFromRoute = route.params?.flockId ?? null;
 
   const [records, setRecords] = useState<FlockHealthRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [flockOptions, setFlockOptions] = useState<
     { label: string; value: string }[]
   >([]);
-  const [selectedFlockId, setSelectedFlockId] = useState<string | null>(
-    flockIdFromRoute,
-  );
+  const [selectedFlockId, setSelectedFlockId] = useState<string | null>(null);
   const [mortalityModalVisible, setMortalityModalVisible] = useState(false);
   const [editMortality, setEditMortality] = useState<FlockHealthRecord | null>(
     null,
@@ -79,17 +78,22 @@ const FlocksMortalityScreen = () => {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchRecords();
+useFocusEffect(
+  useCallback(() => {
+    fetchRecords();
 
-      return () => {
-        // Cleanup function runs on unmount
-        setSelectedFlockId(null); // Reset the filter
-      };
-    }, [businessUnitId]),
-  );
+    if (flockIdFromRoute) {
+      setSelectedFlockId(flockIdFromRoute);
 
+      //  param ko turant clear
+      navigation.setParams({ flockId: null });
+    }
+
+    return () => {
+      setSelectedFlockId(null);
+    };
+  }, [businessUnitId, flockIdFromRoute]),
+);
   const handleDeleteRecord = async () => {
     if (!modalState.record) return;
     try {

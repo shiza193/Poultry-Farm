@@ -20,7 +20,7 @@ import { normalizeDataFormat } from '../../utils/NormalizeDataFormat';
 const FlockStockScreen = () => {
   const { businessUnitId } = useBusinessUnit();
   const [data, setData] = useState<FlockStock[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const pageSize = 10;
