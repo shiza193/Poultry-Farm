@@ -64,7 +64,6 @@ interface FlocksScreenProps {
   openAddModal?: boolean;
   onCloseAddModal?: () => void;
   onOpenAddModal?: () => void;
-  setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
   currentPage?: number;
   setCurrentPage?: React.Dispatch<React.SetStateAction<number>>;
   // Add these two props
@@ -97,7 +96,6 @@ interface FlocksScreenProps {
 }
 
 const FlocksScreen: React.FC<FlocksScreenProps> = ({
-  setGlobalLoading,
   openAddModal,
   onCloseAddModal,
   currentPage,
@@ -112,6 +110,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
 }) => {
   const navigation = useNavigation<any>();
   const { businessUnitId } = useBusinessUnit();
+  const [loading, setLoading] = useState(false);
 
   // ===== search aur filter functionality =====
   // const [filterState, setFilterState] = useState({
@@ -152,7 +151,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
   const fetchFlocks = async (page: number = 1) => {
     if (!businessUnitId) return;
 
-    setGlobalLoading?.(true);
+    setLoading(true);
 
     try {
       const data = await getFlockByFilter({
@@ -180,7 +179,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
       setFlocks([]);
       setTotalRecords(0);
     } finally {
-      setGlobalLoading?.(false);
+      setLoading(false);
     }
   };
 
@@ -337,7 +336,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
       if (!businessUnitId) return;
 
       setCurrentPage(1);
-      fetchFlocks(1);
+      fetchFlocks(1); // <-- yahi initially call hoga
     }, [
       businessUnitId,
       filterState.searchKey,
@@ -346,6 +345,13 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
       filterState.isEnded,
     ]),
   );
+
+  // Dropdowns ko tab fetch karo jab user filter modal open kare
+  const openFilterModal = () => {
+    setModals(prev => ({ ...prev, filter: true }));
+    fetchDropdownFlocks();
+    fetchSuppliers();
+  };
 
   const AddFlock = async (data: any) => {
     const payload: AddFlockPayload = {
@@ -511,7 +517,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
             {/* FILTER ICON */}
             <TouchableOpacity
               style={styles.filterBtn}
-              onPress={() => setModals(prev => ({ ...prev, filter: true }))}
+              onPress={openFilterModal}
             >
               <Image source={Theme.icons.filter} style={styles.filterIcon} />
             </TouchableOpacity>
@@ -528,6 +534,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
                 columns={columns}
                 data={tableData}
                 itemsPerPage={pageSize}
+                 loading={loading} 
                 currentPage={currentPage}
                 totalRecords={totalRecords}
                 onPageChange={page => {
@@ -681,6 +688,7 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
           visible={modals.hospitality}
           onClose={() => setModals(prev => ({ ...prev, hospitality: false }))}
           type="hospitality"
+          hideFlockDropdown={true}
           onSave={Hospitality}
         />
 

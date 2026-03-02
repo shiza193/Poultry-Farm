@@ -25,13 +25,14 @@ import { useBusinessUnit } from '../../context/BusinessContext';
 import { Dropdown } from 'react-native-element-dropdown';
 
 interface ItemEntryModalProps {
+   record?: any;
   visible?: boolean;
   type?: 'feed' | 'fcr' | 'mortality' | 'hospitality' | 'flockSale';
   onClose: () => void;
   onSave: (data: any) => Promise<{ fcr: number; message: string } | void>;
   businessUnitId?: string;
   maxQuantity?: number;
-
+  hideFlockDropdown?: boolean;
   initialData?: {
     quantity?: number;
     expireDate?: Date;
@@ -40,7 +41,6 @@ interface ItemEntryModalProps {
 }
 
 type RecordType = 'egg' | 'feed' | 'vaccination' | 'mortality' | 'hospitality';
-
 
 type EditState = {
   type: RecordType | null;
@@ -54,6 +54,8 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   initialData,
   onSave,
   maxQuantity,
+  hideFlockDropdown = false,
+   record,
 }) => {
   const { businessUnitId } = useBusinessUnit();
   // ---------- Common States ----------
@@ -84,10 +86,10 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   const [saleDate, setSaleDate] = useState<Date | null>(null);
   const [showSaleDatePicker, setShowSaleDatePicker] = useState(false);
   const maxQty = maxQuantity || 0;
-   const [editState, setEditState] = useState<EditState>({
-      type: null,
-      data: null,
-    });
+  const [editState, setEditState] = useState<EditState>({
+    type: null,
+    data: null,
+  });
   // ---------- Other Fields ----------
   const [currentWeight, setCurrentWeight] = useState('');
   const [expireDate, setExpireDate] = useState<Date | null>(null);
@@ -98,6 +100,8 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   const [symptoms, setSymptoms] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
   const [medication, setMedication] = useState('');
+  const [flockId, setFlockId] = useState<string>('');
+const [date, setDate] = useState<Date | null>(null);
   const [dosage, setDosage] = useState('');
   const [treatmentDays, setTreatmentDays] = useState('');
   const [vetName, setVetName] = useState('');
@@ -109,6 +113,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     setOpen(false);
     setItems([]);
     setFcrResult(null);
+    setSelectedFlock('');
     setFlockName('');
     setError('');
     setCustomer('');
@@ -204,6 +209,21 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     fetchFlocks();
   }, [visible, type, businessUnitId]);
 
+
+ useEffect(() => {
+  if (record) {
+    setSelectedFlock(record.flockId);        // flock dropdown
+    setHospitalityDate(new Date(record.date)); // date picker
+    setQuantity(String(record.quantity));
+    setDiagnosis(record.diagnosis ?? '');
+    setMedication(record.medication ?? '');
+    setTreatmentDays(String(record.treatmentDays ?? ''));
+    setVetName(record.vetName ?? '');
+    setRemarks(record.remarks ?? '');
+  } else {
+    resetFields();
+  }
+}, [record]);
   // ---------- Enable/Disable Save ----------
   const isButtonEnabled =
     (type === 'feed' && feed && quantity) ||
@@ -221,7 +241,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
       vetName) ||
     (type === 'flockSale' &&
       customer &&
-     selectedFlock &&
+      selectedFlock &&
       quantity &&
       price &&
       saleDate);
@@ -272,6 +292,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
       onSave({
         feed,
         quantity,
+        flockId: selectedFlock,
         currentWeight,
         expireDate,
         hospitalityDate,
@@ -372,11 +393,11 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                 {/* Mortality */}
                 {type === 'mortality' && (
                   <>
-                   <Text style={styles.title}>
-  {editState.data && editState.data.type === 'mortality'
-    ? 'Edit Mortality'
-    : 'Add Mortality'}
-</Text>
+                    <Text style={styles.title}>
+                      {initialData && type === 'mortality'
+                        ? 'Edit Mortality'
+                        : 'Add Mortality'}
+                    </Text>
                     <Text style={styles.label}>Quantity</Text>
                     <TextInput
                       placeholder="Enter quantity..."
@@ -447,6 +468,26 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                 {type === 'hospitality' && (
                   <>
                     <Text style={styles.title}>Add Hospitality</Text>
+
+                    {/* Flock Selection */}
+                    {!hideFlockDropdown && (
+                      <>
+                        <Text style={styles.label}>Flock</Text>
+                        <Dropdown
+                          style={styles.dropdownElement}
+                          containerStyle={styles.dropdownContainerElement}
+                          data={flockItems}
+                          labelField="label"
+                          valueField="value"
+                          placeholder="Select flock..."
+                          value={selectedFlock}
+                          onChange={item => setSelectedFlock(item.value)}
+                          selectedTextStyle={styles.selectedText}
+                          placeholderStyle={styles.placeholderText}
+                        />
+                      </>
+                    )}
+
                     <Text style={styles.label}>Date</Text>
                     <TouchableOpacity
                       style={styles.dateInput}

@@ -398,6 +398,8 @@ const CustomerScreen = () => {
               columns={columns}
               data={tableData}
               itemsPerPage={pageSize}
+                loading={loading}
+
               currentPage={currentPage}
               totalRecords={totalRecords}
               onPageChange={page => {
@@ -457,7 +459,6 @@ const CustomerScreen = () => {
         title="Are you sure you want to delete this customer?"
       />
 
-      <LoadingOverlay visible={loading} />
     </SafeAreaView>
   );
 };

@@ -15,59 +15,53 @@ import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 
 import { getFlockStock, FlockStock } from '../../services/FlockService';
 import { useBusinessUnit } from '../../context/BusinessContext';
+import { normalizeDataFormat } from '../../utils/NormalizeDataFormat';
 
-interface FlockScreenProps {
-  setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-const FlockStockScreen: React.FC<FlockScreenProps> = ({ setGlobalLoading }) => {
+const FlockStockScreen = () => {
   const { businessUnitId } = useBusinessUnit();
   const [data, setData] = useState<FlockStock[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const pageSize = 10;
 
   // ================= FETCH =================
-  const fetchFlockStock = async (page: number = 1) => {
+  const fetchFlockStock = async () => {
     if (!businessUnitId) return;
-
     try {
       setLoading(true);
-      setGlobalLoading?.(true);
 
-      const res = await getFlockStock(businessUnitId);
-      setData(res ?? []);
-      setTotalRecords(res?.length ?? 0);
-      setCurrentPage(page);
+      const response = await getFlockStock(businessUnitId);
+
+      const stockList = normalizeDataFormat(response, 'array', 'Flock Stock');
+
+      setData(stockList);
+      setTotalRecords(stockList.length);
+      setCurrentPage(1);
     } catch (err: any) {
+      console.error('Flock stock fetch error:', err);
       setData([]);
       setTotalRecords(0);
     } finally {
       setLoading(false);
-      setGlobalLoading?.(false);
     }
   };
 
   useEffect(() => {
-    fetchFlockStock(1);
+    fetchFlockStock();
   }, [businessUnitId]);
 
   // ================= PAGINATION =================
-  const paginatedData = data
-    .map(item => ({
-      flock: item.flock,
-      purchased: item.totalPurchased,
-      mortality: item.totalMortality,
-      hospitality: item.totalHospitality,
-      sale: item.totalSale,
-      available: item.availableStock,
-      status: item.isEnded, // boolean
-      raw: item,
-    }))
-    .slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
+  const tableData = data.map(item => ({
+    flock: item.flock,
+    purchased: item.totalPurchased,
+    mortality: item.totalMortality,
+    hospitality: item.totalHospitality,
+    sale: item.totalSale,
+    available: item.availableStock,
+    status: item.isEnded,
+    raw: item,
+  }));
   // ================= COLUMNS =================
   const columns: TableColumn[] = [
     { key: 'flock', title: 'FLOCK', width: 140 },
@@ -118,7 +112,7 @@ const FlockStockScreen: React.FC<FlockScreenProps> = ({ setGlobalLoading }) => {
   // ================= UI =================
   return (
     <SafeAreaView style={styles.safeArea}>
-      {paginatedData.length > 0 ? (
+      {tableData.length > 0 ? (
         <View style={{ flex: 1 }}>
           <ScrollView
             style={{ flex: 1, paddingHorizontal: 16, marginTop: 15 }}
@@ -126,11 +120,13 @@ const FlockStockScreen: React.FC<FlockScreenProps> = ({ setGlobalLoading }) => {
           >
             <DataCard
               columns={columns}
-              data={paginatedData}
+              data={tableData}
+              showPagination={false}
               itemsPerPage={pageSize}
+               loading={loading} 
               currentPage={currentPage}
               totalRecords={totalRecords}
-              onPageChange={page => fetchFlockStock(page)}
+              onPageChange={page => setCurrentPage(page)}
             />
           </ScrollView>
         </View>

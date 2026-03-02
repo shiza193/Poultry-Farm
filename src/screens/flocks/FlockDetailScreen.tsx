@@ -15,7 +15,6 @@ import DataCard, { TableColumn } from '../../components/customCards/DataCard';
 import { useRoute } from '@react-navigation/native';
 import Theme from '../../theme/Theme';
 import { formatDisplayDate } from '../../utils/validation';
-
 import BackArrow from '../../components/common/ScreenHeaderWithBack';
 import ExpandableCard from '../../components/common/ExpandableCard';
 import {
@@ -103,9 +102,7 @@ const FlockDetailScreen = () => {
   const { businessUnitId } = useBusinessUnit();
   const route = useRoute<any>();
   const flock = route.params?.flock;
-  // 1 Active picker state
   const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
-  // 2 Date range state
   const [dateRange, setDateRange] = useState<{
     from: Date | null;
     to: Date | null;
@@ -113,18 +110,13 @@ const FlockDetailScreen = () => {
     from: null,
     to: null,
   });
-  // 2 Global Loading
   const [loading, setLoading] = useState(false);
-  // 3 Active Tab
   const [activeTab, setActiveTab] = useState<TabType>('Egg Production');
-  // 4 Modal Control
   const [activeModal, setActiveModal] = useState<RecordType | null>(null);
-  // 5 Edit State
   const [editState, setEditState] = useState<EditState>({
     type: null, //bataega ke kis type ka record edit ho raha hai (jaise egg, feed, vaccination)
     data: null, // data us record ka actual data store karega.
   });
-  // 6 Delete Modal State
   const [deleteState, setDeleteState] = useState<DeleteState>({
     visible: false,
     type: null,
@@ -338,14 +330,21 @@ const FlockDetailScreen = () => {
         dateRange.to?.toISOString(),
         flockId,
       );
-
       const flockDetailResponse = await getFlockDetail(flockId);
-
-      // State update karo
+      const normalizedSummary = normalizeDataFormat(
+        summaryResponse?.data || summaryResponse,
+        'object',
+        'Flock Summary',
+      );
+      const normalizedFlockDetail = normalizeDataFormat(
+        flockDetailResponse,
+        'object',
+        'Flock Detail',
+      );
       setDataState(prev => ({
         ...prev,
-        summary: summaryResponse.data || summaryResponse,
-        flockDetail: flockDetailResponse,
+        summary: normalizedSummary,
+        flockDetail: normalizedFlockDetail,
       }));
     } catch (error) {
       console.error(error);
@@ -357,9 +356,16 @@ const FlockDetailScreen = () => {
 
   const fetchEggProduction = async () => {
     if (!flockId) return;
+
     setLoading(true);
     try {
-      const eggData = await getEggProductions(flockId);
+      const eggResponse = await getEggProductions(flockId);
+      const eggData = normalizeDataFormat(
+        eggResponse,
+        'array',
+        'Egg Productions',
+      );
+
       const formattedData = eggData.map((item: any) => ({
         ref: item.ref,
         unit: item.unit,
@@ -369,6 +375,7 @@ const FlockDetailScreen = () => {
         brokenEggs: item.brokenEggs,
         raw: item,
       }));
+
       setDataState(prev => ({
         ...prev,
         tables: {
@@ -385,10 +392,17 @@ const FlockDetailScreen = () => {
 
   const fetchFeedConsumption = async () => {
     if (!flockId) return;
+
     setLoading(true);
     try {
-      const feedData = await getFeedConsumptions(flockId);
-      // Map API response to your table format if needed
+      const feedResponse = await getFeedConsumptions(flockId);
+
+      const feedData = normalizeDataFormat(
+        feedResponse,
+        'array',
+        'Feed Consumptions',
+      );
+
       const formattedFeedData = feedData.map((item: any) => ({
         ref: item.ref,
         date: new Date(item.date).toLocaleDateString('en-GB'),
@@ -420,15 +434,18 @@ const FlockDetailScreen = () => {
   const fetchVaccinationSchedules = async () => {
     if (!flockId) return;
     setLoading(true);
-
     try {
-      const vaccineData = await getVaccinationSchedules(flockId);
-
+      const vaccineResponse = await getVaccinationSchedules(flockId);
+      const vaccineData = normalizeDataFormat(
+        vaccineResponse,
+        'array',
+        'Vaccination Schedules',
+      );
       const formattedVaccineData = vaccineData.map((item: any) => ({
         vaccinationScheduleId: item.vaccinationScheduleId,
         ref: item.ref,
         vaccinationName: item.vaccine,
-       scheduledDate: formatDisplayDate(item.scheduledDate),
+        scheduledDate: formatDisplayDate(item.scheduledDate),
         quantity: item.quantity,
         isVaccinated: item.isVaccinated,
         raw: item,
@@ -450,17 +467,18 @@ const FlockDetailScreen = () => {
 
   const fetchMortalityRecords = async () => {
     if (!flockId) return;
+
     setLoading(true);
 
     try {
-      const healthResponse = await getFlockHealthRecord(flockId);
+      const response = await getFlockHealthRecord(flockId);
 
-      // records array is inside healthResponse.data
-      const records = healthResponse?.data || [];
+      const records = response?.data ?? [];
 
       const formattedMortalityData = records.map((item: any) => ({
-         expireDate: formatDisplayDate(item.date),
-        mortalityQuantity: item.quantity,
+        flockHealthId: item.flockHealthId,
+        expireDate: formatDisplayDate(item.date), 
+        mortalityQuantity: Number(item.quantity), 
         raw: item,
       }));
 
@@ -483,8 +501,12 @@ const FlockDetailScreen = () => {
     setLoading(true);
 
     try {
-      const hospData = await getHospitalities(flockId);
-
+      const hospResponse = await getHospitalities(flockId);
+      const hospData = normalizeDataFormat(
+        hospResponse,
+        'array',
+        'Hospitality Records',
+      );
       const formattedHospitalityData = hospData.map((item: any) => ({
         date: new Date(item.date).toLocaleDateString('en-GB'),
         quantity: item.quantity,
@@ -537,10 +559,12 @@ const FlockDetailScreen = () => {
           typeId: null,
         };
 
-        await updateEggProduction(
+        const updateResponse = await updateEggProduction(
           editState.data.eggProductionId,
           updatePayload,
         );
+
+        normalizeDataFormat(updateResponse, 'object', 'Update Egg Production');
 
         showSuccessToast('Egg production updated successfully');
       } else {
@@ -557,7 +581,9 @@ const FlockDetailScreen = () => {
           typeId: null,
         };
 
-        await addEggProduction(addPayload);
+        const addResponse = await addEggProduction(addPayload);
+
+        normalizeDataFormat(addResponse, 'object', 'Add Egg Production');
 
         showSuccessToast('Egg production added successfully');
       }
@@ -599,8 +625,13 @@ const FlockDetailScreen = () => {
           ),
         };
 
-        const updatedRecord = await updateFeedConsumption(updatePayload);
+        const updateResponse = await updateFeedConsumption(updatePayload);
 
+        const updatedRecord = normalizeDataFormat(
+          updateResponse?.data || updateResponse,
+          'object',
+          'Updated Feed Consumption',
+        );
         // Update table immediately
         setDataState(prev => ({
           ...prev,
@@ -608,7 +639,7 @@ const FlockDetailScreen = () => {
             ...prev.tables,
             feed: prev.tables.feed.map(item =>
               item.raw.feedRecordConsumptionId ===
-              updatedRecord.data.feedRecordConsumptionId
+              updatedRecord.feedRecordConsumptionId
                 ? {
                     ref: updatedRecord.data.ref,
                     date: new Date(updatedRecord.data.date).toLocaleDateString(
@@ -637,7 +668,13 @@ const FlockDetailScreen = () => {
           date: data.date instanceof Date ? data.date.toISOString() : data.date,
         };
 
-        const newRecord = await addFeedConsumption(payload);
+        const addResponse = await addFeedConsumption(payload);
+
+        const newRecord = normalizeDataFormat(
+          addResponse?.data || addResponse,
+          'object',
+          'New Feed Consumption',
+        );
 
         // Append new record to table immediately
         setDataState(prev => ({
@@ -647,13 +684,13 @@ const FlockDetailScreen = () => {
             feed: [
               ...(prev.tables.feed || []),
               {
-                ref: newRecord.data.ref,
-                date: new Date(newRecord.data.date).toLocaleDateString('en-GB'),
-                feed: newRecord.data.feed,
-                feedId: newRecord.data.feedId,
-                totalQuantity: newRecord.data.totalQuantity,
-                quantity: newRecord.data.quantity,
-                raw: newRecord.data,
+                ref: newRecord.ref,
+                date: new Date(newRecord.date).toLocaleDateString('en-GB'),
+                feed: newRecord.feed,
+                feedId: newRecord.feedId,
+                totalQuantity: newRecord.totalQuantity,
+                quantity: newRecord.quantity,
+                raw: newRecord,
               },
             ],
           },
@@ -688,19 +725,33 @@ const FlockDetailScreen = () => {
         dataState.flockDetail.vaccinationScheduleId
       ) {
         // EDIT existing vaccination
-        const updatedRecord = await updateVaccinationSchedule(
-          dataState.flockDetail.vaccinationScheduleId, // ID as first argument
-          payload, // payload only contains allowed fields
+        const updateResponse = await updateVaccinationSchedule(
+          dataState.flockDetail.vaccinationScheduleId,
+          payload,
+        );
+
+        normalizeDataFormat(
+          updateResponse,
+          'object',
+          'Update Vaccination Schedule',
         );
 
         showSuccessToast('Vaccination schedule updated successfully');
       } else {
         // ADD new vaccination
-        const res = await addVaccinationSchedule(payload);
-        if (res.status === 'Success') {
+        const addResponse = await addVaccinationSchedule(payload);
+
+        const normalizedRes = normalizeDataFormat(
+          addResponse,
+          'object',
+          'Add Vaccination Schedule',
+        );
+        if (normalizedRes?.status === 'Success') {
           showSuccessToast('Vaccination schedule added successfully');
         } else {
-          showErrorToast(res.message || 'Failed to add vaccination schedule');
+          showErrorToast(
+            normalizedRes.message || 'Failed to add vaccination schedule',
+          );
         }
       }
 
@@ -714,6 +765,7 @@ const FlockDetailScreen = () => {
       setEditState({ type: null, data: null });
     }
   };
+
   const handleMortality = async (data: any) => {
     if (!flockId) return;
 
@@ -721,7 +773,7 @@ const FlockDetailScreen = () => {
       setLoading(true);
 
       const payload: UpdateFlockHealthPayload = {
-        flockHealthId: editState.data?.flockHealthId ?? '', // existing ID for update
+        flockHealthId: editState.data?.flockHealthId ?? '',
         flockId: String(flockId),
         quantity: Number(data.quantity),
         date: data.expireDate
@@ -729,52 +781,68 @@ const FlockDetailScreen = () => {
             ? data.expireDate.toISOString().split('T')[0]
             : data.expireDate
           : new Date().toISOString().split('T')[0],
-        flockHealthStatusId: 1, // Mortality
+        flockHealthStatusId: 1,
       };
 
-      if (editState.data && editState.data.flockHealthId) {
-        // Update existing record
-        await updateFlockHealth(payload);
-        showSuccessToast('Mortality record updated successfully');
+      // ================= UPDATE =================
+      if (editState.data?.flockHealthId) {
+        const updateResponse = await updateFlockHealth(payload);
+        const updatedRecord = normalizeDataFormat(
+          updateResponse?.data || updateResponse,
+          'object',
+          'Updated Mortality Record',
+        );
 
-        // Update local state immediately
+        await fetchMortalityRecords();
+
+        showSuccessToast('Mortality record updated successfully');
         setDataState(prev => ({
           ...prev,
           tables: {
             ...prev.tables,
             mortality: prev.tables.mortality.map(item =>
-              item.flockHealthId === payload.flockHealthId
-                ? { ...item, ...payload }
+              item.raw?.flockHealthId === updatedRecord.flockHealthId
+                ? {
+                    ...item,
+                    expireDate: formatDisplayDate(updatedRecord.date),
+                    mortalityQuantity: Number(updatedRecord.quantity),
+                    raw: updatedRecord,
+                  }
                 : item,
             ),
           },
         }));
       } else {
-        // Add new record
-        const newRecord = await addFlockHealthRecord(payload);
+        // ================= ADD =================
+        const addResponse = await addFlockHealthRecord(payload);
+
+        const newRecord = normalizeDataFormat(
+          addResponse?.data || addResponse,
+          'object',
+          'New Mortality Record',
+        );
+
         showSuccessToast('Mortality added successfully');
 
-        // Add new record to local state
         setDataState(prev => ({
           ...prev,
           tables: {
             ...prev.tables,
             mortality: [
-              ...prev.tables.mortality,
+              ...(prev.tables.mortality || []),
               {
-                ...payload,
-                expireDate: payload.date,
-                mortalityQuantity: payload.quantity,
-                flockHealthId: newRecord.data.flockHealthId,
-                raw: newRecord.data, // optional: keep raw data for edit/delete
+                expireDate: newRecord.date,
+                mortalityQuantity: newRecord.quantity,
+                flockHealthId: newRecord.flockHealthId,
+                raw: newRecord,
               },
             ],
           },
         }));
       }
 
-      // Close modal
       setActiveModal(null);
+      await fetchMortalityRecords(); 
       setEditState({ type: null, data: null });
     } catch (err: any) {
       console.error('Mortality API error:', err);
@@ -821,11 +889,13 @@ const FlockDetailScreen = () => {
 
   const fetchUnits = async () => {
     try {
-      const units = await getUnitsByProductType(1);
+      const response = await getUnitsByProductType(1);
+      const units = normalizeDataFormat(response, 'array', 'Units');
       const dropdownData = units.map((u: any) => ({
         label: u.value,
         value: u.unitId,
       }));
+
       setDataState(prev => ({
         ...prev,
         master: {
@@ -840,10 +910,16 @@ const FlockDetailScreen = () => {
 
   const fetchFlockTypes = async () => {
     try {
-      const types = await getFlockTypes();
+      const response = await getFlockTypes();
+
+      const types = normalizeDataFormat(response, 'array', 'Flock Types');
+
       setDataState(prev => ({
         ...prev,
-        master: { ...prev.master, flockTypes: types || [] },
+        master: {
+          ...prev.master,
+          flockTypes: types,
+        },
       }));
     } catch (error) {
       console.error(error);
@@ -853,12 +929,17 @@ const FlockDetailScreen = () => {
   const fetchSuppliers = async () => {
     try {
       if (!dataState.flockDetail?.businessUnitId) return;
-      const supplierList = await getSuppliers(
-        dataState.flockDetail.businessUnitId,
-      );
+
+      const response = await getSuppliers(dataState.flockDetail.businessUnitId);
+
+      const supplierList = normalizeDataFormat(response, 'array', 'Suppliers');
+
       setDataState(prev => ({
         ...prev,
-        master: { ...prev.master, suppliers: supplierList || [] },
+        master: {
+          ...prev.master,
+          suppliers: supplierList,
+        },
       }));
     } catch (error) {
       console.error(error);
@@ -867,11 +948,15 @@ const FlockDetailScreen = () => {
 
   const fetchFeeds = async () => {
     try {
-      const res = await getFeeds();
-      const mappedFeeds = res.map((f: any) => ({
+      const response = await getFeeds();
+
+      const feeds = normalizeDataFormat(response, 'array', 'Feeds');
+
+      const mappedFeeds = feeds.map((f: any) => ({
         label: f.name ?? f.feed ?? 'Unknown Feed',
         value: f.feedId,
       }));
+
       setDataState(prev => ({
         ...prev,
         master: {
@@ -886,12 +971,15 @@ const FlockDetailScreen = () => {
 
   const fetchVaccines = async () => {
     try {
-      const data = await getVaccines();
+      const response = await getVaccines();
+
+      const vaccines = normalizeDataFormat(response, 'array', 'Vaccines');
+
       setDataState(prev => ({
         ...prev,
         master: {
           ...prev.master,
-          vaccines: data || [],
+          vaccines,
         },
       }));
     } catch (err) {
@@ -1820,7 +1908,13 @@ const FlockDetailScreen = () => {
         {/* ========================= MORTALITY MODAL ========================= */}
         <ItemEntryModal
           visible={activeModal === 'mortality'}
-          maxQuantity={dataState.summary?.totalRemainingBirds ?? 0}
+          maxQuantity={
+            (dataState.summary?.totalBirds ?? 0) -
+            (dataState.tables.mortality || []).reduce(
+              (sum, item) => sum + Number(item.mortalityQuantity || 0),
+              0,
+            )
+          }
           type="mortality"
           initialData={editState.data}
           onClose={() => setActiveModal(null)}

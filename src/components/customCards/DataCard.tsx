@@ -9,13 +9,16 @@ import {
 } from 'react-native';
 import React, { useRef, useState } from 'react';
 import Theme from '../../theme/Theme';
+import CardLoading from '../loading/CardLoading';
 
 export interface TableColumn {
   key: string;
   title: string;
   width?: number;
+
   render?: (
     value: any,
+
     row: any,
     index?: number,
     toggleExpand?: (index: number) => void,
@@ -33,7 +36,7 @@ interface DataCardProps {
   onRowPress?: (row: any) => void;
   renderRowMenu?: (row: any, closeMenu: () => void) => React.ReactNode;
   renderExpandedRow?: (row: any) => React.ReactNode;
-
+  loading?: boolean;
   // Server-side pagination
   currentPage?: number;
   totalRecords?: number;
@@ -53,6 +56,7 @@ const DataCard: React.FC<DataCardProps> = ({
   totalRecords = 0,
   showPagination = true,
   onPageChange,
+  loading = false,
 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [floatingMenu, setFloatingMenu] = useState<any>(null);
@@ -108,9 +112,18 @@ const DataCard: React.FC<DataCardProps> = ({
               </Text>
             ))}
           </View>
-
           {/* ===== ROWS ===== */}
-          {data.length === 0 ? (
+          {loading ? (
+            <View
+              style={{
+                paddingVertical: 15,
+                paddingHorizontal: 10,
+                width: columns.reduce((sum, c) => sum + (c.width || 120), 0),
+              }}
+            >
+              <CardLoading visible={true} lines={6} />
+            </View>
+          ) : data.length === 0 ? (
             <View
               style={{
                 alignItems: 'flex-start',
@@ -278,7 +291,7 @@ const DataCard: React.FC<DataCardProps> = ({
       )}
 
       {/* CUSTOM SCROLLBAR */}
-      
+
       <View style={styles.scrollBarTrack}>
         <View
           style={[

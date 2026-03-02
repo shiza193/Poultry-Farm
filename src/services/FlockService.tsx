@@ -644,7 +644,7 @@ export interface GetHospitalityFilters {
 // ================== Function ==================
 export const getHospitalityByFilter = async (
   filters: GetHospitalityFilters,
-): Promise<HospitalityRecord[]> => {
+): Promise<{ list: HospitalityRecord[]; totalCount: number }> => {
   try {
     const payload = {
       businessUnitId: filters.businessUnitId || null,
@@ -661,8 +661,10 @@ export const getHospitalityByFilter = async (
     );
 
     if (response.data.status === 'Success') {
-      //  Return the list array
-      return response.data.data?.list || [];
+      return {
+        list: response.data.data?.list || [],
+        totalCount: response.data.data?.totalCount || 0,
+      };
     } else {
       throw new Error(
         response.data.message || 'Failed to fetch hospitality data',
@@ -957,5 +959,60 @@ export const updateFlockHealth = async (payload: UpdateFlockHealthPayload) => {
   } catch (error) {
     console.error('Error updating flock health:', error);
     throw error;
+  }
+};
+
+
+ 
+export const deleteHospitality = async (hospitalityId: string): Promise<{ status: string; message: string }> => {
+  try {
+    const response = await api.delete(`/api/Hospitality/delete-hospitality/${hospitalityId}`);
+    return response.data; // assuming API returns { status: 'Success', message: '...' }
+  } catch (error: any) {
+    console.error('Delete Hospitality API Error:', error.response || error.message);
+    throw error;
+  }
+};
+
+
+
+export interface UpdateHospitalityPayload {
+  flockId: string;
+  date: string; // ISO string
+  quantity: number;
+  averageWeight?: number;
+  symptoms?: string;
+  diagnosis?: string;
+  medication?: string;
+  dosage?: string;
+  treatmentDays?: number;
+  vetName?: string;
+  remarks?: string | null;
+  businessUnitId: string;
+}
+
+export interface UpdateHospitalityResponse {
+  status: string;
+  message: string;
+  data: any; 
+}
+
+// Update Hospitality function
+export const updateHospitality = async (
+  hospitalityId: string,
+  payload: UpdateHospitalityPayload
+): Promise<UpdateHospitalityResponse> => {
+  try {
+    const response = await api.put(
+      `api/Hospitality/update-hospitality`,
+      {
+        hospitalityId,
+        ...payload,
+      }
+    );
+    return response.data;
+  } catch (err) {
+    console.error('Update Hospitality API Error:', err);
+    throw err;
   }
 };

@@ -9,12 +9,12 @@ import {
 import Theme from '../theme/Theme';
 import Header from '../components/common/LogoHeader';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LoadingOverlay from '../components/loading/LoadingOverlay';
 import { useBusinessUnit } from '../context/BusinessContext';
 import {
   getFlocksExcel,
   getFlockStockExcel,
 } from '../screens/Report/ReportHelpers';
+
 // FLOCK SCREENS
 import FlocksScreen from '../screens/flocks/FlocksScreen';
 import FlocksMortalityScreen from '../screens/flocks/FlocksMortalityScreen';
@@ -22,6 +22,7 @@ import FlockStockScreen from '../screens/flocks/FlockStockScreen';
 import FlockSaleScreen from '../screens/flocks/FlockSaleScreen';
 import HospitalityScreen from '../screens/flocks/HospitalityScreen';
 import { useRoute } from '@react-navigation/native';
+
 type TabType = 'flocks' | 'mortality' | 'stock' | 'sale' | 'hospitality';
 
 type FilterState = {
@@ -36,14 +37,14 @@ type FilterState = {
 
 const FlockMainScreen = () => {
   const { businessUnitId } = useBusinessUnit();
-const route = useRoute<any>();
+  const route = useRoute<any>();
 
-const [activeTab, setActiveTab] = useState<TabType>(
-  route.params?.initialTab || 'flocks'
-);  const [openAddModal, setOpenAddModal] = useState(false);
-  const [globalLoading, setGlobalLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>(
+    route.params?.initialTab || 'flocks',
+  );
+  const [openAddModal, setOpenAddModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10; // same as your table page size
+  const pageSize = 10;
 
   const [filterState, setFilterState] = useState<FilterState>({
     searchKey: '',
@@ -52,19 +53,25 @@ const [activeTab, setActiveTab] = useState<TabType>(
     options: { flocks: [], suppliers: [] },
   });
 
+  // ================= UPDATE TAB FROM ROUTE =================
+  useEffect(() => {
+    if (route.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route.params?.initialTab]);
+
   // ================= RENDER SCREEN =================
   const renderScreen = () => {
     const commonProps = {
       openAddModal,
       onCloseAddModal: () => setOpenAddModal(false),
-      setGlobalLoading,
     };
 
     switch (activeTab) {
       case 'mortality':
-        return <FlocksMortalityScreen {...commonProps} />;
+        return <FlocksMortalityScreen />;
       case 'stock':
-        return <FlockStockScreen {...commonProps} />;
+        return <FlockStockScreen />;
       case 'sale':
         return <FlockSaleScreen {...commonProps} />;
       case 'hospitality':
@@ -83,12 +90,6 @@ const [activeTab, setActiveTab] = useState<TabType>(
     }
   };
 
-
-useEffect(() => {
-  if (route.params?.initialTab) {
-    setActiveTab(route.params.initialTab); // always update
-  }
-}, [route.params?.initialTab]);
   // ================= TAB BUTTON =================
   const TabButton = ({
     title,
@@ -112,8 +113,6 @@ useEffect(() => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LoadingOverlay visible={globalLoading} text="Loading..." />
-
       <Header
         title="Flocks"
         onAddNewPress={
@@ -127,9 +126,8 @@ useEffect(() => {
           activeTab === 'flocks' || activeTab === 'stock'
             ? async () => {
                 if (!businessUnitId) return;
-                try {
-                  setGlobalLoading(true);
 
+                try {
                   if (activeTab === 'flocks') {
                     await getFlocksExcel('Flocks_2026', {
                       businessUnitId,
@@ -145,8 +143,6 @@ useEffect(() => {
                   }
                 } catch (error) {
                   console.log('Error exporting Excel:', error);
-                } finally {
-                  setGlobalLoading(false);
                 }
               }
             : undefined

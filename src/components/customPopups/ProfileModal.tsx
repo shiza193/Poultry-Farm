@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
    dropdownElement: {
-    height: 37,
+    height: 38,
     borderWidth: 1,
     borderColor: Theme.colors.borderLight,
     borderRadius: 8,
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
   value: { fontWeight: '600', fontSize: 14 },
   input: {
     borderWidth: 1,
-    borderColor: '#a5a4a4',
+    borderColor:Theme.colors.borderLight,
     borderRadius: 6,
     padding: 8,
   },

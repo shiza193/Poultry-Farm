@@ -23,15 +23,15 @@ import { formatDisplayDate } from '../../utils/validation';
 interface FlockSaleScreenProps {
   openAddModal?: boolean;
   onCloseAddModal?: () => void;
-  setGlobalLoading?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
   openAddModal,
   onCloseAddModal,
-  setGlobalLoading,
+  
 }) => {
   const { businessUnitId } = useBusinessUnit();
+  const [loading, setLoading] = React.useState(false);
 
   const [salesData, setSalesData] = useState<SaleRecord[]>([]);
   const [search, setSearch] = useState('');
@@ -53,7 +53,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
     if (!businessUnitId) return;
 
     try {
-      setGlobalLoading?.(true);
+      setLoading(true);
       const res = await getSalesByFilter({
         businessUnitId,
         pageNumber: page,
@@ -67,7 +67,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
       console.error('Fetch sale error:', err);
       setSalesData([]);
     } finally {
-      setGlobalLoading?.(false);
+      setLoading(false);
     }
   };
 
@@ -170,6 +170,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
             columns={columns}
             data={tableData}
             itemsPerPage={pageSize}
+             loading={loading} 
             currentPage={currentPage}
             totalRecords={totalRecords}
             onPageChange={page => fetchSales(page)}
@@ -205,7 +206,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
         type="flockSale"
         onClose={onCloseAddModal ?? (() => setIsSaleModalVisible(false))}
         onSave={async data => {
-          setGlobalLoading?.(true);
+          setLoading(true);
           try {
             const payload: AddSalePayload = {
               saleTypeId: 2,
@@ -224,7 +225,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
           } catch (err) {
             console.error('Add sale error:', err);
           } finally {
-            setGlobalLoading?.(false);
+            setLoading(false);
           }
         }}
       />
