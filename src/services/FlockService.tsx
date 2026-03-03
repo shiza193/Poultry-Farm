@@ -552,7 +552,8 @@ export interface GetSaleFilters {
   searchKey?: string | null;
   businessUnitId?: string | null;
   flockId?: string | null;
-
+  customerId?: string;
+  saleTypeId?: number;
   partyId?: string | null;
   startDate?: string | null; // YYYY-MM-DD
   endDate?: string | null; // YYYY-MM-DD
@@ -571,7 +572,7 @@ export const getSalesByFilter = async (
 
     if (filters.businessUnitId) payload.businessUnitId = filters.businessUnitId;
     if (filters.flockId) payload.flockId = filters.flockId;
-    if (filters.partyId) payload.partyId = filters.partyId;
+    if (filters.customerId) payload.customerId = filters.customerId;
     if (filters.startDate) payload.startDate = filters.startDate;
     if (filters.endDate) payload.endDate = filters.endDate;
     if (filters.searchKey) payload.searchKey = filters.searchKey;
@@ -962,19 +963,22 @@ export const updateFlockHealth = async (payload: UpdateFlockHealthPayload) => {
   }
 };
 
-
- 
-export const deleteHospitality = async (hospitalityId: string): Promise<{ status: string; message: string }> => {
+export const deleteHospitality = async (
+  hospitalityId: string,
+): Promise<{ status: string; message: string }> => {
   try {
-    const response = await api.delete(`/api/Hospitality/delete-hospitality/${hospitalityId}`);
+    const response = await api.delete(
+      `/api/Hospitality/delete-hospitality/${hospitalityId}`,
+    );
     return response.data; // assuming API returns { status: 'Success', message: '...' }
   } catch (error: any) {
-    console.error('Delete Hospitality API Error:', error.response || error.message);
+    console.error(
+      'Delete Hospitality API Error:',
+      error.response || error.message,
+    );
     throw error;
   }
 };
-
-
 
 export interface UpdateHospitalityPayload {
   flockId: string;
@@ -994,22 +998,19 @@ export interface UpdateHospitalityPayload {
 export interface UpdateHospitalityResponse {
   status: string;
   message: string;
-  data: any; 
+  data: any;
 }
 
 // Update Hospitality function
 export const updateHospitality = async (
   hospitalityId: string,
-  payload: UpdateHospitalityPayload
+  payload: UpdateHospitalityPayload,
 ): Promise<UpdateHospitalityResponse> => {
   try {
-    const response = await api.put(
-      `api/Hospitality/update-hospitality`,
-      {
-        hospitalityId,
-        ...payload,
-      }
-    );
+    const response = await api.put(`api/Hospitality/update-hospitality`, {
+      hospitalityId,
+      ...payload,
+    });
     return response.data;
   } catch (err) {
     console.error('Update Hospitality API Error:', err);

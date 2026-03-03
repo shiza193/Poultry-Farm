@@ -85,11 +85,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   const [price, setPrice] = useState('');
   const [saleDate, setSaleDate] = useState<Date | null>(null);
   const [showSaleDatePicker, setShowSaleDatePicker] = useState(false);
-  const maxQty = maxQuantity || 0;
-  const [editState, setEditState] = useState<EditState>({
-    type: null,
-    data: null,
-  });
+
   // ---------- Other Fields ----------
   const [currentWeight, setCurrentWeight] = useState('');
   const [expireDate, setExpireDate] = useState<Date | null>(null);
@@ -100,8 +96,6 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
   const [symptoms, setSymptoms] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
   const [medication, setMedication] = useState('');
-  const [flockId, setFlockId] = useState<string>('');
-  const [date, setDate] = useState<Date | null>(null);
   const [dosage, setDosage] = useState('');
   const [treatmentDays, setTreatmentDays] = useState('');
   const [vetName, setVetName] = useState('');
@@ -123,7 +117,6 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     setFlockName('');
     setPrice('');
     setSaleDate(null);
-
     setQuantity('');
     setCurrentWeight('');
     setExpireDate(null);
@@ -149,7 +142,10 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
       getFeeds()
         .then((data: Feed[]) => {
           setItems(
-            data.map(f => ({ label: f.name, value: f.feedId.toString() })),
+            getDropdownItems(
+              data.map(f => ({ label: f.name, value: f.feedId.toString() })),
+              'No feeds available',
+            ),
           );
         })
         .catch(err => console.error('Failed to load feeds:', err))
@@ -184,7 +180,10 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
         try {
           const parties = await getParties(businessUnitId, 0);
           setCustomerItems(
-            parties.map(p => ({ label: p.name, value: p.partyId })),
+            getDropdownItems(
+              parties.map(p => ({ label: p.name, value: p.partyId })),
+              'No customers available',
+            ),
           );
         } catch (err) {
           console.error('Failed to fetch customers:', err);
@@ -201,7 +200,15 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
           label: f.flockRef, // <-- fixed
           value: f.flockId.toString(), // ID must be string
         }));
-        setFlockItems(mappedFlocks);
+        setFlockItems(
+          getDropdownItems(
+            flocks.map((f: any) => ({
+              label: f.flockRef,
+              value: f.flockId.toString(),
+            })),
+            'No flocks available',
+          ),
+        );
       } catch (err) {
         console.error('Failed to fetch flocks:', err);
       }
@@ -322,6 +329,16 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
     onClose();
   };
 
+  const getDropdownItems = <T extends { label: string; value?: any; id?: any }>(
+    items?: T[],
+    fallbackLabel = 'There is nothing to show',
+    valueField: 'value' | 'id' = 'value',
+  ) => {
+    if (items && items.length > 0) return items;
+    return [{ label: fallbackLabel, [valueField]: null } as T];
+  };
+
+  
   return (
     <Modal visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView
@@ -636,7 +653,7 @@ const ItemEntryModal: React.FC<ItemEntryModalProps> = ({
                       labelField="label"
                       valueField="value"
                       placeholder="Select flock..."
-                      value={selectedFlock} // bind to state
+                      value={selectedFlock}
                       onChange={item => setSelectedFlock(item.value)} // update selected state
                       selectedTextStyle={styles.selectedText}
                       placeholderStyle={styles.placeholderText}

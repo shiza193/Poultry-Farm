@@ -22,13 +22,13 @@ import { formatDisplayDate } from '../../utils/validation';
 
 interface FlockSaleScreenProps {
   openAddModal?: boolean;
+
   onCloseAddModal?: () => void;
 }
 
 const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
   openAddModal,
   onCloseAddModal,
-  
 }) => {
   const { businessUnitId } = useBusinessUnit();
   const [loading, setLoading] = React.useState(true);
@@ -55,6 +55,13 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
     try {
       setLoading(true);
       const res = await getSalesByFilter({
+        businessUnitId,
+        saleTypeId: 2,
+        pageNumber: page,
+        pageSize,
+        ...filters,
+      });
+      console.log('Filters being sent:', {
         businessUnitId,
         pageNumber: page,
         pageSize,
@@ -110,7 +117,10 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
   // ================= SEARCH =================
   const handleSearch = (value: string) => {
     setSearch(value);
-    const updatedFilters = { ...activeFilters, searchKey: value || undefined };
+    const updatedFilters = {
+      ...activeFilters,
+      ...(value ? { searchKey: value } : { searchKey: undefined }),
+    };
     setActiveFilters(updatedFilters);
     fetchSales(1, updatedFilters);
   };
@@ -132,7 +142,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
     }
 
     if (filters.customerId) {
-      apiFilters.partyId = filters.customerId;
+      apiFilters.customerId = filters.customerId;
     }
 
     if (filters.searchKey) {
@@ -140,7 +150,9 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
     }
 
     setActiveFilters(apiFilters);
+
     fetchSales(1, apiFilters);
+
     setIsFilterModalVisible(false);
   };
 
@@ -164,19 +176,18 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
       </View>
 
       {/* TABLE */}
-   
-        <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 8 }}>
-          <DataCard
-            columns={columns}
-            data={tableData}
-            itemsPerPage={pageSize}
-             loading={loading} 
-            currentPage={currentPage}
-            totalRecords={totalRecords}
-            onPageChange={page => fetchSales(page)}
-          />
-        </View>
-     
+
+      <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 8 }}>
+        <DataCard
+          columns={columns}
+          data={tableData}
+          itemsPerPage={pageSize}
+          loading={loading}
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          onPageChange={page => fetchSales(page, activeFilters)}
+        />
+      </View>
 
       {/* FILTER MODAL */}
       <BusinessUnitModal
@@ -192,7 +203,7 @@ const FlockSaleScreen: React.FC<FlockSaleScreenProps> = ({
           toDate: activeFilters.endDate
             ? new Date(activeFilters.endDate)
             : null,
-          customerId: activeFilters.partyId || null,
+          customerId: activeFilters.customerId || null,
         }}
       />
 

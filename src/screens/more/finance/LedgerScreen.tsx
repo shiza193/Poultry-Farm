@@ -16,7 +16,6 @@ import SearchBar from '../../../components/common/SearchBar';
 import DataCard, {
   TableColumn,
 } from '../../../components/customCards/DataCard';
-import { showErrorToast } from '../../../utils/AppToast';
 import {
   getLedgersWithBalance,
   getParties,
@@ -25,6 +24,7 @@ import {
 import { useBusinessUnit } from '../../../context/BusinessContext';
 import { formatDisplayDate } from '../../../utils/validation';
 import { Dropdown } from 'react-native-element-dropdown';
+import { normalizeDataFormat } from '../../../utils/NormalizeDataFormat';
 
 type LedgerRow = {
   voucherNumber: string;
@@ -51,52 +51,57 @@ const LedgerScreen = () => {
   const pageSize = 10;
 
   // --- Fetch Ledger Data ---
- const fetchLedgerData = async (page: number = 1) => {
-  if (!businessUnitId) return;
+  const fetchLedgerData = async (page: number = 1) => {
+    if (!businessUnitId) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const payload = {
-      businessUnitId,
-      searchKey: filters.search || null,
-      dateTime: filters.date ? filters.date.toISOString() : null, // correct
-      pageNumber: page,
-      pageSize,
-      partyId: filters.party || null,
-    };
+      const payload = {
+        businessUnitId,
+        searchKey: filters.search || null,
+        dateTime: filters.date ? filters.date.toISOString() : null,
+        pageNumber: page,
+        pageSize,
+        partyId: filters.party || null,
+      };
 
-    const res = await getLedgersWithBalance(payload);
+      const res = await getLedgersWithBalance(payload);
+      const safeList = normalizeDataFormat(res?.list, 'array', 'Ledger Data');
+      const mappedData = safeList.map((item: any) => ({
+        voucherNumber: item.voucherNumber,
+        voucherType: item.voucherType,
+        voucherDate: formatDisplayDate(item.voucherDate),
+        debit: Number(item.debit).toFixed(2),
+        credit: Number(item.credit).toFixed(2),
+        balance: Number(item.balance).toFixed(2),
+      }));
 
-    const mappedData = (res.list || []).map(item => ({
-      voucherNumber: item.voucherNumber,
-      voucherType: item.voucherType,
-      voucherDate: formatDisplayDate(item.voucherDate),
-      debit: item.debit.toFixed(2),
-      credit: item.credit.toFixed(2),
-      balance: item.balance.toFixed(2),
-    }));
-
-    setLedgerData(mappedData);
-    setTotalRecords(res.totalCount || mappedData.length);
-  } catch (err: any) {
-    console.error('Ledger Fetch Error:', err);
-    showErrorToast('Failed to fetch ledger data');
-    setLedgerData([]);
-    setTotalRecords(0);
-  } finally {
-    setLoading(false);
-  }
-};
+      setLedgerData(mappedData);
+      setTotalRecords(res?.totalCount ?? mappedData.length);
+    } catch (err: any) {
+      console.error('Ledger Fetch Error:', err);
+      setLedgerData([]);
+      setTotalRecords(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- Fetch Parties ---
   const fetchParties = async () => {
     if (!businessUnitId) return;
+
     try {
       const data = await getParties({ businessUnitId });
-      setParties(data);
+
+      // ===== Normalize data =====
+      const safeParties = normalizeDataFormat(data, 'array', 'Parties List');
+
+      setParties(safeParties);
     } catch (err) {
       console.error('Failed to fetch parties', err);
+      setParties([]);
     }
   };
 

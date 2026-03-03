@@ -169,7 +169,6 @@ const AccountHeadScreen = () => {
       setShowAccountHeadModal(false);
     } catch (err: any) {
       console.error('Add Account Head Error:', err.response || err);
-      showErrorToast('Failed to add account');
     }
   };
   /* ================= DATACARD DATA ================= */

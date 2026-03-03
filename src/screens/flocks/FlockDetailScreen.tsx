@@ -1504,7 +1504,7 @@ const FlockDetailScreen = () => {
         </ScrollView>
         {/* Egg Production Table */}
         {activeTab === 'Egg Production' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 90 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Egg Production</Text>
               <TouchableOpacity
@@ -1574,7 +1574,7 @@ const FlockDetailScreen = () => {
         )}
         {/* Feed Consumption Table */}
         {activeTab === 'Feed Consumption' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 90 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Feed Consumption</Text>
               <TouchableOpacity
@@ -1648,7 +1648,7 @@ const FlockDetailScreen = () => {
         )}
         {/* Vaccination Schedule Table */}
         {activeTab === 'Vaccination Schedule' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 90 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Vaccination Schedule</Text>
               <TouchableOpacity
@@ -1721,7 +1721,7 @@ const FlockDetailScreen = () => {
         )}
         {/* Mortality Table */}
         {activeTab === 'Mortality' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 90 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Mortality Records</Text>
               <TouchableOpacity
@@ -1788,7 +1788,7 @@ const FlockDetailScreen = () => {
         )}
         {/* Hospitality Table */}
         {activeTab === 'Hospitality' && (
-          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 70 }}>
+          <View style={{ flex: 1, paddingHorizontal: 5, marginBottom: 90 }}>
             <View style={styles.eggHeaderRow}>
               <Text style={styles.eggHeaderTitle}>Hospitality</Text>
 
@@ -1925,6 +1925,7 @@ const FlockDetailScreen = () => {
         <ItemEntryModal
           visible={activeModal === 'hospitality'}
           type="hospitality"
+            hideFlockDropdown={true}
           onClose={() => setActiveModal(null)}
           onSave={handleHospitality}
         />

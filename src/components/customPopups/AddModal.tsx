@@ -189,14 +189,12 @@ const AddModal: React.FC<AddModalProps> = ({
         initialData.bag !== undefined
           ? String(initialData.bag)
           : initialData.quantity !== undefined
-            ? String(initialData.quantity)
-            : '1'
+          ? String(initialData.quantity)
+          : '1',
       );
-      console.log("Initial feedId:", initialData?.feedId);
-      console.log("Feed Items:", feedItems);
-      setFeedDate(
-        initialData.date ? new Date(initialData.date) : null
-      );
+      console.log('Initial feedId:', initialData?.feedId);
+      console.log('Feed Items:', feedItems);
+      setFeedDate(initialData.date ? new Date(initialData.date) : null);
     }
     if (type === 'Feed Consumption' && !initialData && visible) {
       setSelectedFeedId(null);
@@ -208,22 +206,16 @@ const AddModal: React.FC<AddModalProps> = ({
   useEffect(() => {
     if (type === 'Feed Record' && initialData && visible) {
       setSelectedFeedId(Number(initialData.feedId));
-      setQuantity(
-        initialData.quantity ? String(initialData.quantity) : ''
-      );
-      setFeedDate(
-        initialData.date ? new Date(initialData.date) : null
-      );
+      setQuantity(initialData.quantity ? String(initialData.quantity) : '');
+      setFeedDate(initialData.date ? new Date(initialData.date) : null);
       setSelectedFeedTypeId(initialData.feedTypeId ?? null);
       setSupplier(initialData.supplierId ?? null);
-      setPrice(
-        initialData.price ? String(initialData.price) : ''
-      );
+      setPrice(initialData.price ? String(initialData.price) : '');
       setNote(initialData.note || '');
       setPaymentStatus(initialData.isPaid ? 'Paid' : 'Unpaid');
       // 👇 ADD THIS
       setExpiryDate(
-        initialData.expiryDate ? new Date(initialData.expiryDate) : null
+        initialData.expiryDate ? new Date(initialData.expiryDate) : null,
       );
     }
     if (type === 'Feed Record' && !initialData && visible) {
@@ -240,10 +232,16 @@ const AddModal: React.FC<AddModalProps> = ({
   }, [type, initialData, visible]);
 
   // Voucher Form States
-  const [selectedVoucherType, setSelectedVoucherType] = useState<string | null>(null);
+  const [selectedVoucherType, setSelectedVoucherType] = useState<string | null>(
+    null,
+  );
   const [amount, setAmount] = useState<string>(''); // numeric input as string
-  const [selectedCreditAccount, setSelectedCreditAccount] = useState<string | null>(null);
-  const [selectedDebitAccount, setSelectedDebitAccount] = useState<string | null>(null);
+  const [selectedCreditAccount, setSelectedCreditAccount] = useState<
+    string | null
+  >(null);
+  const [selectedDebitAccount, setSelectedDebitAccount] = useState<
+    string | null
+  >(null);
   const [description, setDescription] = useState<string>('');
   const [passwordError, setPasswordError] = useState('');
   /* ===== Eggs States ===== */
@@ -358,7 +356,7 @@ const AddModal: React.FC<AddModalProps> = ({
       fetchUnits();
     }
   }, [selectedFlock, type]);
-  
+
   useEffect(() => {
     if (type === 'employee') {
       const fetchEmployeeTypes = async () => {
@@ -475,11 +473,11 @@ const AddModal: React.FC<AddModalProps> = ({
 
       setIsSaveEnabled(
         selectedCustomer !== null &&
-        selectedFlock !== null &&
-        endDate !== null &&
-        price.trim().length > 0 &&
-        selectedUnit !== null &&
-        valid,
+          selectedFlock !== null &&
+          endDate !== null &&
+          price.trim().length > 0 &&
+          selectedUnit !== null &&
+          valid,
       );
       console.log('AddModal Save Data:', {
         price,
@@ -873,7 +871,9 @@ const AddModal: React.FC<AddModalProps> = ({
                   onChangeText={text => {
                     setPhone(text);
                     if (text && !isValidPhoneNumber(text)) {
-                      setPhoneError('Please enter valid phone number (03XX-XXXXXXX)');
+                      setPhoneError(
+                        'Please enter valid phone number (03XX-XXXXXXX)',
+                      );
                     } else {
                       setPhoneError('');
                     }
@@ -1023,17 +1023,19 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Text style={styles.label}>
                   Vaccine<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={vaccineOpen}
-                  value={vaccine}
-                  items={vaccineItems || []}
-                  setOpen={setVaccineOpen}
-                  setValue={setVaccine}
+                <Dropdown
+                  style={styles.dropdownElement} // same consistent style
+                  containerStyle={styles.dropdownContainerElement}
+                  data={vaccineItems || []}
+                  labelField="label"
+                  valueField="value"
                   placeholder="Select vaccine..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  value={vaccine}
+                  onChange={item => setVaccine(item.value)}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
+
                 {/* QUANTITY */}
                 <Text style={styles.label}>
                   Quantity<Text style={styles.required}>*</Text>
@@ -1079,16 +1081,17 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Text style={styles.label}>
                   Supplier<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={supplierOpen}
-                  value={supplier}
-                  items={supplierItems || []}
-                  setOpen={setSupplierOpen}
-                  setValue={setSupplier}
+                <Dropdown
+                  style={styles.dropdownElement} // same style as Vaccine dropdown
+                  containerStyle={styles.dropdownContainerElement}
+                  data={supplierItems || []}
+                  labelField="label"
+                  valueField="value"
                   placeholder="Select supplier..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  value={supplier}
+                  onChange={item => setSupplier(item.value)}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
 
                 {/* PRICE */}
@@ -1113,6 +1116,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={note}
                   onChangeText={setNote}
                 />
+
                 {/* PAID / UNPAID RADIO TOGGLE */}
                 {!isEdit && (
                   <View style={{ flexDirection: 'row', marginBottom: 10 }}>
@@ -1266,16 +1270,18 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Text style={styles.label}>
                   Unit<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={unitOpen}
-                  value={selectedUnit}
-                  items={unitItems || []}
-                  setOpen={setUnitOpen}
-                  setValue={setSelectedUnit}
+
+                <Dropdown
+                  style={styles.dropdownElement}
+                  containerStyle={styles.dropdownContainerElement}
+                  data={unitItems || []}
+                  labelField="label"
+                  valueField="value"
                   placeholder="Select unit..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  value={selectedUnit}
+                  onChange={item => setSelectedUnit(item.value)}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
                 {/* INTACT EGGS */}
                 <Text style={styles.label}>Intact Eggs</Text>
@@ -1525,7 +1531,14 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedFeedId}
                   data={feedItems || []}
                   placeholder="Select feed..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  style={[
+                    styles.dropdown,
+                    {
+                      height: 45,
+                      borderColor: Theme.colors.borderLight,
+                      borderWidth: 1,
+                    },
+                  ]}
                   containerStyle={styles.dropdownContainer}
                   onChange={item => setSelectedFeedId(item.value)}
                   labelField="label"
@@ -1547,16 +1560,17 @@ const AddModal: React.FC<AddModalProps> = ({
                 <Text style={styles.label}>
                   Type<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={feedtypeOpen}
-                  value={selectedFeedTypeId}
-                  items={feedTypeItems || []}
-                  setOpen={setFeedTypeOpen}
-                  setValue={setSelectedFeedTypeId}
+                <Dropdown
+                  style={styles.dropdownElement} // use same style as Flock/Unit
+                  containerStyle={styles.dropdownContainerElement}
+                  data={feedTypeItems || []} // feed types data
+                  labelField="label"
+                  valueField="value"
                   placeholder="Select type..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  value={selectedFeedTypeId}
+                  onChange={item => setSelectedFeedTypeId(item.value)}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
                 {/* DATE */}
                 <Text style={styles.label}>
@@ -1601,7 +1615,10 @@ const AddModal: React.FC<AddModalProps> = ({
                           ? expiryDate.toLocaleDateString('en-GB')
                           : 'DD/MM/YYYY'}
                       </Text>
-                      <Image source={Theme.icons.date} style={styles.dateIcon} />
+                      <Image
+                        source={Theme.icons.date}
+                        style={styles.dateIcon}
+                      />
                     </TouchableOpacity>
 
                     {showExpiryPicker && (
@@ -1619,20 +1636,20 @@ const AddModal: React.FC<AddModalProps> = ({
                     )}
                   </>
                 )}
-                {/* SUPPLIER */}
                 <Text style={styles.label}>
                   Supplier<Text style={styles.required}>*</Text>
                 </Text>
-                <DropDownPicker
-                  listMode="SCROLLVIEW"
-                  open={supplierOpen}
-                  value={supplier}
-                  items={supplierItems || []}
-                  setOpen={setSupplierOpen}
-                  setValue={setSupplier}
+                <Dropdown
+                  style={styles.dropdownElement}
+                  containerStyle={styles.dropdownContainerElement}
+                  data={supplierItems || []} // suppliers data
+                  labelField="label"
+                  valueField="value"
                   placeholder="Select supplier..."
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
+                  value={supplier}
+                  onChange={item => setSupplier(item.value)}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
                 {/* PRICE */}
                 <Text style={styles.label}>Price</Text>
@@ -1658,7 +1675,6 @@ const AddModal: React.FC<AddModalProps> = ({
                 />
                 {/* PAYMENT STATUS */}
                 {!isEdit && (
-
                   <View style={styles.radioRow}>
                     {['Paid', 'Unpaid'].map(status => (
                       <TouchableOpacity
@@ -1671,7 +1687,8 @@ const AddModal: React.FC<AddModalProps> = ({
                         <View
                           style={[
                             styles.radioOuter,
-                            paymentStatus === status && styles.radioSelectedOuter,
+                            paymentStatus === status &&
+                              styles.radioSelectedOuter,
                           ]}
                         >
                           {paymentStatus === status && (
@@ -1781,7 +1798,14 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedVoucherType}
                   data={voucherTypeItems || []}
                   placeholder="Select voucher type..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  style={[
+                    styles.dropdown,
+                    {
+                      height: 45,
+                      borderColor: Theme.colors.borderLight,
+                      borderWidth: 1,
+                    },
+                  ]}
                   containerStyle={styles.dropdownContainer}
                   onChange={item => setSelectedVoucherType(item.value)}
                   labelField="label"
@@ -1808,7 +1832,14 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedCreditAccount}
                   data={accountItems || []}
                   placeholder="Select credit account..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  style={[
+                    styles.dropdown,
+                    {
+                      height: 45,
+                      borderColor: Theme.colors.borderLight,
+                      borderWidth: 1,
+                    },
+                  ]}
                   containerStyle={styles.dropdownContainer}
                   onChange={item => setSelectedCreditAccount(item.value)}
                   labelField="label"
@@ -1823,7 +1854,14 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedDebitAccount}
                   data={accountItems || []}
                   placeholder="Select debit account..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  style={[
+                    styles.dropdown,
+                    {
+                      height: 45,
+                      borderColor: Theme.colors.borderLight,
+                      borderWidth: 1,
+                    },
+                  ]}
                   containerStyle={styles.dropdownContainer}
                   onChange={item => setSelectedDebitAccount(item.value)}
                   labelField="label"
@@ -1831,14 +1869,13 @@ const AddModal: React.FC<AddModalProps> = ({
                 />
 
                 {/* DESCRIPTION */}
-                <Text style={styles.label}>
-                  Description
-                </Text>
+                <Text style={styles.label}>Description</Text>
                 <TextInput
                   style={[
                     styles.input,
                     { height: 80, textAlignVertical: 'top' },
-                  ]} placeholder="Enter description..."
+                  ]}
+                  placeholder="Enter description..."
                   value={description}
                   onChangeText={setDescription}
                 />
@@ -1870,7 +1907,7 @@ const AddModal: React.FC<AddModalProps> = ({
           </View>
         </View>
       </View>
-    </Modal >
+    </Modal>
   );
 };
 
