@@ -64,7 +64,7 @@ const EggProductionScreen: React.FC<Props> = ({
   // TABLE COLUMNS
   const columns: TableColumn[] = [
     {
-      key: 'ref', title: 'REF', width: 150, isTitle: true, showDots: true,
+      key: 'ref', title: 'REF', width: 150,  showDots: true,
     },
     { key: 'flockRef', title: 'FLOCK', width: 160 },
     {

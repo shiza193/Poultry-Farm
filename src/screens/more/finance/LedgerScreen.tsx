@@ -25,6 +25,7 @@ import {
 import { useBusinessUnit } from '../../../context/BusinessContext';
 import { formatDisplayDate } from '../../../utils/validation';
 import { Dropdown } from 'react-native-element-dropdown';
+import { getLedgerExcel } from '../../Report/ReportHelpers';
 
 type LedgerRow = {
   voucherNumber: string;
@@ -51,43 +52,43 @@ const LedgerScreen = () => {
   const pageSize = 10;
 
   // --- Fetch Ledger Data ---
- const fetchLedgerData = async (page: number = 1) => {
-  if (!businessUnitId) return;
+  const fetchLedgerData = async (page: number = 1) => {
+    if (!businessUnitId) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const payload = {
-      businessUnitId,
-      searchKey: filters.search || null,
-      dateTime: filters.date ? filters.date.toISOString() : null, // correct
-      pageNumber: page,
-      pageSize,
-      partyId: filters.party || null,
-    };
+      const payload = {
+        businessUnitId,
+        searchKey: filters.search || null,
+        dateTime: filters.date ? filters.date.toISOString() : null, // correct
+        pageNumber: page,
+        pageSize,
+        partyId: filters.party || null,
+      };
 
-    const res = await getLedgersWithBalance(payload);
+      const res = await getLedgersWithBalance(payload);
 
-    const mappedData = (res.list || []).map(item => ({
-      voucherNumber: item.voucherNumber,
-      voucherType: item.voucherType,
-      voucherDate: formatDisplayDate(item.voucherDate),
-      debit: item.debit.toFixed(2),
-      credit: item.credit.toFixed(2),
-      balance: item.balance.toFixed(2),
-    }));
+      const mappedData = (res.list || []).map(item => ({
+        voucherNumber: item.voucherNumber,
+        voucherType: item.voucherType,
+        voucherDate: formatDisplayDate(item.voucherDate),
+        debit: item.debit.toFixed(2),
+        credit: item.credit.toFixed(2),
+        balance: item.balance.toFixed(2),
+      }));
 
-    setLedgerData(mappedData);
-    setTotalRecords(res.totalCount || mappedData.length);
-  } catch (err: any) {
-    console.error('Ledger Fetch Error:', err);
-    showErrorToast('Failed to fetch ledger data');
-    setLedgerData([]);
-    setTotalRecords(0);
-  } finally {
-    setLoading(false);
-  }
-};
+      setLedgerData(mappedData);
+      setTotalRecords(res.totalCount || mappedData.length);
+    } catch (err: any) {
+      console.error('Ledger Fetch Error:', err);
+      showErrorToast('Failed to fetch ledger data');
+      setLedgerData([]);
+      setTotalRecords(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- Fetch Parties ---
   const fetchParties = async () => {
@@ -113,7 +114,22 @@ const LedgerScreen = () => {
     setCurrentPage(1);
     fetchLedgerData(1);
   }, [filters]);
+  const handleGenerateReport = async () => {
+    if (!businessUnitId) return;
 
+    const payload = {
+      businessUnitId,
+      searchKey: filters.search || null,
+      dateTime: filters.date
+        ? filters.date.toISOString().split('T')[0]
+        : null,
+      pageNumber: currentPage,
+      pageSize,
+      partyId: filters.party || null,
+    };
+
+    await getLedgerExcel('LedgerReport', payload);
+  };
   // --- Dropdown options ---
   const dropdownData = parties.map(p => ({ label: p.name, value: p.partyId }));
 
@@ -142,7 +158,7 @@ const LedgerScreen = () => {
       <BackArrow
         title="Ledger"
         showBack
-        onReportPress={() => console.log('Generate Report')}
+        onReportPress={handleGenerateReport}
       />
 
       <View style={styles.searchOnlyRow}>

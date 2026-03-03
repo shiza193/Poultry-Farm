@@ -191,7 +191,18 @@ const VaccineScheduleScreen: React.FC<Props> = ({
     // ===== NEW DATA CARD COLUMNS =====
     const columns: TableColumn[] = [
         {
-            key: "ref", title: "REF", isTitle: true, showDots: true,
+            key: "ref",
+            title: "REF",
+            showDots: true,
+            render: (value: string) => (
+                <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={{ maxWidth: 120 }}
+                >
+                    {value}
+                </Text>
+            ),
         },
         { key: "flockRef", title: "FLOCK", width: 150 },
         { key: "vaccine", title: " NAME" },
@@ -345,6 +356,7 @@ const VaccineScheduleScreen: React.FC<Props> = ({
                                             editScheduleRecord: row,
                                         }));
                                         onOpenAddModal();
+                                        closeMenu();
                                     }}
                                     style={{ marginBottom: 8 }}
                                 >

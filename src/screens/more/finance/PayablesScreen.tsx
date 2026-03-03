@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import DataCard, { TableColumn } from "../../../components/customCards/DataCard";
 import Theme from "../../../theme/Theme";
-import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import {
     getPayablesAndReceivables,
     PayablesReceivablesItem,
@@ -23,34 +22,49 @@ import { normalizeDataFormat } from "../../../utils/NormalizeDataFormat";
 
 const PayablesScreen = () => {
     const { businessUnitId } = useBusinessUnit();
-    const [payables, setPayables] = useState<PayablesReceivablesItem[]>([]);
+    const [payableState, setPayableState] = useState<{
+        list: PayablesReceivablesItem[];
+        totalRecords: number;
+    }>({
+        list: [],
+        totalRecords: 0,
+    });
     const [loading, setLoading] = useState(false);
     // Filters
     const [filters, setFilters] = useState({
         searchKey: "",
         filterDate: null as Date | null,
         showPicker: false,
+        currentPage: 1,
     });
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalRecords, setTotalRecords] = useState(0);
     const pageSize = 10;
     // Fetch API data
-    const fetchPayables = async (page = currentPage) => {
+    const fetchPayables = async () => {
         if (!businessUnitId) return;
         setLoading(true);
         try {
             const payload: Payload = {
                 searchKey: filters.searchKey || null,
-                dateTime: filters.filterDate ? filters.filterDate.toISOString() : new Date().toISOString(),
+                dateTime: filters.filterDate
+                    ? filters.filterDate.toISOString()
+                    : new Date().toISOString(),
                 businessUnitId,
                 balanceTypeId: 1,
-                pageNumber: page,
+                pageNumber: filters.currentPage,
                 pageSize: pageSize,
             };
+
             const response = await getPayablesAndReceivables(payload);
-            const normalizeddata = normalizeDataFormat(response.data.list, 'array', 'payables');
-            setPayables(normalizeddata);
-            setTotalRecords(response.data.totalCount ?? 0)
+
+            const normalizedData = normalizeDataFormat(
+                response.data.list,
+                'array',
+                'payables'
+            );
+            setPayableState({
+                list: normalizedData,
+                totalRecords: response.data.totalCount ?? 0,
+            });
         } catch (error) {
             console.error("Failed to fetch payables:", error);
         } finally {
@@ -67,6 +81,7 @@ const PayablesScreen = () => {
             ...prev,
             searchKey: "",
             filterDate: null,
+            currentPage: 1,
         }));
     };
     // Table columns
@@ -141,17 +156,19 @@ const PayablesScreen = () => {
                     )}
                 </View>
             </View>
-
             <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                <DataCard columns={columns}
-                    data={payables}
+                <DataCard
+                    columns={columns}
+                    data={payableState.list}
                     loading={loading}
                     itemsPerPage={pageSize}
-                    currentPage={currentPage}
-                    totalRecords={totalRecords}
-                    onPageChange={page => {
-                        setCurrentPage(page);
-                        fetchPayables(page);
+                    currentPage={filters.currentPage}
+                    totalRecords={payableState.totalRecords}
+                    onPageChange={(page) => {
+                        setFilters(prev => ({
+                            ...prev,
+                            currentPage: page,
+                        }));
                     }}
                 />
             </View>

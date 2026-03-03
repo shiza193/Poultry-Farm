@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet, } from "react-native";
 import Theme from "../../theme/Theme";
-import CommonTable from "./Table";
+import DataCard from "../customCards/DataCard";
 
 type DetailItem = {
     label: string;
@@ -64,10 +64,10 @@ const VoucherDetailPopup = ({
                         </View>
 
                         {/* Voucher Entries Table */}
-                        <CommonTable
-                            title="Voucher Entries"
+                        <DataCard
                             columns={tableColumns}
                             data={tableData}
+                            showPagination={false}
                         />
                     </ScrollView>
                 </View>
@@ -77,7 +77,7 @@ const VoucherDetailPopup = ({
 };
 
 export default VoucherDetailPopup;
- const styles = StyleSheet.create({
+const styles = StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.4)",

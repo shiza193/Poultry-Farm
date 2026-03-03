@@ -89,30 +89,36 @@ const { width } = Dimensions.get('window');
 
 interface CardLoadingProps {
   visible?: boolean;
-  lines?: number; 
+  lines?: number;
   lineHeight?: number;
-  lineSpacing?: number; 
+  lineSpacing?: number;
 }
 
 const CardLoading = ({
   visible = true,
   lines = 6,
-  lineHeight = 12,
+  lineHeight = 16,
   lineSpacing = 10,
 }: CardLoadingProps) => {
   const translateX = useRef(new Animated.Value(-width)).current;
 
   useEffect(() => {
+    let animation: Animated.CompositeAnimation;
     if (visible) {
-      Animated.loop(
+      animation = Animated.loop(
         Animated.timing(translateX, {
           toValue: width,
           duration: 1500,
           easing: Easing.linear,
           useNativeDriver: true,
         })
-      ).start();
+      );
+      animation.start();
     }
+
+    return () => {
+      animation?.stop();
+    };
   }, [visible]);
 
   if (!visible) return null;
@@ -126,7 +132,7 @@ const CardLoading = ({
             ...styles.lineWrapper,
             height: lineHeight,
             marginBottom: i !== lines - 1 ? lineSpacing : 0,
-            borderRadius: lineHeight / 2, 
+            borderRadius: lineHeight / 2,
           }}
         >
           <Animated.View

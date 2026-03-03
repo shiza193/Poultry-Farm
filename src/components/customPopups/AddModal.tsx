@@ -358,7 +358,7 @@ const AddModal: React.FC<AddModalProps> = ({
       fetchUnits();
     }
   }, [selectedFlock, type]);
-  
+
   useEffect(() => {
     if (type === 'employee') {
       const fetchEmployeeTypes = async () => {
@@ -1525,8 +1525,10 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedFeedId}
                   data={feedItems || []}
                   placeholder="Select feed..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
-                  containerStyle={styles.dropdownContainer}
+                  style={[styles.dropdownElement, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainerElement}
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                   onChange={item => setSelectedFeedId(item.value)}
                   labelField="label"
                   valueField="value"
@@ -1555,7 +1557,7 @@ const AddModal: React.FC<AddModalProps> = ({
                   setOpen={setFeedTypeOpen}
                   setValue={setSelectedFeedTypeId}
                   placeholder="Select type..."
-                  style={styles.dropdown}
+                  style={styles.dropdownElement}
                   dropDownContainerStyle={styles.dropdownContainer}
                 />
                 {/* DATE */}
@@ -1745,17 +1747,19 @@ const AddModal: React.FC<AddModalProps> = ({
                   data={feedItems || []}
                   placeholder="Select feed..."
                   style={[
-                    styles.dropdown,
+                    styles.dropdownElement,
                     {
                       height: 45,
                       borderColor: Theme.colors.borderLight,
                       borderWidth: 1,
                     },
                   ]}
-                  containerStyle={styles.dropdownContainer}
+                  containerStyle={styles.dropdownContainerElement}
                   onChange={item => setSelectedFeedId(item.value)}
                   labelField="label"
                   valueField="value"
+                  selectedTextStyle={styles.selectedText}
+                  placeholderStyle={styles.placeholderText}
                 />
 
                 {/* PRICE / BAG */}
@@ -1781,8 +1785,9 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedVoucherType}
                   data={voucherTypeItems || []}
                   placeholder="Select voucher type..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
-                  containerStyle={styles.dropdownContainer}
+                  style={[styles.dropdownElement, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainerElement}
+                  placeholderStyle={styles.placeholderText}
                   onChange={item => setSelectedVoucherType(item.value)}
                   labelField="label"
                   valueField="value"
@@ -1808,8 +1813,9 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedCreditAccount}
                   data={accountItems || []}
                   placeholder="Select credit account..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
-                  containerStyle={styles.dropdownContainer}
+                  style={[styles.dropdownElement, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainerElement}
+                  placeholderStyle={styles.placeholderText}
                   onChange={item => setSelectedCreditAccount(item.value)}
                   labelField="label"
                   valueField="value"
@@ -1823,13 +1829,13 @@ const AddModal: React.FC<AddModalProps> = ({
                   value={selectedDebitAccount}
                   data={accountItems || []}
                   placeholder="Select debit account..."
-                  style={[styles.dropdown, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
-                  containerStyle={styles.dropdownContainer}
+                  style={[styles.dropdownElement, { height: 45, borderColor: Theme.colors.borderLight, borderWidth: 1 }]}
+                  containerStyle={styles.dropdownContainerElement}
+                  placeholderStyle={styles.placeholderText}
                   onChange={item => setSelectedDebitAccount(item.value)}
                   labelField="label"
                   valueField="value"
                 />
-
                 {/* DESCRIPTION */}
                 <Text style={styles.label}>
                   Description

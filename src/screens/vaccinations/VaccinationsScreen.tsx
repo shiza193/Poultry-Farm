@@ -162,7 +162,7 @@ const VaccinationsScreen: React.FC<Props> = ({
     };
     // ===== DATA CARD COLUMNS =====
     const columns: TableColumn[] = [
-        { key: "vaccine", title: "VACCINE NAME", isTitle: true, showDots: true },
+        { key: "vaccine", title: "VACCINE NAME", showDots: true },
         { key: "supplier", title: "SUPPLIER" },
         {
             key: "date", title: "DATE", render: (val: string) => <Text>{formatDisplayDate(val)}</Text>

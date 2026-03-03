@@ -235,3 +235,36 @@ export const getFeedStockExcel = async (businessUnitId: string, fileName = 'Feed
     console.error('Error generating Feed Stock Excel:', error);
   }
 };
+
+
+export interface LedgerExcelPayload {
+  businessUnitId: string;
+  searchKey: string | null;
+  dateTime: string | null;
+  pageNumber: number;
+  pageSize: number;
+  partyId: string | null;
+}
+
+export const getLedgerExcel = async (
+  fileName = 'LedgerReport',
+  payload: LedgerExcelPayload
+) => {
+  try {
+    console.log('Sending Ledger Excel Request Payload:', payload);
+
+    const response = await api.post(
+      'api/Export/ledgers-excel',
+      payload,
+      { responseType: 'arraybuffer' }
+    );
+
+    const blob = response.data;
+
+    await saveAndOpenExcelFromArrayBuffer(blob, fileName);
+
+    console.log('Ledger Excel downloaded successfully');
+  } catch (error) {
+    console.error('Error fetching Ledger Excel:', error);
+  }
+};

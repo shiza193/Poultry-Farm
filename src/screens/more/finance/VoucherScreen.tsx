@@ -4,7 +4,6 @@ import DataCard, { TableColumn } from "../../../components/customCards/DataCard"
 import Theme from "../../../theme/Theme";
 import { getAccounts, getVouchers, Voucher, getVoucherTypes, addVoucher } from "../../../services/VoucherService";
 import { useBusinessUnit } from "../../../context/BusinessContext";
-import LoadingOverlay from "../../../components/loading/LoadingOverlay";
 import { useFocusEffect } from "@react-navigation/native";
 import BackArrow from "../../../components/common/ScreenHeaderWithBack";
 import SearchBar from "../../../components/common/SearchBar";
@@ -25,7 +24,13 @@ const formatDate = (date: Date | null): string | null => {
 };
 const VoucherScreen = () => {
     const { businessUnitId } = useBusinessUnit();
-    const [vouchers, setVouchers] = useState<Voucher[]>([]);
+    const [voucherState, setVoucherState] = useState<{
+        list: Voucher[];
+        totalRecords: number;
+    }>({
+        list: [],
+        totalRecords: 0,
+    });
     const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState({
         searchKey: null as string | null,
@@ -33,6 +38,7 @@ const VoucherScreen = () => {
         toDate: null as Date | null,
         accountId: null as string | null,
         voucherTypeId: null as number | null,
+        currentPage: 1,
     });
     const [filterOptions, setFilterOptions] = useState<{
         accounts: { label: string; value: string }[],
@@ -48,11 +54,9 @@ const VoucherScreen = () => {
         type: null,
         selectedVoucher: null,
     });
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalRecords, setTotalRecords] = useState(0);
     const pageSize = 10;
     // Simpler fetch function
-    const fetchVouchers = async (page = currentPage) => {
+    const fetchVouchers = async () => {
         if (!businessUnitId) return;
         setLoading(true);
         const payload = {
@@ -62,14 +66,20 @@ const VoucherScreen = () => {
             searchKey: filters.searchKey || null,
             from: filters.fromDate ? formatDate(filters.fromDate) : null,
             to: filters.toDate ? formatDate(filters.toDate) : null,
-            pageNumber: page,
+            pageNumber: filters.currentPage,
             pageSize: pageSize,
         };
         try {
             const response = await getVouchers(payload);
-            const normalizedVouchers = normalizeDataFormat(response.data.list, 'array', 'Vouchers');
-            setVouchers(normalizedVouchers);
-            setTotalRecords(response.data.totalCount);
+            const normalizedVouchers = normalizeDataFormat(
+                response.data.list,
+                'array',
+                'Vouchers'
+            );
+            setVoucherState({
+                list: normalizedVouchers,
+                totalRecords: response.data.totalCount,
+            });
         } catch (err) {
             console.error("Failed to fetch vouchers:", err);
         } finally {
@@ -128,9 +138,15 @@ const VoucherScreen = () => {
             const res = await addVoucher(payload);
             console.log('API Response:', res);
             if (res.status === "Success") {
-                setVouchers(prev => [...prev, res.data]);
-                setTotalRecords(prev => prev + 1);
-                setCurrentPage(1);
+
+                setVoucherState(prev => ({
+                    list: [res.data, ...prev.list],
+                    totalRecords: prev.totalRecords + 1
+                }));
+                setFilters(prev => ({
+                    ...prev,
+                    currentPage: 1
+                }));
                 showSuccessToast("Voucher added successfully");
             }
         } catch (err: any) {
@@ -160,29 +176,21 @@ const VoucherScreen = () => {
         { key: "voucherType", title: "VOUCHER TYPE", width: 140 },
         {
             key: "debit",
-            title: "DEBIT (RS)",
+            title: "Debit",
             width: 100,
-            render: (_, row: Voucher) => {
-                const totalDebit = row.voucherEntries.reduce((sum, e) => sum + e.debit, 0);
-                return (
-                    <Text>
-                        {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                );
-            },
+            render: (_value: any, row: Voucher) => {
+                const totalDebit = row.voucherEntries?.reduce((sum, e) => sum + e.debit, 0) || 0;
+                return <Text>{totalDebit.toFixed(2)}</Text>;
+            }
         },
         {
             key: "credit",
-            title: "CREDIT (RS)",
+            title: "Credit",
             width: 100,
-            render: (_, row: Voucher) => {
-                const totalCredit = row.voucherEntries.reduce((sum, e) => sum + e.credit, 0);
-                return (
-                    <Text>
-                        {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                );
-            },
+            render: (_value: any, row: Voucher) => {
+                const totalCredit = row.voucherEntries?.reduce((sum, e) => sum + e.credit, 0) || 0;
+                return <Text>{totalCredit.toFixed(2)}</Text>;
+            }
         },
         {
             key: "createdAt",
@@ -227,14 +235,17 @@ const VoucherScreen = () => {
             <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 10 }}>
                 <DataCard
                     columns={columns}
-                    data={vouchers}
+                    data={voucherState.list}
                     loading={loading}
                     itemsPerPage={pageSize}
-                    currentPage={currentPage}
-                    totalRecords={totalRecords}
-                    onPageChange={page => {
-                        setCurrentPage(page);
-                        fetchVouchers(page);
+                    currentPage={filters.currentPage}
+                    totalRecords={voucherState.totalRecords}
+                    onPageChange={(page) => {
+                        setFilters(prev => ({
+                            ...prev,
+                            currentPage: page,
+                        }));
+
                     }}
                 />
             </View>
@@ -278,21 +289,40 @@ const VoucherScreen = () => {
                     { label: "CREATED BY", value: modalState.selectedVoucher.createdBy || "—" },
                 ] : []}
                 tableColumns={[
-                    { key: "accountHead", label: "Account Head", width: 140 },
+                    { key: "accountHead", title: "Account Head", width: 140 },
+
                     {
                         key: "debit",
-                        label: "Debit",
+                        title: "Debit",
                         width: 100,
-                        render: (_: unknown, row: VoucherEntry) => Number(row.debit).toFixed(2)
+                        render: (_: unknown, row: VoucherEntry) => (
+                            <Text>
+                                {Number(row.debit).toFixed(2)}
+                            </Text>
+                        ),
                     },
+
                     {
                         key: "credit",
-                        label: "Credit",
+                        title: "Credit",
                         width: 100,
-                        render: (_: unknown, row: VoucherEntry) => Number(row.credit).toFixed(2)
+                        render: (_: unknown, row: VoucherEntry) => (
+                            <Text>
+                                {Number(row.credit).toFixed(2)}
+                            </Text>
+                        ),
                     },
-                    { key: "description", label: "Description", width: 120 },
-                    { key: "createdAt", label: "Created At", width: 120, render: (val: string) => new Date(val).toLocaleDateString("en-GB") },
+
+                    { key: "description", title: "Description", width: 120 },
+
+                    {
+                        key: "createdAt",
+                        title: "Created At",
+                        width: 120,
+                        render: (val: string) => (
+                            <Text>{new Date(val).toLocaleDateString("en-GB")}</Text>
+                        ),
+                    },
                 ]}
                 tableData={modalState.selectedVoucher?.voucherEntries || []}
             />

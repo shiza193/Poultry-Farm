@@ -22,13 +22,20 @@ import { normalizeDataFormat } from "../../../utils/NormalizeDataFormat";
 
 const ReceivablesScreen = () => {
     const { businessUnitId } = useBusinessUnit();
-    const [receivables, setReceivables] = useState<PayablesReceivablesItem[]>([]);
+    const [receivableState, setReceivableState] = useState<{
+        list: PayablesReceivablesItem[];
+        totalRecords: number;
+    }>({
+        list: [],
+        totalRecords: 0,
+    });
     const [loading, setLoading] = useState(false);
     // Filters
     const [filters, setFilters] = useState({
         searchKey: "",
         filterDate: null as Date | null,
         showPicker: false,
+        currentPage: 1,
     });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
@@ -53,24 +60,32 @@ const ReceivablesScreen = () => {
         },
     ];
     // Fetch API data
-    const fetchReciveables = async (page = currentPage) => {
+    const fetchReciveables = async () => {
         if (!businessUnitId) return;
         setLoading(true);
         try {
             const payload: Payload = {
                 searchKey: filters.searchKey || null,
-                dateTime: filters.filterDate ? filters.filterDate.toISOString() : new Date().toISOString(),
+                dateTime: filters.filterDate
+                    ? filters.filterDate.toISOString()
+                    : new Date().toISOString(),
                 businessUnitId,
                 balanceTypeId: 2,
-                pageNumber: page,
+                pageNumber: filters.currentPage,
                 pageSize: pageSize,
             };
             const response = await getPayablesAndReceivables(payload);
-            const normalizeddata = normalizeDataFormat(response.data.list, 'array', 'Receivables');
-            setReceivables(normalizeddata);
-            setTotalRecords(response.data.totalCount ?? 0);
+            const normalizedData = normalizeDataFormat(
+                response.data.list,
+                'array',
+                'Receivables'
+            );
+            setReceivableState({
+                list: normalizedData,
+                totalRecords: response.data.totalCount ?? 0,
+            });
         } catch (error) {
-            console.error("Failed to fetch payables:", error);
+            console.error("Failed to fetch receivables:", error);
         } finally {
             setLoading(false);
         }
@@ -85,6 +100,7 @@ const ReceivablesScreen = () => {
             ...prev,
             searchKey: "",
             filterDate: null,
+            currentPage: 1,
         }));
     };
     return (
@@ -141,22 +157,24 @@ const ReceivablesScreen = () => {
                 </View>
             </View>
             <View style={{ flex: 1, paddingHorizontal: 16 }}>
-                <DataCard columns={columns}
-                    data={receivables}
+                <DataCard
+                    columns={columns}
+                    data={receivableState.list}
                     loading={loading}
                     itemsPerPage={pageSize}
-                    currentPage={currentPage}
-                    totalRecords={totalRecords}
-                    onPageChange={page => {
-                        setCurrentPage(page);
-                        fetchReciveables(page);
+                    currentPage={filters.currentPage}
+                    totalRecords={receivableState.totalRecords}
+                    onPageChange={(page) => {
+                        setFilters(prev => ({
+                            ...prev,
+                            currentPage: page,
+                        }));
                     }}
                 />
             </View>
         </View>
     );
 };
-
 export default ReceivablesScreen;
 const styles = StyleSheet.create({
     container: {

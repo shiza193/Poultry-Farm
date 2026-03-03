@@ -211,7 +211,7 @@ const FeedConsumptionScreen: React.FC = () => {
         }
     };
     const columns: TableColumn[] = [
-        { key: "ref", title: "REF", width: 140, isTitle: true, showDots: true },
+        { key: "ref", title: "REF", width: 160, showDots: true },
         { key: "flock", title: "FLOCK", width: 160 },
         { key: "feedName", title: "FEED NAME", width: 140 },
         {
@@ -259,7 +259,7 @@ const FeedConsumptionScreen: React.FC = () => {
                         }
                         labelField="label"
                         valueField="value"
-                        placeholder="Select Flock"
+                        placeholder={loading ? 'Loading...' : 'Select Flock'}
                         placeholderStyle={styles.placeholderStyle}
                         selectedTextStyle={styles.selectedTextStyle}
                         value={filters.flockId}
@@ -287,7 +287,7 @@ const FeedConsumptionScreen: React.FC = () => {
                     Reset Filters
                 </Text>
             )}
-            <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 10 }}>
+            <View style={{ flex: 1, paddingHorizontal: 16, marginTop: 5 }}>
                 <DataCard
                     columns={columns}
                     data={data}

@@ -240,7 +240,7 @@ const FeedRecordScreen: React.FC = () => {
         }
     };
     const columns: TableColumn[] = [
-        { key: "feedName", title: "FEED NAME", width: 140, isTitle: true, showDots: true },
+        { key: "feedName", title: "FEED NAME", width: 140,  showDots: true },
         { key: "feedType", title: "FEED TYPE", width: 120 },
         { key: "supplier", title: "SUPPLIER", width: 140 },
         {

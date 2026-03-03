@@ -86,7 +86,7 @@ const FlockStockScreen = () => {
               borderWidth: 2,
               borderColor: isEnded
                 ? Theme.colors.success
-                : Theme.colors.success, // border always shows
+                : Theme.colors.borderColor, // border always shows
               backgroundColor: isEnded ? Theme.colors.success : 'transparent', // fill only for ended
               alignItems: 'center',
               justifyContent: 'center',
