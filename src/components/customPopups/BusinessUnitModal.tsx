@@ -149,23 +149,18 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
   /* ===== ACCOUNT HEAD ===== */
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<string | null>(null);
-  const [accountTypeOpen, setAccountTypeOpen] = useState(false);
-
   const [isActive, setIsActive] = useState<'Active' | 'Inactive'>('Active');
   /* ===== Voucher ===== */
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
-
   const [accountId, setAccountId] = useState<string | null>(null);
   const [voucherTypeId, setVoucherTypeId] = useState<number | null>(null);
-
   // sale filter
   const [saleFromDate, setSaleFromDate] = useState<Date | null>(null);
   const [saleToDate, setSaleToDate] = useState<Date | null>(null);
   const [saleCustomer, setSaleCustomer] = useState<string | null>(null);
-
   const [showSaleFromPicker, setShowSaleFromPicker] = useState(false);
   const [showSaleToPicker, setShowSaleToPicker] = useState(false);
 
@@ -294,6 +289,17 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
     }
   }, [mode, singleFieldValue, visible]);
 
+  // ===== DROPDOWN FALLBACKS =====
+  // Helper to return dropdown items with fallback
+  const getDropdownItems = <T extends { label: string; value?: any; id?: any }>(
+    items?: T[],
+    fallbackLabel = 'There is nothing to show',
+    valueField: 'value' | 'id' = 'value',
+  ) => {
+    if (items && items.length > 0) return items;
+    return [{ label: fallbackLabel, [valueField]: null } as T];
+  };
+
   return (
     <Modal
       visible={visible}
@@ -333,7 +339,11 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               <Dropdown
                 style={styles.dropdown}
                 containerStyle={styles.dropdownContainer}
-                data={flockItems}
+                data={getDropdownItems(
+                  flockItems,
+                  'There is nothing to show',
+                  'id',
+                )}
                 labelField="label"
                 valueField="id"
                 placeholder="Select flock"
@@ -349,7 +359,11 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               <Dropdown
                 style={styles.dropdown}
                 containerStyle={styles.dropdownContainer}
-                data={supplierItems}
+                data={getDropdownItems(
+                  supplierItems,
+                  'There is nothing to show',
+                  'id',
+                )}
                 labelField="label"
                 valueField="id"
                 placeholder="Select supplier"
@@ -408,10 +422,15 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               </View>
 
               {/* ACCOUNT DROPDOWN */}
+              <Text style={styles.inputLabel}>Account</Text>
+
               <Dropdown
                 style={styles.dropdown}
                 containerStyle={styles.dropdownContainer}
-                data={accountOptions}
+                data={getDropdownItems(
+                  accountOptions,
+                  'There is nothing to show',
+                )}
                 labelField="label"
                 valueField="value"
                 placeholder="Select Account"
@@ -420,11 +439,15 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 selectedTextStyle={styles.dropdownText}
                 onChange={item => setAccountId(item.value)}
               />
+              <Text style={styles.inputLabel}>Voucher Type</Text>
 
               <Dropdown
                 style={styles.dropdown}
                 containerStyle={styles.dropdownContainer}
-                data={voucherTypeOptions}
+                data={getDropdownItems(
+                  voucherTypeOptions,
+                  'There is nothing to show',
+                )}
                 labelField="label"
                 valueField="value"
                 placeholder="Select Voucher Type"
@@ -710,12 +733,15 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
 
               {/* ACCOUNT TYPE / PARENT ACCOUNT */}
               <Text style={styles.inputLabel}>
-                Parent Account<Text style={styles.required}>*</Text>
+                Account Type<Text style={styles.required}>*</Text>
               </Text>
               <Dropdown
                 style={styles.dropdowns}
                 containerStyle={styles.dropdownContainers}
-                data={accountTypeItems}
+                data={getDropdownItems(
+                  accountTypeItems,
+                  'There is nothing to show',
+                )}
                 labelField="label"
                 valueField="value"
                 placeholder="Select parent account..."
@@ -726,7 +752,6 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
                 placeholderStyle={styles.dropdownPlaceholder}
                 selectedTextStyle={styles.dropdownText}
               />
-
               {/* STATUS */}
               <Text style={styles.inputLabel}>Status</Text>
               <View style={{ flexDirection: 'row', marginBottom: 10 }}>
@@ -815,7 +840,10 @@ const BusinessUnitModal: React.FC<BusinessUnitModalProps> = ({
               <Dropdown
                 style={styles.dropdown}
                 containerStyle={styles.dropdownContainer}
-                data={customerItems || []}
+                data={getDropdownItems(
+                  customerItems,
+                  'There is nothing to show',
+                )}
                 labelField="label"
                 valueField="value"
                 placeholder="Select customer"
@@ -936,11 +964,11 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.success,
     borderRadius: 8,
   },
-   dropdownContainers: {
+  dropdownContainers: {
     borderColor: Theme.colors.borderLight,
     borderRadius: 8,
   },
-   dropdowns: {
+  dropdowns: {
     borderWidth: 1,
     borderColor: Theme.colors.borderColor,
     borderRadius: 8,

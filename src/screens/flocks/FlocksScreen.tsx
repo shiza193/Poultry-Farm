@@ -307,12 +307,19 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
       width: 110,
       render: (value, row) => (
         <TouchableOpacity
-          onPress={() =>
-            navigation.navigate(CustomConstants.HOSPITALITY_SCREEN, {
+          onPress={() => {
+            // 'Flock' bottom tab select kar
+            navigation.navigate('Flock');
+
+            // Stack ke andar push karo
+            navigation.push('FlockMainScreen', {
+              initialTab: 'hospitality',
               flockId: row.raw.flockId,
-            })
-          }
+            });
+          }}
         >
+
+          
           <Text style={{ fontWeight: '700', color: Theme.colors.black }}>
             {value}
           </Text>
@@ -331,20 +338,20 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
     fetchSuppliers();
   }, [businessUnitId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!businessUnitId) return;
+useFocusEffect(
+  useCallback(() => {
+    if (!businessUnitId) return;
 
-      setCurrentPage(1);
-      fetchFlocks(1); // <-- yahi initially call hoga
-    }, [
-      businessUnitId,
-      filterState.searchKey,
-      filterState.selected.flockId,
-      filterState.selected.supplierId,
-      filterState.isEnded,
-    ]),
-  );
+    fetchFlocks(currentPage);
+  }, [
+    businessUnitId,
+    filterState.searchKey,
+    filterState.selected.flockId,
+    filterState.selected.supplierId,
+    filterState.isEnded,
+    currentPage,
+  ]),
+);
 
   // Dropdowns ko tab fetch karo jab user filter modal open kare
   const openFilterModal = () => {
@@ -497,7 +504,6 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
       console.log('DeleteFlock error:', err);
     }
   };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView>
@@ -717,9 +723,6 @@ const FlocksScreen: React.FC<FlocksScreenProps> = ({
             };
 
             setFilterState(updatedState);
-
-            setCurrentPage(1);
-            fetchFlocks(1);
 
             setModals(prev => ({ ...prev, filter: false }));
           }}

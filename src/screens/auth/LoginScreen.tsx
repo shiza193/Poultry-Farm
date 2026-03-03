@@ -88,11 +88,11 @@ const LoginScreen = ({ navigation }: any) => {
         });
       }
     } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: error?.response?.data?.message || 'Something went wrong',
-      });
+      // Toast.show({
+      //   type: 'error',
+      //   text1: 'Login Failed',
+      //   text2: error?.response?.data?.message || 'Something went wrong',
+      // });
     } finally {
       setLoading(false);
     }

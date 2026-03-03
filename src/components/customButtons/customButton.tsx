@@ -13,7 +13,7 @@ interface PrimaryButtonProps {
   title: string;
   onPress: () => void;
   disabled?: boolean;
-  loading?: boolean;   // 👈 Added loading prop
+  loading?: boolean;   
   style?: ViewStyle;
   textStyle?: TextStyle;
 }
@@ -40,7 +40,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator color={Theme.colors.white} />
+        <ActivityIndicator color={Theme.colors.haedercolor} />
       ) : (
         <Text style={[styles.text, textStyle]}>{title}</Text>
       )}

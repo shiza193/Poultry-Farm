@@ -12,7 +12,6 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
 import Theme from '../../theme/Theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { getEmployeeTypes } from '../../services/EmployeeService';
@@ -53,7 +52,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
 }) => {
   const { width } = useWindowDimensions();
   const fieldWidth = width < 380 ? '100%' : '48%';
-
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState<ProfileData>({ ...data });
   const [isPhoneValid, setIsPhoneValid] = useState(true);
@@ -61,11 +59,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
   const [phoneDraft, setPhoneDraft] = useState('');
   const [addressDraft, setAddressDraft] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
-
   const [buItems, setBUItems] = useState<{ label: string; value: string }[]>(
     [],
   );
-
   const [empTypeItems, setEmpTypeItems] = useState<
     { label: string; value: number }[]
   >([]);
